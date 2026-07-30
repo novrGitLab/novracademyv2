@@ -27,8 +27,16 @@ const typeLabels: Record<Lesson["type"], string> = {
   QUIZ: "Quiz",
   LIVE: "Live class",
 };
-
-export function LessonList({ courseId, lessons }: { courseId: string; lessons: Lesson[] }) {
+  
+export function LessonList({
+  courseId,
+  lessons,
+  onChange,
+}: {
+  courseId: string;
+  lessons: Lesson[];
+  onChange: () => void;
+}) {
   const [newType, setNewType] = useState<Lesson["type"]>("VIDEO");
 
   const boundCreate = createLessonAction.bind(null, courseId);

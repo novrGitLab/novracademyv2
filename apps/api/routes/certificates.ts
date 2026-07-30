@@ -20,11 +20,24 @@ router.get("/:certUid", async (req, res) => {
 // signed R2 URL so a plain link/button can trigger the PDF to open.
 router.get("/:certUid/pdf", async (req, res) => {
   const certificate = await certificateService.getCertificateByUid(req.params.certUid);
+
   if (!certificate.pdfUrl) {
-    return res.status(404).json({ error: "Certificate PDF is still being generated" });
+    return res.status(404).json({
+      error: "Certificate PDF is still being generated",
+    });
   }
-  const downloadUrl = await certificateService.getCertificateDownloadUrl(certificate.pdfUrl);
-  res.redirect(302, downloadUrl);
+
+  const downloadUrl = await certificateService.getCertificateDownloadUrl(
+    certificate.pdfUrl
+  );
+
+  if (!downloadUrl) {
+    return res.status(404).json({
+      error: "Certificate download URL could not be generated",
+    });
+  }
+
+  return res.redirect(302, downloadUrl);
 });
 
 export default router;
