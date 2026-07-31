@@ -62,7 +62,12 @@ export function Sidebar() {
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3">
         {nav.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          // Only use prefix matching for items that don't have child routes in the nav.
+          // Otherwise, "/dashboard/learn" would highlight both Home and Learn.
+          const isParent = nav.some((other) => other !== item && other.href.startsWith(`${item.href}/`));
+          const active = isParent
+            ? pathname === item.href
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
           return (
             <Link

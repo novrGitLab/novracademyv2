@@ -1,5 +1,6 @@
 import { prisma } from "@novr/db";
 import type { MemberType, UserRole, UserStatus } from "@novr/types";
+import bcrypt from "bcryptjs";
 import { autoJoinGeneral } from "./groupService";
 
 const listSelect = {
@@ -87,9 +88,11 @@ export interface CreateUserInput {
   role?: UserRole;
   memberType?: MemberType;
   managerId?: string;
+  password?: string;
 }
 
 export async function createUser(input: CreateUserInput) {
+  const passwordHash = input.password ? await bcrypt.hash(input.password, 10) : undefined;
   const user = await prisma.user.create({
     data: {
       email: input.email,
@@ -97,6 +100,7 @@ export async function createUser(input: CreateUserInput) {
       role: input.role,
       memberType: input.memberType,
       managerId: input.managerId,
+      ...(passwordHash && { passwordHash }),
     },
     select: listSelect,
   });

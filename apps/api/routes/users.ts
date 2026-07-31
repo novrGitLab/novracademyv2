@@ -57,6 +57,7 @@ const createUserSchema = z.object({
   role: z.nativeEnum(UserRole).optional(),
   memberType: z.nativeEnum(MemberType).optional(),
   managerId: z.string().optional(),
+  password: z.string().min(8).optional(),
 });
 
 // POST /users — admins only.

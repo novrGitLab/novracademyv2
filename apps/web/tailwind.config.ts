@@ -47,6 +47,63 @@ const config: Config = {
         "gradient-brand": "linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)",
         "gradient-surface": "linear-gradient(180deg, #FFFFFF 0%, #F8F9FB 100%)",
       },
+
+      /* ── Animation timing ── */
+      transitionDuration: {
+        "600": "600ms",
+        "1200": "1200ms",
+      },
+      transitionTimingFunction: {
+        "out-expo": "cubic-bezier(0.16, 1, 0.3, 1)",
+      },
+
+      /* ── Keyframe animations ── */
+      keyframes: {
+        "fade-in-up": {
+          "0%":   { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in": {
+          "0%":   { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "slide-in-right": {
+          "0%":   { opacity: "0", transform: "translateX(20px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        "slide-down": {
+          "0%":   { opacity: "0", transform: "translateY(-8px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        shake: {
+          "0%, 100%": { transform: "translateX(0)" },
+          "10%, 50%, 90%": { transform: "translateX(-4px)" },
+          "30%, 70%": { transform: "translateX(4px)" },
+        },
+        "scale-pop": {
+          "0%":   { transform: "scale(1)" },
+          "50%":  { transform: "scale(0.98)" },
+          "100%": { transform: "scale(1)" },
+        },
+        pulse: {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%":      { transform: "scale(1.02)" },
+        },
+        spin: {
+          "0%":   { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
+        },
+      },
+      animation: {
+        "fade-in-up": "fade-in-up 600ms ease-out forwards",
+        "fade-in": "fade-in 500ms ease-out forwards",
+        "slide-in-right": "slide-in-right 500ms ease-out forwards",
+        "slide-down": "slide-down 200ms ease-out forwards",
+        shake: "shake 400ms ease-in-out",
+        "scale-pop": "scale-pop 100ms ease-in-out",
+        pulse: "pulse 2s ease-in-out infinite",
+        spin: "spin 600ms linear infinite",
+      },
     },
   },
   plugins: [],

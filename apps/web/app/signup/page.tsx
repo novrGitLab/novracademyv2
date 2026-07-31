@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { BookOpen, Lock, Mail, Sparkles, Users2 } from "lucide-react";
+import { BookOpen, Lock, Mail, Sparkles, User, Users2 } from "lucide-react";
+import { createUserAccount } from "./actions";
 
 function GoogleIcon() {
   return (
@@ -37,30 +38,64 @@ function MicrosoftIcon() {
   );
 }
 
-export default function LoginPage() {
-  const searchParams = useSearchParams();
+export default function SignUpPage() {
+  const router = useRouter();
+
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  function validate(): string | null {
+    if (!fullName.trim()) return "Please enter your full name.";
+    if (!email.trim()) return "Please enter your email.";
+    // Basic email format check
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Please enter a valid email address.";
+    if (password.length < 8) return "Password must be at least 8 characters.";
+    if (password !== confirmPassword) return "Passwords do not match.";
+    return null;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setLoading(true);
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-      callbackUrl: "/dashboard",
-    });
-    setLoading(false);
-    if (result?.error) {
-      setError("Invalid email or password.");
+
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
       return;
     }
-    window.location.href = result?.url ?? "/dashboard";
+
+    setLoading(true);
+    try {
+      const result = await createUserAccount({ name: fullName, email, password });
+      if (!result.success) {
+        setError(result.error || "Something went wrong. Please try again.");
+        return;
+      }
+      // Auto sign-in after successful registration
+      const signInResult = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+      if (signInResult?.error) {
+        // Account created but sign-in failed — redirect to login
+        router.push("/login?success=1");
+        return;
+      }
+      window.location.href = "/dashboard";
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
+
+  const inputClasses =
+    "w-full rounded-card border border-border bg-surface py-2 pl-9 pr-3 text-[15px] text-text-primary outline-none transition focus:border-blue focus:bg-background focus:ring-2 focus:ring-blue/10";
 
   return (
     <main className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
@@ -84,10 +119,10 @@ export default function LoginPage() {
 
         <div className="relative max-w-md">
           <h1 className="text-[38px] font-semibold leading-tight tracking-tight">
-            Learning and community, in one place.
+            Start your learning journey.
           </h1>
           <p className="mt-4 text-[16px] text-white/85">
-            Courses, certificates, mentorship, and a network that grows with you — all under one roof.
+            Create your account to access courses, connect with mentors, and earn certificates.
           </p>
 
           <div className="mt-10 space-y-4">
@@ -109,16 +144,28 @@ export default function LoginPage() {
             <span className="text-[17px] font-bold tracking-tight text-text-primary">Novr Academy</span>
           </div>
 
-          <h1 className="text-[24px] font-semibold text-text-primary">Welcome back</h1>
-          <p className="mt-1 text-[15px] text-text-secondary">Sign in to continue to your dashboard.</p>
-
-          {searchParams.get("success") === "1" && (
-            <div className="mt-4 rounded-card bg-success-light px-3 py-2 text-[13px] text-success">
-              Account created successfully! Please sign in.
-            </div>
-          )}
+          <h1 className="text-[24px] font-semibold text-text-primary">Create your account</h1>
+          <p className="mt-1 text-[15px] text-text-secondary">Join Novr Academy today.</p>
 
           <form onSubmit={handleSubmit} className="mt-7 space-y-4">
+            <div>
+              <label htmlFor="fullName" className="text-[13px] font-medium text-text-secondary">
+                Full name
+              </label>
+              <div className="relative mt-1">
+                <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" strokeWidth={2} />
+                <input
+                  id="fullName"
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Jane Doe"
+                  className={inputClasses}
+                />
+              </div>
+            </div>
+
             <div>
               <label htmlFor="email" className="text-[13px] font-medium text-text-secondary">
                 Email
@@ -132,10 +179,11 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full rounded-card border border-border bg-surface py-2 pl-9 pr-3 text-[15px] text-text-primary outline-none transition focus:border-blue focus:bg-background focus:ring-2 focus:ring-blue/10"
+                  className={inputClasses}
                 />
               </div>
             </div>
+
             <div>
               <label htmlFor="password" className="text-[13px] font-medium text-text-secondary">
                 Password
@@ -146,10 +194,29 @@ export default function LoginPage() {
                   id="password"
                   type="password"
                   required
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-card border border-border bg-surface py-2 pl-9 pr-3 text-[15px] text-text-primary outline-none transition focus:border-blue focus:bg-background focus:ring-2 focus:ring-blue/10"
+                  className={inputClasses}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="text-[13px] font-medium text-text-secondary">
+                Confirm password
+              </label>
+              <div className="relative mt-1">
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" strokeWidth={2} />
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className={inputClasses}
                 />
               </div>
             </div>
@@ -163,7 +230,7 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full rounded-card bg-blue px-4 py-2.5 text-[15px] font-medium text-white shadow-card transition hover:bg-blue/90 hover:shadow-card-hover disabled:opacity-60"
             >
-              {loading ? "Signing in…" : "Sign in"}
+              {loading ? "Creating account…" : "Create account"}
             </button>
           </form>
 
@@ -175,14 +242,14 @@ export default function LoginPage() {
 
           <div className="space-y-2.5">
             <button
-              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+              type="button"
               className="flex w-full items-center justify-center gap-2.5 rounded-card border border-border bg-background px-4 py-2.5 text-[14px] font-medium text-text-primary shadow-card transition hover:bg-surface"
             >
               <GoogleIcon />
               Continue with Google
             </button>
             <button
-              onClick={() => signIn("azure-ad", { callbackUrl: "/dashboard" })}
+              type="button"
               className="flex w-full items-center justify-center gap-2.5 rounded-card border border-border bg-background px-4 py-2.5 text-[14px] font-medium text-text-primary shadow-card transition hover:bg-surface"
             >
               <MicrosoftIcon />
@@ -191,15 +258,9 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-8 text-center text-[13px] text-text-secondary">
-            Don't have an account?{" "}
-            <Link href="/signup" className="font-medium text-blue hover:underline">
-              Sign up
-            </Link>
-          </p>
-          <p className="mt-3 text-center text-[13px] text-text-secondary">
-            Have a claim link instead?{" "}
-            <Link href="/" className="font-medium text-blue hover:underline">
-              Go to homepage
+            Already have an account?{" "}
+            <Link href="/login" className="font-medium text-blue hover:underline">
+              Sign in
             </Link>
           </p>
         </div>
