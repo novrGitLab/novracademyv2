@@ -1,0 +1,367 @@
+/**
+ * Novr Academy — Animation System
+ * ────────────────────────────────────────────
+ * CSS keyframes + utility classes for micro-interactions.
+ * Import this in globals.css: @import "./animations.css";
+ *
+ * Naming convention:
+ *   .anim-{name}        → base state (hidden/before)
+ *   .anim-{name}.anim-in → visible state (after)
+ *   .anim-out           → reset to base state (for re-trigger)
+ */
+
+/* ════════════════════════════════════════════
+ * KEYFRAMES
+ * ════════════════════════════════════════════ */
+
+/* Fade up (hero, cards, sections) */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade in (auth panels, overlays) */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Slide in from right (auth right panel, mobile menu) */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Slide in from right edge (mobile menu drawer) */
+@keyframes slideInFromRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+/* Slide down (error messages) */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Shake (form validation errors) */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 50%, 90% { transform: translateX(-4px); }
+  30%, 70% { transform: translateX(4px); }
+}
+
+/* Pulse (CTA button hover) */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.02); }
+}
+
+/* Spinner (loading states) */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Underline slide-in from center (nav links) */
+@keyframes underlineIn {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Scale pop (button click feedback) */
+@keyframes scalePop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+/* Blur-in (sticky nav background) */
+@keyframes blurIn {
+  from {
+    backdrop-filter: blur(0px);
+    background-color: rgba(255, 255, 255, 0);
+  }
+  to {
+    backdrop-filter: blur(12px);
+    background-color: rgba(255, 255, 255, 0.85);
+  }
+}
+
+/* Page transition: fade out + slight down */
+@keyframes pageOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Page transition: fade in + slight up */
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ════════════════════════════════════════════
+ * ANIMATION BASE CLASSES
+ * ════════════════════════════════════════════ */
+
+/* --- Fade Up --- */
+.anim-fade-up {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 600ms ease-out, transform 600ms ease-out;
+}
+.anim-fade-up.anim-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --- Fade In --- */
+.anim-fade {
+  opacity: 0;
+  transition: opacity 500ms ease-out;
+}
+.anim-fade.anim-in {
+  opacity: 1;
+}
+
+/* --- Slide In Right --- */
+.anim-slide-right {
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 500ms ease-out, transform 500ms ease-out;
+}
+.anim-slide-right.anim-in {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* --- Slide Down (errors) --- */
+.anim-slide-down {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+.anim-slide-down.anim-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --- Shake --- */
+.anim-shake {
+  animation: shake 400ms ease-in-out;
+}
+
+/* --- Scale Pop (button click) --- */
+.anim-click:active {
+  animation: scalePop 100ms ease-in-out;
+}
+
+
+/* ════════════════════════════════════════════
+ * DELAY UTILITIES
+ * ════════════════════════════════════════════ */
+
+.anim-delay-0   { transition-delay: 0ms; }
+.anim-delay-100 { transition-delay: 100ms; }
+.anim-delay-150 { transition-delay: 150ms; }
+.anim-delay-200 { transition-delay: 200ms; }
+.anim-delay-300 { transition-delay: 300ms; }
+.anim-delay-400 { transition-delay: 400ms; }
+.anim-delay-500 { transition-delay: 500ms; }
+.anim-delay-600 { transition-delay: 600ms; }
+.anim-delay-800 { transition-delay: 800ms; }
+.anim-delay-1000 { transition-delay: 1000ms; }
+
+
+/* ════════════════════════════════════════════
+ * DURATION UTILITIES
+ * ════════════════════════════════════════════ */
+
+.anim-duration-150 { transition-duration: 150ms; }
+.anim-duration-200 { transition-duration: 200ms; }
+.anim-duration-300 { transition-duration: 300ms; }
+.anim-duration-400 { transition-duration: 400ms; }
+.anim-duration-500 { transition-duration: 500ms; }
+.anim-duration-600 { transition-duration: 600ms; }
+
+
+/* ════════════════════════════════════════════
+ * INTERACTIVE STATES (always-on, no JS needed)
+ * ════════════════════════════════════════════ */
+
+/* Card hover: lift + shadow */
+.anim-card-hover {
+  transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.anim-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px -8px rgba(17, 24, 39, 0.12),
+              0 2px 6px -2px rgba(17, 24, 39, 0.06);
+}
+
+/* Button hover: subtle scale */
+.anim-btn-hover {
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
+}
+.anim-btn-hover:hover {
+  transform: scale(1.02);
+}
+.anim-btn-hover:active {
+  transform: scale(0.98);
+  transition-duration: 100ms;
+}
+
+/* Link underline from center */
+.anim-underline {
+  position: relative;
+}
+.anim-underline::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 200ms ease-out;
+}
+.anim-underline:hover::after {
+  transform: scaleX(1);
+}
+
+/* Input focus ring */
+.anim-input {
+  transition: border-color 200ms ease-out, box-shadow 150ms ease-out;
+}
+.anim-input:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Loading spinner */
+.anim-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 600ms linear infinite;
+}
+
+/* Sticky nav: blur + shadow on scroll (add this class via JS on scroll) */
+.anim-nav-scrolled {
+  backdrop-filter: blur(12px);
+  background-color: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: backdrop-filter 300ms ease-out,
+              background-color 300ms ease-out,
+              box-shadow 300ms ease-out;
+}
+
+/* Mobile menu overlay */
+.anim-overlay {
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+  pointer-events: none;
+}
+.anim-overlay.anim-in {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Mobile menu drawer */
+.anim-drawer {
+  transform: translateX(100%);
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.anim-drawer.anim-in {
+  transform: translateX(0);
+}
+
+
+/* ════════════════════════════════════════════
+ * PAGE TRANSITION
+ * ════════════════════════════════════════════ */
+
+.page-enter {
+  animation: pageIn 200ms ease-out forwards;
+}
+.page-exit {
+  animation: pageOut 150ms ease-in forwards;
+}
+
+
+/* ════════════════════════════════════════════
+ * REDUCED MOTION
+ * ════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-up,
+  .anim-fade,
+  .anim-slide-right,
+  .anim-slide-down {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .anim-card-hover:hover,
+  .anim-btn-hover:hover,
+  .anim-btn-hover:active {
+    transform: none;
+  }
+
+  .anim-underline::after {
+    transition: none;
+  }
+
+  .anim-spinner {
+    animation: spin 1.2s linear infinite;
+  }
+
+  .page-enter,
+  .page-exit {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .anim-shake {
+    animation: none;
+  }
+}

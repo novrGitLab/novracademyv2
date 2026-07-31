@@ -1,0 +1,83 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { enrollFreeAction, startCheckoutAction } from "./actions";
+
+export function EnrollButton({
+  courseId,
+  priceCents,
+  currency,
+}: {
+  courseId: string;
+  priceCents: number;
+  currency: string;
+}) {
+  const router = useRouter();
+  const [loading, setLoading] = useState<"FREE" | "STRIPE" | "PAYSTACK" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleFree() {
+    setLoading("FREE");
+    setError(null);
+    const outcome = await enrollFreeAction(courseId);
+    setLoading(null);
+    if (!outcome.ok) {
+      setError(outcome.error);
+      return;
+    }
+    router.refresh();
+  }
+
+  async function handleCheckout(provider: "STRIPE" | "PAYSTACK") {
+    setLoading(provider);
+    setError(null);
+    const outcome = await startCheckoutAction(courseId, provider);
+    setLoading(null);
+    if (!outcome.ok) {
+      setError(outcome.error);
+      return;
+    }
+    window.location.href = outcome.checkoutUrl;
+  }
+
+  return (
+    <div className="mt-6 rounded-card border border-border bg-surface p-4">
+      {priceCents === 0 ? (
+        <button
+          type="button"
+          onClick={handleFree}
+          disabled={loading !== null}
+          className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90 disabled:opacity-50"
+        >
+          {loading === "FREE" ? "Enrolling…" : "Enroll for free"}
+        </button>
+      ) : (
+        <div>
+          <p className="text-[15px] font-medium text-text-primary">
+            {(priceCents / 100).toFixed(2)} {currency}
+          </p>
+          <div className="mt-3 flex gap-3">
+            <button
+              type="button"
+              onClick={() => handleCheckout("STRIPE")}
+              disabled={loading !== null}
+              className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90 disabled:opacity-50"
+            >
+              {loading === "STRIPE" ? "Redirecting…" : "Pay with card (Stripe)"}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleCheckout("PAYSTACK")}
+              disabled={loading !== null}
+              className="rounded-card border border-blue px-4 py-2 text-[15px] font-medium text-blue hover:bg-blue-light disabled:opacity-50"
+            >
+              {loading === "PAYSTACK" ? "Redirecting…" : "Pay with Paystack"}
+            </button>
+          </div>
+        </div>
+      )}
+      {error && <p className="mt-3 rounded-pill bg-red-light px-3 py-2 text-[13px] text-red">{error}</p>}
+    </div>
+  );
+}
