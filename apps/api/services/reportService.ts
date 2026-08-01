@@ -63,7 +63,8 @@ export async function getTimeSpentReport() {
     where: { id: { in: rows.map((r) => r.userId) } },
     select: { id: true, name: true, email: true },
   });
-  const userById = new Map(users.map((u) => [u.id, u]));
+  type UserRow = { id: string; name: string | null; email: string };
+  const userById = new Map<string, UserRow>(users.map((u) => [u.id, u]));
   return rows.map((r) => {
     const user = userById.get(r.userId);
     return {
@@ -79,8 +80,9 @@ export async function getLearnerProgressReport(userId: string) {
     where: { userId },
     include: { lesson: { select: { title: true, order: true, course: { select: { title: true } } } } },
   });
+  type ProgressRow = (typeof progress)[number];
   return progress
-    .sort((a, b) => a.lesson.order - b.lesson.order)
+    .sort((a: ProgressRow, b: ProgressRow) => a.lesson.order - b.lesson.order)
     .map((p) => ({
       course: p.lesson.course.title,
       lesson: p.lesson.title,
@@ -96,6 +98,7 @@ export async function getRevenueReport() {
     include: { user: { select: { name: true, email: true } }, course: { select: { title: true } } },
     orderBy: { createdAt: "desc" },
   });
+  type PaymentRow = (typeof payments)[number];
   return payments.map((p) => ({
     learner: p.user.name ?? p.user.email,
     course: p.course?.title ?? "",
@@ -122,6 +125,7 @@ export async function getCommunityEngagementReport() {
       },
     },
   });
+  type UserEngagementRow = (typeof users)[number];
   return users.map((u) => ({
     member: u.name ?? u.email,
     email: u.email,
