@@ -6,6 +6,9 @@
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
+    "@novr/db#build": {
+      "outputs": []
+    },
     "dev": {
       "cache": false,
       "persistent": true
