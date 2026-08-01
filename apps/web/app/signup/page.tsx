@@ -80,13 +80,14 @@ export default function SignUpPage() {
         email,
         password,
         redirect: false,
+        callbackUrl: "/dashboard",
       });
       if (signInResult?.error) {
         // Account created but sign-in failed — redirect to login
         router.push("/login?success=1");
         return;
       }
-      window.location.href = "/dashboard";
+      router.push("/dashboard");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
