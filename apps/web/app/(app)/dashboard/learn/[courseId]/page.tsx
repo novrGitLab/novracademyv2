@@ -1,148 +1,160 @@
 import Link from "next/link";
+import { getHardcodedCourse } from "@/lib/courses-data";
 import { notFound } from "next/navigation";
-import { apiFetch, ApiError } from "@/lib/api";
-import { EnrollButton } from "./EnrollButton";
+import { Award, BookOpen, Lock, PlayCircle, CheckCircle, FileText, HelpCircle } from "lucide-react";
 
-interface CourseDetail {
-  id: string;
-  title: string;
-  description: string | null;
-  priceCents: number;
-  currency: string;
-}
-
-interface LessonProgressEntry {
-  lessonId: string;
-  title: string;
-  type: "VIDEO" | "PDF" | "QUIZ" | "LIVE";
-  order: number;
-  unlocked: boolean;
-  completed: boolean;
-  watchPct: number;
-}
-
-const typeLabels: Record<LessonProgressEntry["type"], string> = {
+const typeLabels: Record<string, string> = {
   VIDEO: "Video",
   PDF: "PDF",
   QUIZ: "Quiz",
-  LIVE: "Live class",
+  LIVE: "Live",
 };
 
-export default async function LearnCoursePage({ params }: { params: { courseId: string } }) {
-  const course = await apiFetch<CourseDetail>(`/courses/${params.courseId}`).catch(() => null);
+const typeIcons: Record<string, typeof BookOpen> = {
+  VIDEO: PlayCircle,
+  PDF: FileText,
+  QUIZ: HelpCircle,
+  LIVE: BookOpen,
+};
+
+export default async function CourseDetailPage({
+  params,
+}: {
+  params: { courseId: string };
+}) {
+  const course = getHardcodedCourse(params.courseId);
   if (!course) notFound();
 
-  let lessons: LessonProgressEntry[] | null = null;
-  let courseProgressPct = 0;
-  let completedAt: string | null = null;
-  let notEnrolled = false;
-  let certUid: string | null = null;
-  let loadError = false;
-  try {
-    const progress = await apiFetch<{
-      lessons: LessonProgressEntry[];
-      courseProgressPct: number;
-      completedAt: string | null;
-    }>(`/courses/${params.courseId}/progress`);
-    lessons = progress.lessons;
-    courseProgressPct = progress.courseProgressPct;
-    completedAt = progress.completedAt;
-
-    if (completedAt) {
-      const certificate = await apiFetch<{ certUid: string }>(`/courses/${params.courseId}/certificate`).catch(
-        () => null
-      );
-      certUid = certificate?.certUid ?? null;
-    }
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 403) {
-      notEnrolled = true;
-    } else {
-      console.warn(`Failed to load progress for course ${params.courseId}:`, (err as Error).message);
-      loadError = true;
-    }
-  }
+  const lessons = course.lessons;
+  const completedCount = lessons.filter((l) => l.completed).length;
+  const courseProgressPct =
+    lessons.length > 0 ? Math.round((completedCount / lessons.length) * 100) : 0;
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-[24px] font-semibold text-text-primary">{course.title}</h1>
-      {course.description && <p className="mt-1 text-[15px] text-text-secondary">{course.description}</p>}
+    <div className="mx-auto max-w-4xl">
+      {/* Course header */}
+      <div className="rounded-card bg-gradient-brand p-8 text-white shadow-premium">
+        <h1 className="text-[28px] font-semibold tracking-tight">{course.title}</h1>
+        {course.description && (
+          <p className="mt-2 max-w-xl text-[15px] text-white/85">{course.description}</p>
+        )}
+        <div className="mt-4 flex items-center gap-4">
+          <span className="text-[14px] font-medium text-white/80">
+            {lessons.length} lesson{lessons.length !== 1 ? "s" : ""}
+          </span>
+          {course.priceCents === 0 ? (
+            <span className="rounded-pill bg-white/15 px-3 py-1 text-[13px] font-medium backdrop-blur">
+              Free
+            </span>
+          ) : (
+            <span className="rounded-pill bg-white/15 px-3 py-1 text-[13px] font-medium backdrop-blur">
+              {(course.priceCents / 100).toFixed(2)} {course.currency}
+            </span>
+          )}
+        </div>
+      </div>
 
-      {notEnrolled && (
-        <EnrollButton courseId={params.courseId} priceCents={course.priceCents} currency={course.currency} />
-      )}
-
-      {loadError && (
-        <p className="mt-6 rounded-card border border-border bg-surface px-4 py-3 text-[15px] text-text-secondary">
-          Couldn't load your progress right now. Try refreshing the page.
-        </p>
-      )}
-
-      {lessons && (
-        <div className="mt-6">
-          <div className="flex items-center justify-between text-[13px] text-text-secondary">
-            <span>Course progress</span>
-            <span>{completedAt ? "Completed 🎉" : `${Math.round(courseProgressPct)}%`}</span>
-          </div>
-          <div className="mt-1 h-2 w-full overflow-hidden rounded-pill bg-surface">
-            <div
-              className={`h-full transition-all ${completedAt ? "bg-success" : "bg-blue"}`}
-              style={{ width: `${Math.min(100, courseProgressPct)}%` }}
-            />
-          </div>
-
-          {completedAt && (
+      {/* Progress bar */}
+      <div className="mt-6 rounded-card border border-border bg-background p-5 shadow-card">
+        <div className="flex items-center justify-between">
+          <p className="text-[14px] font-medium text-text-primary">
+            {courseProgressPct === 100 ? (
+              <span className="flex items-center gap-2 text-success">
+                <CheckCircle className="h-4 w-4" /> Completed
+              </span>
+            ) : (
+              `${courseProgressPct}% complete`
+            )}
+          </p>
+          {courseProgressPct === 100 && (
             <Link
-              href={certUid ? `/certificates/${certUid}` : "#"}
-              className={`mt-3 inline-block rounded-card px-4 py-2 text-[15px] font-medium text-white ${
-                certUid ? "bg-blue hover:bg-blue/90" : "pointer-events-none bg-surface text-text-secondary"
-              }`}
+              href={`/dashboard/learn/${course.id}/certificate`}
+              className="flex items-center gap-1.5 text-[13px] font-medium text-blue hover:underline"
             >
-              {certUid ? "View certificate" : "Certificate generating…"}
+              <Award className="h-4 w-4" /> View certificate
             </Link>
           )}
         </div>
-      )}
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface">
+          <div
+            className="h-full rounded-full bg-gradient-brand transition-all"
+            style={{ width: `${courseProgressPct}%` }}
+          />
+        </div>
+      </div>
 
-      {lessons && (
-        <div className="mt-6 space-y-2">
-          {lessons.map((lesson) => (
-            <div
-              key={lesson.lessonId}
-              className="flex items-center justify-between rounded-card border border-border bg-background px-4 py-3"
-            >
-              <div className="flex items-center gap-3">
-                <span className="rounded-pill bg-blue-light px-2 py-1 text-[13px] font-medium text-blue">
-                  {typeLabels[lesson.type]}
-                </span>
-                <div>
-                  {lesson.unlocked ? (
-                    <Link
-                      href={`/dashboard/learn/${params.courseId}/lessons/${lesson.lessonId}`}
-                      className="text-[15px] font-medium text-text-primary hover:text-blue"
-                    >
-                      {lesson.title}
-                    </Link>
-                  ) : (
-                    <span className="text-[15px] font-medium text-text-secondary">{lesson.title}</span>
-                  )}
-                  {lesson.type === "VIDEO" && lesson.unlocked && (
-                    <p className="text-[13px] text-text-secondary">{Math.round(lesson.watchPct)}% watched</p>
+      {/* Lesson list */}
+      <h2 className="mt-8 text-[17px] font-semibold text-text-primary">Lessons</h2>
+      <div className="mt-3 space-y-2">
+        {lessons.map((lesson) => {
+          const Icon = typeIcons[lesson.type] ?? BookOpen;
+          const lessonContent = (
+            <>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface">
+                {lesson.completed ? (
+                  <CheckCircle className="h-4 w-4 text-success" />
+                ) : lesson.unlocked ? (
+                  <Icon className="h-4 w-4 text-text-secondary" />
+                ) : (
+                  <Lock className="h-4 w-4 text-text-secondary" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p
+                  className={`text-[14px] font-medium ${
+                    lesson.unlocked ? "text-text-primary" : "text-text-secondary"
+                  }`}
+                >
+                  {lesson.title}
+                </p>
+                <div className="mt-0.5 flex items-center gap-2">
+                  <span className="rounded-pill bg-surface px-2 py-0.5 text-[11px] font-medium text-text-secondary">
+                    {typeLabels[lesson.type]}
+                  </span>
+                  {lesson.type === "PDF" && lesson.watchPct > 0 && (
+                    <span className="text-[11px] text-text-secondary">
+                      {lesson.watchPct}% read
+                    </span>
                   )}
                 </div>
               </div>
+              <div>
+                {lesson.completed ? (
+                  <span className="text-[12px] font-medium text-success">Completed</span>
+                ) : lesson.unlocked ? (
+                  <span className="text-[12px] font-medium text-blue">Start</span>
+                ) : (
+                  <span className="text-[12px] font-medium text-text-secondary">Locked</span>
+                )}
+              </div>
+            </>
+          );
 
-              {lesson.completed ? (
-                <span className="rounded-pill bg-success-light px-2 py-1 text-[13px] text-success">Completed</span>
-              ) : lesson.unlocked ? (
-                <span className="rounded-pill bg-surface px-2 py-1 text-[13px] text-text-secondary">In progress</span>
-              ) : (
-                <span className="rounded-pill bg-surface px-2 py-1 text-[13px] text-text-secondary">🔒 Locked</span>
-              )}
+          const rowClass = `flex items-center gap-4 rounded-card border px-4 py-3 transition ${
+            lesson.unlocked
+              ? "border-border bg-background shadow-card hover:shadow-card-hover cursor-pointer"
+              : "border-border/50 bg-surface/50 opacity-60"
+          }`;
+
+          if (lesson.unlocked) {
+            return (
+              <Link
+                key={lesson.lessonId}
+                href={`/dashboard/learn/${params.courseId}/lessons/${lesson.lessonId}`}
+                className={rowClass}
+              >
+                {lessonContent}
+              </Link>
+            );
+          }
+
+          return (
+            <div key={lesson.lessonId} className={rowClass}>
+              {lessonContent}
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }

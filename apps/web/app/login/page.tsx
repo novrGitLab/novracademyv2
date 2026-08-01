@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { BookOpen, Lock, Mail, Sparkles, Users2 } from "lucide-react";
 
@@ -38,6 +38,7 @@ function MicrosoftIcon() {
 }
 
 function LoginForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,7 +60,7 @@ function LoginForm() {
       setError("Invalid email or password.");
       return;
     }
-    window.location.href = result?.url ?? "/dashboard";
+    router.push("/dashboard");
   }
 
   return (
