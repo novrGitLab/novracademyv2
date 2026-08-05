@@ -8,3 +8,5 @@ out/
 *.log
 .DS_Store
 packages/db/generated/
+.env.production
+*.tsbuildinfo
