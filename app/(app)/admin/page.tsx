@@ -14,23 +14,15 @@ import {
   UpcomingCohort,
 } from "./AdminWidgets";
 import {
-  Activity,
-  ArrowUpRight,
   BarChart3,
   Bell,
   BookOpen,
   Building2,
-  Clock,
-  DollarSign,
-  ExternalLink,
   FileText,
   GraduationCap,
-  Layers,
   Plus,
-  Server,
   Settings,
   ShieldCheck,
-  TrendingUp,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -107,6 +99,13 @@ const orgEmployees = [
   { id: "3", name: "Elena Rostova", department: "HR", phishing: "Passed (2/3)", courseProgress: 75, status: "Remedial" },
 ];
 
+const courseStats = [
+  { id: "1", title: "Security Basics", status: "PUBLISHED", enrollments: 1240, completionRate: 82, lessons: 8 },
+  { id: "2", title: "Data Privacy Fundamentals", status: "PUBLISHED", enrollments: 890, completionRate: 76, lessons: 6 },
+  { id: "3", title: "Incident Response 101", status: "PUBLISHED", enrollments: 650, completionRate: 71, lessons: 5 },
+  { id: "4", title: "Phishing Awareness", status: "DRAFT", enrollments: 0, completionRate: 0, lessons: 4 },
+];
+
 /* -------------------------------------------------------------------------- */
 /*  Shared components                                                          */
 /* -------------------------------------------------------------------------- */
@@ -147,7 +146,6 @@ function ComplianceBar({ value }: { value: number }) {
 function SuperAdminDashboard() {
   return (
     <div className="space-y-6">
-      {/* Platform stats */}
       <StatsRow stats={[
         { label: "Total Active Users", value: "14,285" },
         { label: "Monthly Revenue", value: "$845k", color: "purple" },
@@ -156,7 +154,6 @@ function SuperAdminDashboard() {
         { label: "System Uptime", value: "99.97%" },
       ]} />
 
-      {/* Tenant Overview table */}
       <div className="rounded-[8px] border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
         <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-4">
           <h3 className="font-serif text-[20px] font-semibold text-[#1A1A2E]">Tenant Overview</h3>
@@ -181,13 +178,10 @@ function SuperAdminDashboard() {
                     <Link href={t.type === "ORG" ? `/admin/organizations/${t.id}` : `/admin/institutions/${t.id}`} className="flex items-center gap-3 text-[14px] font-medium text-[#1A1A2E] hover:text-[#683290]">
                       {t.type === "ORG" ? <Building2 className="h-4 w-4 text-[#683290]" /> : <GraduationCap className="h-4 w-4 text-[#2563EB]" />}
                       {t.name}
-                      <ExternalLink className="h-3 w-3 text-[#9CA3AF]" />
                     </Link>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${t.type === "ORG" ? "bg-[#F4ECF8] text-[#683290]" : "bg-[#EFF6FF] text-[#2563EB]"}`}>
-                      {t.type}
-                    </span>
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${t.type === "ORG" ? "bg-[#F4ECF8] text-[#683290]" : "bg-[#EFF6FF] text-[#2563EB]"}`}>{t.type}</span>
                   </td>
                   <td className="px-6 py-4 text-[14px] text-[#6B7280]">{t.plan}</td>
                   <td className="px-6 py-4 text-[14px] font-medium tabular-nums text-[#1A1A2E]">{t.users.toLocaleString()}</td>
@@ -204,7 +198,6 @@ function SuperAdminDashboard() {
         </div>
       </div>
 
-      {/* Quick actions + Activity */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_320px]">
         <div>
           <h3 className="text-[15px] font-semibold text-[#1A1A2E]">Quick Actions</h3>
@@ -238,13 +231,6 @@ function SuperAdminDashboard() {
 /*  CyberNovr Admin Dashboard                                                  */
 /* -------------------------------------------------------------------------- */
 
-const courseStats = [
-  { id: "1", title: "Security Basics", status: "PUBLISHED", enrollments: 1240, completionRate: 82, lessons: 8 },
-  { id: "2", title: "Data Privacy Fundamentals", status: "PUBLISHED", enrollments: 890, completionRate: 76, lessons: 6 },
-  { id: "3", title: "Incident Response 101", status: "PUBLISHED", enrollments: 650, completionRate: 71, lessons: 5 },
-  { id: "4", title: "Phishing Awareness", status: "DRAFT", enrollments: 0, completionRate: 0, lessons: 4 },
-];
-
 function CybernovrAdminDashboard() {
   return (
     <div className="space-y-6">
@@ -257,7 +243,6 @@ function CybernovrAdminDashboard() {
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_320px]">
         <div className="space-y-6">
-          {/* Course table */}
           <div className="rounded-[8px] border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
             <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-4">
               <h3 className="text-[15px] font-semibold text-[#1A1A2E]">All Courses</h3>
@@ -281,9 +266,7 @@ function CybernovrAdminDashboard() {
                     <tr key={c.id} className="border-b border-[#E5E7EB] last:border-b-0 transition hover:bg-[#F8F9FB]">
                       <td className="px-6 py-4 text-[14px] font-medium text-[#1A1A2E]">{c.title}</td>
                       <td className="px-6 py-4">
-                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${c.status === "PUBLISHED" ? "bg-[#F0FDF4] text-[#16A34A]" : "bg-[#FFF7ED] text-[#EA580C]"}`}>
-                          {c.status}
-                        </span>
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${c.status === "PUBLISHED" ? "bg-[#F0FDF4] text-[#16A34A]" : "bg-[#FFF7ED] text-[#EA580C]"}`}>{c.status}</span>
                       </td>
                       <td className="px-6 py-4 text-[14px] tabular-nums text-[#1A1A2E]">{c.enrollments.toLocaleString()}</td>
                       <td className="px-6 py-4 text-[14px] tabular-nums text-[#1A1A2E]">{c.completionRate}%</td>
@@ -295,7 +278,6 @@ function CybernovrAdminDashboard() {
             </div>
           </div>
 
-          {/* Quick actions */}
           <div>
             <h3 className="text-[15px] font-semibold text-[#1A1A2E]">Quick Actions</h3>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -307,7 +289,6 @@ function CybernovrAdminDashboard() {
           </div>
         </div>
 
-        {/* Sidebar widgets */}
         <div className="space-y-6">
           <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
             <h4 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Recent Activity</h4>
@@ -352,7 +333,6 @@ const atRiskEmployees = [
 function OrgAdminDashboard() {
   return (
     <div className="space-y-6">
-      {/* Org overview */}
       <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <div>
@@ -377,7 +357,6 @@ function OrgAdminDashboard() {
         </div>
       </div>
 
-      {/* Stats */}
       <StatsRow stats={[
         { label: "Total Employees", value: "1,247" },
         { label: "Active Courses", value: 12 },
@@ -385,10 +364,8 @@ function OrgAdminDashboard() {
         { label: "At-Risk", value: 23, color: "red" },
       ]} />
 
-      {/* Main content */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_320px]">
         <div className="space-y-6">
-          {/* Recent Course Activity */}
           <div className="rounded-[8px] border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
             <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-4">
               <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Course Activity</h3>
@@ -420,7 +397,6 @@ function OrgAdminDashboard() {
             </div>
           </div>
 
-          {/* Quick actions */}
           <div>
             <h3 className="text-[15px] font-semibold text-[#1A1A2E]">Quick Actions</h3>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -432,9 +408,7 @@ function OrgAdminDashboard() {
           </div>
         </div>
 
-        {/* Sidebar widgets */}
         <div className="space-y-6">
-          {/* At-Risk Employees */}
           <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
             <h4 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">At-Risk Employees</h4>
             <div className="mt-4 space-y-3">
@@ -457,7 +431,6 @@ function OrgAdminDashboard() {
             <Link href="/admin/users" className="mt-4 block text-center text-[13px] font-semibold text-[#683290] hover:underline">VIEW ALL EMPLOYEES</Link>
           </div>
 
-          {/* Training Completion */}
           <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
             <h4 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Completion by Department</h4>
             <div className="mt-4 space-y-3">
@@ -532,7 +505,6 @@ function InstitutionAdminDashboard() {
 export default function AdminPage() {
   const { data: session } = useSession();
   const role = session?.user?.role;
-  const tenantType = session?.user?.tenantType;
 
   if (role === "SUPER_ADMIN") {
     return <SuperAdminDashboard />;
@@ -546,9 +518,5 @@ export default function AdminPage() {
     return <InstitutionAdminDashboard />;
   }
 
-  // ORG_ADMIN (default for ORG_ADMIN role)
-  return <OrgAdminDashboard />;
-
-  // ORG_ADMIN with ORGANIZATION tenantType, or default
   return <OrgAdminDashboard />;
 }
