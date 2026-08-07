@@ -20,6 +20,7 @@ import {
   Building2,
   FileText,
   GraduationCap,
+  Layers,
   Plus,
   Settings,
   ShieldCheck,
