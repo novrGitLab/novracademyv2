@@ -157,7 +157,7 @@ export default function SignUpPage() {
               <input id="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className={`${fieldClassName} mt-2`} />
             </div>
 
-            <div>
+            {/* <div>
               <div className="flex items-baseline justify-between gap-3">
                 <label htmlFor="organizationCode" className="text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
                   ORGANIZATION CODE
@@ -165,7 +165,7 @@ export default function SignUpPage() {
                 <span className="text-right text-[12px] font-medium text-[#767782]">Provided by your administrator</span>
               </div>
               <input id="organizationCode" type="text" value={organizationCode} onChange={(event) => setOrganizationCode(event.target.value)} placeholder="e.g. NOVR-2024" className={`${fieldClassName} mt-2`} />
-            </div>
+            </div> */}
 
             <div>
               <label htmlFor="password" className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
