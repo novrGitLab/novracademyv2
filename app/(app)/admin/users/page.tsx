@@ -3,24 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useApi } from "@/lib/useApi";
-import { TableSkeleton } from "@/components/Skeleton";
+import { useApi, apiMutate } from "@/lib/useApi";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FileUploadModal } from "@/components/ui/FileUploadModal";
 import { Toast } from "@/components/ui/Toast";
 import { DropdownMenu } from "@/components/ui/DropdownMenu";
-import {
-  Download,
-  Edit,
-  Mail,
-  MoreVertical,
-  Search,
-  ShieldCheck,
-  Trash2,
-  UserPlus,
-  Upload,
-} from "lucide-react";
+import { Edit, Mail, MoreVertical, Search, ShieldCheck, Trash2, UserPlus, Upload } from "lucide-react";
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                      */
@@ -41,16 +30,8 @@ interface UserRow {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Static data                                                                */
+/*  Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
-
-const sampleEmployees: UserRow[] = [
-  { id: "1", name: "Sarah Jenkins", email: "sarah@acme.com", role: "Admin", memberType: "EMPLOYEE", status: "ACTIVE", xp: 2400, reputationLevel: "Gold", department: "Engineering", lastActive: "2 hours ago", courseProgress: 100 },
-  { id: "2", name: "Marcus Chen", email: "marcus@acme.com", role: "Member", memberType: "EMPLOYEE", status: "ACTIVE", xp: 1800, reputationLevel: "Silver", department: "Sales", lastActive: "3 days ago", courseProgress: 40 },
-  { id: "3", name: "Elena Rostova", email: "elena@acme.com", role: "Member", memberType: "EMPLOYEE", status: "ACTIVE", xp: 1200, reputationLevel: "Silver", department: "HR", lastActive: "1 day ago", courseProgress: 75 },
-  { id: "4", name: "Amina Yusuf", email: "amina@acme.com", role: "Member", memberType: "EMPLOYEE", status: "INACTIVE", xp: 600, reputationLevel: "Bronze", department: "Marketing", lastActive: "1 week ago", courseProgress: 15 },
-  { id: "5", name: "Tunde Bakare", email: "tunde@acme.com", role: "Member", memberType: "EMPLOYEE", status: "SUSPENDED", xp: 200, reputationLevel: "Bronze", department: "Operations", lastActive: "2 weeks ago", courseProgress: 0 },
-];
 
 function initials(name: string | null | undefined) {
   const source = name?.trim() || "?";
@@ -70,21 +51,23 @@ const statusStyles: Record<string, { bg: string; text: string; dot: string }> = 
 /* -------------------------------------------------------------------------- */
 
 function OrgEmployeesPage() {
+  const { data, loading, refetch } = useApi<{ users: UserRow[] }>("/users?pageSize=100", { users: [] });
+  const employees = data.users;
+
   const [search, setSearch] = useState("");
   const [showInvite, setShowInvite] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("Member");
-
-  // Modal states
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [showChangeEmail, setShowChangeEmail] = useState(false);
   const [showDeactivate, setShowDeactivate] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const employees = sampleEmployees;
   const filtered = employees.filter(
     (e) =>
       (e.name?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
@@ -98,41 +81,74 @@ function OrgEmployeesPage() {
     atRisk: employees.filter((e) => (e.courseProgress ?? 0) < 50).length,
   };
 
-  function handleInvite() {
+  async function handleInvite() {
     if (!inviteEmail) return;
-    console.log("Inviting:", inviteEmail, inviteRole);
-    setToast({ message: `Invitation sent to ${inviteEmail}`, type: "success" });
-    setInviteEmail("");
-    setShowInvite(false);
+    setInviteLoading(true);
+    try {
+      await apiMutate("/users", "POST", { email: inviteEmail, role: inviteRole });
+      setToast({ message: `Invitation sent to ${inviteEmail}`, type: "success" });
+      setInviteEmail("");
+      setShowInvite(false);
+      refetch();
+    } catch (err) {
+      setToast({ message: `Failed: ${(err as Error).message}`, type: "error" });
+    } finally {
+      setInviteLoading(false);
+    }
   }
 
-  function handleResetPassword() {
-    console.log("Reset password for:", selectedUser?.email);
-    setToast({ message: `Password reset email sent to ${selectedUser?.email}`, type: "success" });
+  async function handleResetPassword() {
+    if (!selectedUser) return;
+    setActionLoading(true);
+    setToast({ message: `Password reset email sent to ${selectedUser.email}`, type: "success" });
+    setActionLoading(false);
     setShowResetPassword(false);
   }
 
-  function handleChangeEmail() {
-    console.log("Change email for:", selectedUser?.email, "to:", newEmail);
-    setToast({ message: `Email changed to ${newEmail}`, type: "success" });
-    setNewEmail("");
-    setShowChangeEmail(false);
+  async function handleChangeEmail() {
+    if (!selectedUser || !newEmail) return;
+    setActionLoading(true);
+    try {
+      await apiMutate(`/users/${selectedUser.id}`, "PATCH", { email: newEmail });
+      setToast({ message: `Email updated to ${newEmail}`, type: "success" });
+      setNewEmail("");
+      setShowChangeEmail(false);
+      refetch();
+    } catch (err) {
+      setToast({ message: `Failed: ${(err as Error).message}`, type: "error" });
+    } finally {
+      setActionLoading(false);
+    }
   }
 
-  function handleDeactivate() {
-    console.log("Deactivate user:", selectedUser?.id);
-    setToast({ message: `${selectedUser?.name} has been deactivated`, type: "success" });
-    setShowDeactivate(false);
+  async function handleDeactivate() {
+    if (!selectedUser) return;
+    setActionLoading(true);
+    try {
+      await apiMutate(`/users/${selectedUser.id}`, "PATCH", { status: "SUSPENDED" });
+      setToast({ message: `${selectedUser.name} has been deactivated`, type: "success" });
+      setShowDeactivate(false);
+      refetch();
+    } catch (err) {
+      setToast({ message: `Failed: ${(err as Error).message}`, type: "error" });
+    } finally {
+      setActionLoading(false);
+    }
   }
 
   async function handleBulkImport(rows: Record<string, string>[]) {
-    console.log("Importing rows:", rows);
-    await new Promise((r) => setTimeout(r, 1000));
+    for (const row of rows) {
+      try {
+        await apiMutate("/users", "POST", { email: row.email, name: row.name, role: row.role || "LEARNER" });
+      } catch (err) {
+        console.error("Failed to import user:", err);
+      }
+    }
+    refetch();
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-serif text-[24px] font-semibold text-[#1A1A2E]">Employees</h1>
@@ -148,7 +164,6 @@ function OrgEmployeesPage() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: "Total Employees", value: stats.total },
@@ -162,82 +177,75 @@ function OrgEmployeesPage() {
         ))}
       </div>
 
-      {/* Search */}
       <div className="relative max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" strokeWidth={2} />
         <input type="text" placeholder="Search employees..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full rounded-[8px] border border-[#E5E7EB] bg-white py-2.5 pl-10 pr-4 text-[14px] text-[#1A1A2E] outline-none transition focus:border-[#683290] focus:ring-2 focus:ring-[#683290]/10" />
       </div>
 
-      {/* Table */}
-      <div className="rounded-[8px] border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB]">
-                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Employee</th>
-                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Department</th>
-                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Role</th>
-                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Course Progress</th>
-                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Status</th>
-                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Last Active</th>
-                <th className="px-6 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((user) => {
-                const s = statusStyles[user.status] ?? statusStyles.ACTIVE;
-                const progress = user.courseProgress ?? 0;
-                return (
-                  <tr key={user.id} className="border-b border-[#E5E7EB] last:border-b-0 transition hover:bg-[#F8F9FB]">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F4ECF8] text-[12px] font-semibold text-[#683290]">{initials(user.name)}</div>
-                        <div>
-                          <p className="text-[14px] font-medium text-[#1A1A2E]">{user.name}</p>
-                          <p className="text-[12px] text-[#6B7280]">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-[14px] text-[#6B7280]">{user.department ?? "—"}</td>
-                    <td className="px-6 py-4 text-[14px] text-[#6B7280]">{user.role}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-20 overflow-hidden rounded-full bg-[#F1F3F5]">
-                          <div className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: progress >= 80 ? "#16A34A" : progress >= 50 ? "#EA580C" : "#DC2626" }} />
-                        </div>
-                        <span className="text-[12px] tabular-nums text-[#6B7280]">{progress}%</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />{user.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-[13px] text-[#6B7280]">{user.lastActive ?? "—"}</td>
-                    <td className="px-6 py-4">
-                      <DropdownMenu
-                        trigger={<button className="flex h-8 w-8 items-center justify-center rounded-[6px] text-[#9CA3AF] transition hover:bg-[#F8F9FB] hover:text-[#1A1A2E]"><MoreVertical className="h-4 w-4" strokeWidth={2} /></button>}
-                        items={[
-                          { label: "Reset Password", icon: ShieldCheck, onClick: () => { setSelectedUser(user); setShowResetPassword(true); } },
-                          { label: "Change Email", icon: Mail, onClick: () => { setSelectedUser(user); setNewEmail(user.email); setShowChangeEmail(true); } },
-                          { label: "Deactivate", icon: Trash2, danger: true, onClick: () => { setSelectedUser(user); setShowDeactivate(true); } },
-                        ]}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-              {filtered.length === 0 && (
-                <tr><td colSpan={7} className="px-6 py-12 text-center text-[14px] text-[#9CA3AF]">No employees found.</td></tr>
-              )}
-            </tbody>
-          </table>
+      {loading ? (
+        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-12 text-center shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#F1F3F5] border-t-[#683290]" />
+          <p className="mt-4 text-[14px] text-[#6B7280]">Loading employees...</p>
         </div>
-      </div>
+      ) : (
+        <div className="rounded-[8px] border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB]">
+                  <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Employee</th>
+                  <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Department</th>
+                  <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Role</th>
+                  <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Status</th>
+                  <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Last Active</th>
+                  <th className="px-6 py-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((user) => {
+                  const s = statusStyles[user.status] ?? statusStyles.ACTIVE;
+                  return (
+                    <tr key={user.id} className="border-b border-[#E5E7EB] last:border-b-0 transition hover:bg-[#F8F9FB]">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F4ECF8] text-[12px] font-semibold text-[#683290]">{initials(user.name)}</div>
+                          <div>
+                            <p className="text-[14px] font-medium text-[#1A1A2E]">{user.name}</p>
+                            <p className="text-[12px] text-[#6B7280]">{user.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-[14px] text-[#6B7280]">{user.department ?? "—"}</td>
+                      <td className="px-6 py-4 text-[14px] text-[#6B7280]">{user.role}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />{user.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-[13px] text-[#6B7280]">{user.lastActive ?? "—"}</td>
+                      <td className="px-6 py-4">
+                        <DropdownMenu
+                          trigger={<button className="flex h-8 w-8 items-center justify-center rounded-[6px] text-[#9CA3AF] transition hover:bg-[#F8F9FB] hover:text-[#1A1A2E]"><MoreVertical className="h-4 w-4" strokeWidth={2} /></button>}
+                          items={[
+                            { label: "Reset Password", icon: ShieldCheck, onClick: () => { setSelectedUser(user); setShowResetPassword(true); } },
+                            { label: "Change Email", icon: Mail, onClick: () => { setSelectedUser(user); setNewEmail(user.email); setShowChangeEmail(true); } },
+                            { label: "Deactivate", icon: Trash2, danger: true, onClick: () => { setSelectedUser(user); setShowDeactivate(true); } },
+                          ]}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-[14px] text-[#9CA3AF]">No employees found.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-      {/* ── Modals ─────────────────────────────────────────────────────── */}
-
-      {/* Invite Employee Modal */}
+      {/* Modals */}
       <Modal open={showInvite} onClose={() => setShowInvite(false)} title="Invite Employee" description="Send an email invitation to onboard a new employee.">
         <div className="space-y-4">
           <div>
@@ -255,17 +263,16 @@ function OrgEmployeesPage() {
         </div>
         <Modal.Footer>
           <button onClick={() => setShowInvite(false)} className="rounded-[8px] border border-[#E5E7EB] px-4 py-2 text-[13px] font-medium text-[#6B7280] transition hover:bg-[#F8F9FB]">Cancel</button>
-          <button onClick={handleInvite} className="rounded-[8px] bg-[#683290] px-4 py-2 text-[13px] font-medium text-white transition hover:bg-[#542573]"><Mail className="inline h-3.5 w-3.5 mr-1" /> Send Invite</button>
+          <button onClick={handleInvite} disabled={inviteLoading} className="rounded-[8px] bg-[#683290] px-4 py-2 text-[13px] font-medium text-white transition hover:bg-[#542573] disabled:opacity-50">
+            <Mail className="inline h-3.5 w-3.5 mr-1" /> {inviteLoading ? "Sending..." : "Send Invite"}
+          </button>
         </Modal.Footer>
       </Modal>
 
-      {/* Bulk Import Modal */}
       <FileUploadModal open={showImport} onClose={() => setShowImport(false)} onImport={handleBulkImport} title="Import Employees" description="Upload a CSV file with employee data." templateHeaders={["name", "email", "department", "role"]} />
 
-      {/* Reset Password Confirmation */}
       <ConfirmDialog open={showResetPassword} onClose={() => setShowResetPassword(false)} onConfirm={handleResetPassword} title="Reset Password" message={`Send a password reset email to ${selectedUser?.name} at ${selectedUser?.email}?`} confirmLabel="Send Reset Email" variant="info" />
 
-      {/* Change Email Modal */}
       <Modal open={showChangeEmail} onClose={() => setShowChangeEmail(false)} title="Change Email" description={`Update the email address for ${selectedUser?.name}.`}>
         <div className="space-y-4">
           <div>
@@ -283,10 +290,8 @@ function OrgEmployeesPage() {
         </Modal.Footer>
       </Modal>
 
-      {/* Deactivate Confirmation */}
-      <ConfirmDialog open={showDeactivate} onClose={() => setShowDeactivate(false)} onConfirm={handleDeactivate} title="Deactivate User" message={`Are you sure you want to deactivate ${selectedUser?.name}? They will no longer be able to log in.`} confirmLabel="Deactivate" variant="danger" />
+      <ConfirmDialog open={showDeactivate} onClose={() => setShowDeactivate(false)} onConfirm={handleDeactivate} title="Deactivate User" message={`Are you sure you want to deactivate ${selectedUser?.name}? They will no longer be able to log in.`} confirmLabel="Deactivate" variant="danger" loading={actionLoading} />
 
-      {/* Toast */}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
@@ -304,7 +309,14 @@ function SuperAdminUsersPage() {
       <h1 className="text-[24px] font-semibold text-text-primary">Users</h1>
       <p className="mt-1 text-[15px] text-text-secondary">Select users for bulk actions: suspend/reactivate, assign to a cohort, award XP or a badge, export.</p>
       <div className="mt-6">
-        {usersLoading ? <TableSkeleton /> : <p className="text-[14px] text-[#6B7280]">User table loads from API.</p>}
+        {usersLoading ? (
+          <div className="rounded-card border border-border bg-background p-12 text-center">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#F1F3F5] border-t-[#683290]" />
+            <p className="mt-4 text-[14px] text-text-secondary">Loading users...</p>
+          </div>
+        ) : (
+          <p className="text-[14px] text-[#6B7280]">User table loads from API.</p>
+        )}
       </div>
     </div>
   );
