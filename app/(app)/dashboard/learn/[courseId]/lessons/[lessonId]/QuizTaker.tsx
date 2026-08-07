@@ -70,7 +70,7 @@ export function QuizTaker({
       {result && (
         <div
           className={`mt-3 rounded-card px-4 py-3 text-[15px] ${
-            result.passed ? "bg-success-light text-success" : "bg-red-light text-red"
+            result.passed ? "bg-emerald-50 text-emerald-600" : "bg-[#E82027]/15 text-[#E82027]"
           }`}
         >
           {result.passed ? "Passed! " : "Not quite — "}Score: {Math.round(result.score)}%
@@ -83,7 +83,7 @@ export function QuizTaker({
             <legend className="px-1 text-[15px] font-medium text-text-primary">
               {i + 1}. {q.prompt}
               {result && (
-                <span className={`ml-2 text-[13px] ${resultByQuestion.get(q.id) ? "text-success" : "text-red"}`}>
+                <span className={`ml-2 text-[13px] ${resultByQuestion.get(q.id) ? "text-emerald-600" : "text-[#E82027]"}`}>
                   {resultByQuestion.get(q.id) ? "✓ correct" : "✗ incorrect"}
                 </span>
               )}
@@ -134,16 +134,16 @@ export function QuizTaker({
                 type="text"
                 required
                 onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-                className="mt-2 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+                className="mt-2 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#4451A2]"
               />
             )}
           </fieldset>
         ))}
 
-        {error && <p className="rounded-pill bg-red-light px-3 py-2 text-[13px] text-red">{error}</p>}
+        {error && <p className="rounded-pill bg-[#E82027]/15 px-3 py-2 text-[13px] font-semibold text-[#E82027]">{error}</p>}
 
         {outOfAttempts && !result?.passed && (
-          <p className="rounded-pill bg-red-light px-3 py-2 text-[13px] text-red">
+                <p className="rounded-pill bg-[#E82027]/15 px-3 py-2 text-[13px] font-semibold text-[#E82027]">
             No attempts remaining for this quiz.
           </p>
         )}
@@ -152,7 +152,7 @@ export function QuizTaker({
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90 disabled:opacity-50"
+            className="rounded-card bg-[#4451A2] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#39458e] disabled:opacity-50"
           >
             {submitting ? "Submitting…" : "Submit quiz"}
           </button>
@@ -162,7 +162,7 @@ export function QuizTaker({
       {(result?.passed || initialCompleted) && nextLessonHref && (
         <Link
           href={nextLessonHref}
-          className="mt-4 inline-block rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90"
+          className="mt-4 inline-block rounded-card bg-[#4451A2] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#39458e]"
         >
           Next lesson →
         </Link>

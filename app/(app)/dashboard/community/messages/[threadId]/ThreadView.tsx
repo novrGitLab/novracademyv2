@@ -52,7 +52,7 @@ export function ThreadView({
           <div key={m.id} className={`flex ${m.senderId === currentUserId ? "justify-end" : "justify-start"}`}>
             <div
               className={`max-w-[75%] rounded-card px-3 py-2 text-[15px] ${
-                m.senderId === currentUserId ? "bg-purple text-white" : "bg-surface text-text-primary"
+                m.senderId === currentUserId ? "bg-[#683290] text-white" : "bg-surface text-text-primary"
               }`}
             >
               {m.senderId !== currentUserId && (
@@ -72,12 +72,12 @@ export function ThreadView({
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Type a message…"
-          className="flex-1 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-purple"
+          className="flex-1 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
         />
         <button
           type="submit"
           disabled={sending || !content.trim()}
-          className="rounded-card bg-purple px-4 py-2 text-[15px] font-medium text-white hover:bg-purple/90 disabled:opacity-50"
+          className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
         >
           Send
         </button>

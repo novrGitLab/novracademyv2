@@ -46,7 +46,7 @@ export default async function LessonDetailPage({
 
   return (
     <div className="max-w-2xl">
-      <Link href={`/admin/courses/${params.id}`} className="text-[13px] text-text-secondary hover:text-blue">
+      <Link href={`/admin/courses/${params.id}`} className="text-[13px] text-text-secondary hover:text-[#683290]">
         ← Back to course
       </Link>
       <h1 className="mt-2 text-[24px] font-semibold text-text-primary">{lesson.title}</h1>

@@ -4,11 +4,11 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { BookOpen, Lock, Mail, Sparkles, Users2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 function GoogleIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
       <path
         fill="#4285F4"
         d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.82Z"
@@ -28,7 +28,7 @@ function GoogleIcon() {
 
 function MicrosoftIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
       <path fill="#F25022" d="M1 1h10.5v10.5H1z" />
       <path fill="#7FBA00" d="M12.5 1H23v10.5H12.5z" />
       <path fill="#00A4EF" d="M1 12.5h10.5V23H1z" />
@@ -44,6 +44,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,159 +65,129 @@ function LoginForm() {
   }
 
   return (
-    <main className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-      {/* Left — branding */}
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-brand p-12 text-white lg:flex">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 20% 20%, white 1px, transparent 1px), radial-gradient(circle at 80% 60%, white 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-          }}
+    <main className="grid h-screen grid-cols-1 overflow-hidden bg-white lg:grid-cols-[40%_60%]">
+      {/* Left — brand panel with image */}
+      <aside className="relative hidden h-screen overflow-hidden bg-[#F4ECF8] lg:flex">
+        <img
+          src="/Signin_Image.svg"
+          alt="Novr Academy security training"
+          className="h-full w-full object-cover"
         />
-
-        <div className="relative flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15 backdrop-blur">
-            <Sparkles className="h-5 w-5" strokeWidth={2.25} />
-          </div>
-          <span className="text-[19px] font-bold tracking-tight">Novr Academy</span>
-        </div>
-
-        <div className="relative max-w-md">
-          <h1 className="text-[38px] font-semibold leading-tight tracking-tight">
-            Learning and community, in one place.
-          </h1>
-          <p className="mt-4 text-[16px] text-white/85">
-            Courses, certificates, mentorship, and a network that grows with you — all under one roof.
-          </p>
-
-          <div className="mt-10 space-y-4">
-            <Feature icon={BookOpen} text="Structured courses with certificates that verify instantly" />
-            <Feature icon={Users2} text="A real community — mentors, events, and a job board" />
-          </div>
-        </div>
-
-        <p className="relative text-[13px] text-white/60">© {new Date().getFullYear()} Novr Academy</p>
-      </div>
+      </aside>
 
       {/* Right — form */}
-      <div className="flex items-center justify-center bg-background px-6 py-12">
-        <div className="w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand text-white">
-              <Sparkles className="h-4 w-4" strokeWidth={2.25} />
-            </div>
-            <span className="text-[17px] font-bold tracking-tight text-text-primary">Novr Academy</span>
+      <section className="flex h-screen items-center justify-center overflow-y-auto bg-white px-6 py-10 sm:px-10">
+        <div className="w-full max-w-[420px]">
+          <div className="mb-8 flex items-center justify-center gap-2 lg:hidden">
+            <img
+              src="/novracademy-logo.png"
+              alt="Novr Academy"
+              className="h-14 w-auto object-contain"
+            />
           </div>
 
-          <h1 className="text-[24px] font-semibold text-text-primary">Welcome back</h1>
-          <p className="mt-1 text-[15px] text-text-secondary">Sign in to continue to your dashboard.</p>
+          <div className="mb-10 text-center">
+            <img
+              src="/novracademy-logo.png"
+              alt="Novr Academy"
+              className="mx-auto mb-8 h-14 w-auto object-contain"
+            />
+            <h1 className="font-serif text-[34px] leading-[51px] text-auth-ink">Welcome back</h1>
+            <p className="text-[15px] leading-[22.5px] text-auth-secondary">Sign in to your security portal.</p>
+          </div>
 
           {searchParams.get("success") === "1" && (
-            <div className="mt-4 rounded-card bg-success-light px-3 py-2 text-[13px] text-success">
+            <div className="mb-5 rounded-auth bg-green-50 px-3 py-2 text-[13px] text-green-700">
               Account created successfully! Please sign in.
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="mt-7 space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="email" className="text-[13px] font-medium text-text-secondary">
-                Email
+              <label htmlFor="email" className="block text-base text-auth-ink">
+                EMAIL ADDRESS
               </label>
-              <div className="relative mt-1">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" strokeWidth={2} />
-                <input
+              <input
                   id="email"
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full rounded-card border border-border bg-surface py-2 pl-9 pr-3 text-[15px] text-text-primary outline-none transition focus:border-blue focus:bg-background focus:ring-2 focus:ring-blue/10"
+                  placeholder="name@company.com"
+                  className="mt-2 h-12 w-full rounded-auth border border-auth-border bg-white px-4 text-base text-auth-ink outline-none transition placeholder:text-auth-placeholder focus:border-auth-primary focus:ring-2 focus:ring-auth-primary/10"
                 />
-              </div>
             </div>
             <div>
-              <label htmlFor="password" className="text-[13px] font-medium text-text-secondary">
-                Password
+              <label htmlFor="password" className="block text-base text-auth-ink">
+                PASSWORD
               </label>
-              <div className="relative mt-1">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" strokeWidth={2} />
+              <div className="relative mt-2">
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-card border border-border bg-surface py-2 pl-9 pr-3 text-[15px] text-text-primary outline-none transition focus:border-blue focus:bg-background focus:ring-2 focus:ring-blue/10"
+                  className="h-12 w-full rounded-auth border border-auth-border bg-white py-[13.5px] pl-4 pr-12 text-base text-auth-ink outline-none transition placeholder:text-auth-placeholder focus:border-auth-primary focus:ring-2 focus:ring-auth-primary/10"
                 />
+                <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-0 top-0 flex h-12 w-12 items-center justify-center text-auth-muted transition hover:text-auth-ink">
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
             </div>
 
             {error && (
-              <p className="rounded-card bg-red-light px-3 py-2 text-[13px] text-red">{error}</p>
+              <p className="rounded-auth bg-red-50 px-3 py-2 text-[13px] text-auth-red">{error}</p>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-card bg-blue px-4 py-2.5 text-[15px] font-medium text-white shadow-card transition hover:bg-blue/90 hover:shadow-card-hover disabled:opacity-60"
+              className="h-12 w-full rounded-auth bg-auth-primary px-4 text-base text-white transition hover:bg-auth-primary/90 disabled:opacity-60"
             >
-              {loading ? "Signing in…" : "Sign in"}
+              {loading ? "Signing in…" : "Sign In"}
             </button>
           </form>
 
-          <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-[12px] text-text-secondary">OR</span>
-            <div className="h-px flex-1 bg-border" />
+          <div className="my-8 flex items-center gap-0">
+            <div className="h-px flex-1 bg-auth-border" />
+            <span className="px-4 text-sm text-auth-muted">Or</span>
+            <div className="h-px flex-1 bg-auth-border" />
           </div>
 
-          <div className="space-y-2.5">
-            <button
-              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-              className="flex w-full items-center justify-center gap-2.5 rounded-card border border-border bg-background px-4 py-2.5 text-[14px] font-medium text-text-primary shadow-card transition hover:bg-surface"
-            >
-              <GoogleIcon />
-              Continue with Google
-            </button>
+          <div className="space-y-3">
             <button
               onClick={() => signIn("azure-ad", { callbackUrl: "/dashboard" })}
-              className="flex w-full items-center justify-center gap-2.5 rounded-card border border-border bg-background px-4 py-2.5 text-[14px] font-medium text-text-primary shadow-card transition hover:bg-surface"
+              className="flex h-11 w-full items-center justify-center gap-3 rounded-auth border border-auth-border bg-white px-4 text-base text-auth-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-auth-tint"
             >
               <MicrosoftIcon />
-              Continue with Microsoft
+              Continue with Microsoft 365
+            </button>
+            <button
+              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+              className="flex h-11 w-full items-center justify-center gap-3 rounded-auth border border-auth-border bg-white px-4 text-base text-auth-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-auth-tint"
+            >
+              <GoogleIcon />
+              Continue with Google Workspace
             </button>
           </div>
 
-          <p className="mt-8 text-center text-[13px] text-text-secondary">
-            Don't have an account?{" "}
-            <Link href="/signup" className="font-medium text-blue hover:underline">
+          <p className="mt-10 text-center text-base text-auth-tertiary">
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className="text-auth-red hover:underline">
               Sign up
             </Link>
           </p>
-          <p className="mt-3 text-center text-[13px] text-text-secondary">
+          <p className="mt-3 text-center text-[13px] text-auth-secondary">
             Have a claim link instead?{" "}
-            <Link href="/" className="font-medium text-blue hover:underline">
+              <Link href="/" className="font-medium text-auth-primary hover:underline">
               Go to homepage
             </Link>
           </p>
         </div>
-      </div>
+      </section>
     </main>
-  );
-}
-
-function Feature({ icon: Icon, text }: { icon: typeof BookOpen; text: string }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/15">
-        <Icon className="h-3.5 w-3.5" strokeWidth={2.25} />
-      </div>
-      <p className="text-[14px] text-white/85">{text}</p>
-    </div>
   );
 }
 

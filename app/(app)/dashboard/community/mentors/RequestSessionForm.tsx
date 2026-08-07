@@ -19,7 +19,7 @@ export function RequestSessionForm({ mentorId }: { mentorId: string }) {
   }
 
   if (sent) {
-    return <p className="mt-2 text-[13px] text-success">Session requested — waiting on the mentor to accept.</p>;
+    return <p className="mt-2 text-[13px] text-emerald-600">Session requested — waiting on the mentor to accept.</p>;
   }
 
   if (!open) {
@@ -27,7 +27,7 @@ export function RequestSessionForm({ mentorId }: { mentorId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-2 rounded-card bg-purple px-3 py-1.5 text-[13px] font-medium text-white hover:bg-purple/90"
+        className="mt-2 rounded-card bg-[#683290] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[#542573]"
       >
         Request a session
       </button>
@@ -40,10 +40,10 @@ export function RequestSessionForm({ mentorId }: { mentorId: string }) {
         name="topic"
         required
         placeholder="What would you like to talk about?"
-        className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[13px] text-text-primary outline-none focus:border-purple"
+        className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[13px] text-text-primary outline-none focus:border-[#683290]"
       />
-      {error && <p className="rounded-pill bg-red-light px-3 py-2 text-[13px] text-red">{error}</p>}
-      <button type="submit" className="rounded-card bg-purple px-3 py-1.5 text-[13px] font-medium text-white hover:bg-purple/90">
+      {error && <p className="rounded-pill bg-[#E82027]/15 px-3 py-2 text-[13px] font-semibold text-[#E82027]">{error}</p>}
+      <button type="submit" className="rounded-card bg-[#683290] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[#542573]">
         Send request
       </button>
     </form>

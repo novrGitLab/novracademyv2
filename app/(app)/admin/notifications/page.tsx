@@ -38,7 +38,7 @@ export default function AdminNotificationsPage() {
           <label className="text-[13px] font-medium text-text-secondary">Segment</label>
           <select
             name="segment"
-            className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+            className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
           >
             <option value="all">All members</option>
             <option value="inactive">Inactive members (no posts or DMs)</option>
@@ -50,14 +50,14 @@ export default function AdminNotificationsPage() {
           name="title"
           required
           placeholder="Title"
-          className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+          className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
         />
         <textarea
           name="content"
           required
           rows={4}
           placeholder="Message"
-          className="w-full resize-none rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+          className="w-full resize-none rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
         />
         <div className="flex gap-4 text-[15px] text-text-primary">
           <label className="flex items-center gap-2">
@@ -69,7 +69,7 @@ export default function AdminNotificationsPage() {
             Email
           </label>
         </div>
-        <button type="submit" className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90">
+        <button type="submit" className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573]">
           Send
         </button>
       </form>

@@ -22,18 +22,32 @@ const config: Config = {
           DEFAULT: "#7C3AED",
           light: "#F5F3FF",
         },
+        auth: {
+          ink: "#1A1A2E",
+          secondary: "#666666",
+          tertiary: "#454651",
+          muted: "#767682",
+          placeholder: "#6B7280",
+          border: "#E5E5E5",
+          primary: "#683290",
+          purple: "#683290",
+          red: "#EB2027",
+          tint: "#F4ECF8",
+        },
         success: {
           DEFAULT: "#16A34A",
           light: "#F0FDF4",
         },
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "sans-serif"],
+        sans: ["var(--font-montserrat)", "sans-serif"],
+        serif: ["var(--font-playfair)", "serif"],
         mono: ["var(--font-jetbrains-mono)", "monospace"],
       },
       borderRadius: {
         card: "8px",
         pill: "6px",
+        auth: "2px",
       },
       boxShadow: {
         card: "0 1px 3px rgba(0,0,0,0.08)",
@@ -44,7 +58,7 @@ const config: Config = {
       backgroundImage: {
         "gradient-blue": "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
         "gradient-purple": "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)",
-        "gradient-brand": "linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)",
+        "gradient-brand": "linear-gradient(135deg, #4451A2 0%, #683290 100%)",
         "gradient-surface": "linear-gradient(180deg, #FFFFFF 0%, #F8F9FB 100%)",
       },
 

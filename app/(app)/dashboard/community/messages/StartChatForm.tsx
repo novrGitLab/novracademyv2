@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button, Input } from "@/components/DesignSystem";
 import { startDirectThreadAction } from "./actions";
 
 export function StartChatForm() {
@@ -20,23 +21,25 @@ export function StartChatForm() {
 
   return (
     <div>
-      <form action={handleSubmit} className="flex gap-2">
-        <input
+      <form action={handleSubmit} className="flex flex-col gap-2 sm:flex-row">
+        <Input
           name="email"
           type="email"
           required
           placeholder="Message someone by email…"
-          className="flex-1 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-purple"
+          aria-label="Member email"
+          className="h-10 flex-1"
         />
-        <button
+        <Button
           type="submit"
           disabled={pending}
-          className="rounded-card bg-purple px-4 py-2 text-[15px] font-medium text-white hover:bg-purple/90 disabled:opacity-50"
+          variant="primary"
+          size="md"
         >
           Start chat
-        </button>
+        </Button>
       </form>
-      {error && <p className="mt-2 rounded-pill bg-red-light px-3 py-2 text-[13px] text-red">{error}</p>}
+      {error && <p role="alert" className="mt-2 rounded-[8px] bg-[#E82027]/10 px-3 py-2 text-sm text-[#E82027]">{error}</p>}
     </div>
   );
 }

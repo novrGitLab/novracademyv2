@@ -92,7 +92,7 @@ export function LessonPlayer({
       />
 
       <div className="mt-3 h-2 w-full overflow-hidden rounded-pill bg-surface">
-        <div className="h-full bg-blue transition-all" style={{ width: `${Math.min(100, watchPct)}%` }} />
+        <div className="h-full bg-[#4451A2] transition-all" style={{ width: `${Math.min(100, watchPct)}%` }} />
       </div>
       <p className="mt-1 text-[13px] text-text-secondary">
         {Math.round(watchPct)}% watched · need {minWatchPct}% to unlock the next lesson
@@ -102,7 +102,7 @@ export function LessonPlayer({
         (completed ? (
           <Link
             href={nextLessonHref}
-            className="mt-4 inline-block rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90"
+            className="mt-4 inline-block rounded-card bg-[#4451A2] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#39458e]"
           >
             Next lesson →
           </Link>

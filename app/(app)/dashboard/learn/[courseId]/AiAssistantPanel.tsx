@@ -56,7 +56,7 @@ export function AiAssistantPanel({ courseId }: { courseId: string }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-6 right-6 z-40 rounded-card bg-blue px-4 py-3 text-[15px] font-medium text-white shadow-card hover:bg-blue/90"
+        className="fixed bottom-6 right-6 z-40 rounded-card bg-[#683290] px-4 py-3 text-[15px] font-medium text-white shadow-card hover:bg-[#542573]"
       >
         {open ? "Close assistant" : "Ask AI"}
       </button>
@@ -78,7 +78,7 @@ export function AiAssistantPanel({ courseId }: { courseId: string }) {
               <div
                 key={m.id}
                 className={`max-w-[85%] rounded-card px-3 py-2 text-[13px] ${
-                  m.role === "user" ? "ml-auto bg-blue text-white" : "bg-surface text-text-primary"
+                  m.role === "user" ? "ml-auto bg-[#683290] text-white" : "bg-surface text-text-primary"
                 }`}
               >
                 {m.content}
@@ -86,19 +86,19 @@ export function AiAssistantPanel({ courseId }: { courseId: string }) {
             ))}
           </div>
 
-          {error && <p className="mx-4 mb-2 rounded-pill bg-red-light px-3 py-2 text-[13px] text-red">{error}</p>}
+          {error && <p className="mx-4 mb-2 rounded-pill bg-[#E82027]/15 px-3 py-2 text-[13px] font-semibold text-[#E82027]">{error}</p>}
 
           <form onSubmit={handleAsk} className="flex gap-2 border-t border-border p-3">
             <input
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Ask a question…"
-              className="flex-1 rounded-card border border-border bg-surface px-3 py-2 text-[13px] text-text-primary outline-none focus:border-blue"
+              className="flex-1 rounded-card border border-border bg-surface px-3 py-2 text-[13px] text-text-primary outline-none focus:border-[#683290]"
             />
             <button
               type="submit"
               disabled={sending || !question.trim()}
-              className="rounded-card bg-blue px-3 py-2 text-[13px] font-medium text-white hover:bg-blue/90 disabled:opacity-50"
+              className="rounded-card bg-[#683290] px-3 py-2 text-[13px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
             >
               Send
             </button>

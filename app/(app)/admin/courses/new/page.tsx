@@ -27,7 +27,7 @@ export default function NewCoursePage() {
 
         <button
           type="submit"
-          className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90"
+          className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573]"
         >
           Create course
         </button>
@@ -65,7 +65,7 @@ function Field({
           defaultValue={defaultValue}
           placeholder={placeholder}
           rows={3}
-          className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+          className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
         />
       ) : (
         <input
@@ -75,7 +75,7 @@ function Field({
           defaultValue={defaultValue}
           placeholder={placeholder}
           required={required}
-          className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+          className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
         />
       )}
     </div>

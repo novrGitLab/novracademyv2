@@ -54,7 +54,7 @@ export function PdfViewer({
           file={viewUrl}
           onLoadSuccess={onLoadSuccess}
           loading={<p className="text-[15px] text-text-secondary">Loading document…</p>}
-          error={<p className="text-[15px] text-red">Couldn't load this document.</p>}
+          error={<p className="text-[15px] text-[#E82027]">Couldn't load this document.</p>}
         >
           <Page pageNumber={pageNumber} renderTextLayer={false} renderAnnotationLayer={false} width={720} />
         </Document>
@@ -84,14 +84,14 @@ export function PdfViewer({
         </div>
 
         {allowDownload && (
-          <a href={viewUrl} download className="text-[13px] text-blue hover:underline">
+          <a href={viewUrl} download className="text-[13px] text-[#4451A2] hover:underline">
             Download
           </a>
         )}
       </div>
 
       {completed && (
-        <p className="mt-2 w-fit rounded-pill bg-success-light px-3 py-2 text-[13px] text-success">
+        <p className="mt-2 w-fit rounded-pill bg-emerald-50 px-3 py-2 text-[13px] text-emerald-600">
           Marked as complete
         </p>
       )}

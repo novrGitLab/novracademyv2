@@ -96,7 +96,7 @@ export default function AdminCommunityPage() {
                       <div className="flex justify-end gap-2 text-[13px]">
                         <button
                           onClick={() => run(() => togglePinAction(g.id, !g.isPinned))}
-                          className="text-blue hover:underline"
+                          className="text-[#683290] hover:underline"
                         >
                           {g.isPinned ? "Unpin" : "Pin"}
                         </button>

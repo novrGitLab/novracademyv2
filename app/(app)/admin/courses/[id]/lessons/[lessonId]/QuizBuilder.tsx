@@ -50,7 +50,7 @@ export function QuizBuilder({
               name="passMarkPct"
               type="number"
               defaultValue={quiz.passMarkPct}
-              className="mt-1 block w-32 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+              className="mt-1 block w-32 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
             />
           </div>
           <div>
@@ -59,12 +59,12 @@ export function QuizBuilder({
               name="maxAttempts"
               type="number"
               defaultValue={quiz.maxAttempts}
-              className="mt-1 block w-32 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+              className="mt-1 block w-32 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
             />
           </div>
           <button
             type="submit"
-            className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90"
+              className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573]"
           >
             Save
           </button>
@@ -76,7 +76,7 @@ export function QuizBuilder({
           <div key={q.id} className="rounded-card border border-border bg-background px-4 py-3">
             <div className="flex items-start justify-between">
               <div>
-                <span className="rounded-pill bg-blue-light px-2 py-1 text-[13px] font-medium text-blue">
+                <span className="rounded-pill bg-[#F4ECF8] px-2 py-1 text-[13px] font-medium text-[#683290]">
                   {typeLabels[q.type]}
                 </span>
                 <p className="mt-2 text-[15px] font-medium text-text-primary">{q.prompt}</p>
@@ -141,7 +141,7 @@ export function QuizBuilder({
                 setNewType(e.target.value as QuizQuestion["type"]);
                 setOptionCount(2);
               }}
-              className="rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+              className="rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
             >
               <option value="MULTIPLE_CHOICE">Multiple choice</option>
               <option value="TRUE_FALSE">True / False</option>
@@ -152,7 +152,7 @@ export function QuizBuilder({
               type="number"
               defaultValue={1}
               placeholder="Points"
-              className="rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+              className="rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
             />
           </div>
 
@@ -161,7 +161,7 @@ export function QuizBuilder({
             required
             rows={2}
             placeholder="Question prompt"
-            className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+            className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
           />
 
           {newType === "MULTIPLE_CHOICE" && (
@@ -173,7 +173,7 @@ export function QuizBuilder({
                     name="options"
                     required
                     placeholder={`Option ${idx + 1}`}
-                    className="flex-1 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+                    className="flex-1 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
                   />
                 </div>
               ))}
@@ -181,7 +181,7 @@ export function QuizBuilder({
                 <button
                   type="button"
                   onClick={() => setOptionCount((n) => n + 1)}
-                  className="text-[13px] font-medium text-blue hover:underline"
+                    className="text-[13px] font-medium text-[#683290] hover:underline"
                 >
                   + Add option
                 </button>
@@ -206,13 +206,13 @@ export function QuizBuilder({
               name="correctAnswer"
               required
               placeholder="Expected answer"
-              className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+              className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
             />
           )}
 
           <button
             type="submit"
-            className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90"
+            className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573]"
           >
             Add question
           </button>

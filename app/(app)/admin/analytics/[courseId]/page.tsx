@@ -20,7 +20,7 @@ export default function DropOffPage({ params }: { params: { courseId: string } }
 
   return (
     <div className="max-w-2xl">
-      <Link href="/admin/analytics" className="text-[13px] text-text-secondary hover:text-blue">
+      <Link href="/admin/analytics" className="text-[13px] text-text-secondary hover:text-[#683290]">
         ← LMS analytics
       </Link>
       <h1 className="mt-2 text-[24px] font-semibold text-text-primary">Drop-off analysis</h1>

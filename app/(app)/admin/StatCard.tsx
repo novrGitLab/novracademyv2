@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 
 const colorStyles = {
-  blue: { bg: "bg-blue-light", text: "text-blue" },
+  blue: { bg: "bg-[#F4ECF8]", text: "text-[#683290]" },
   purple: { bg: "bg-purple-light", text: "text-purple" },
   red: { bg: "bg-red-light", text: "text-red" },
   success: { bg: "bg-success-light", text: "text-success" },

@@ -33,7 +33,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
 
         <a
           href={`${API_URL}/certificates/${certificate.certUid}/pdf`}
-          className="mt-6 inline-block rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90"
+          className="mt-6 inline-block rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573]"
         >
           Download PDF
         </a>

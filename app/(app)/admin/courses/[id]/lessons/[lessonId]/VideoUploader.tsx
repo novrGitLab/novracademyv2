@@ -77,14 +77,14 @@ export function VideoUploader({
 
       {status !== "READY" && (
         <div className="mt-4">
-          <label className="inline-block cursor-pointer rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90">
+          <label className="inline-block cursor-pointer rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573]">
             {uploading ? "Uploading…" : "Choose video file"}
             <input type="file" accept="video/*" className="hidden" onChange={handleFileChange} disabled={uploading} />
           </label>
 
           {uploading && (
             <div className="mt-3 h-2 w-full overflow-hidden rounded-pill bg-surface">
-              <div className="h-full bg-blue transition-all" style={{ width: `${progress}%` }} />
+              <div className="h-full bg-[#683290] transition-all" style={{ width: `${progress}%` }} />
             </div>
           )}
 
@@ -110,7 +110,7 @@ export function VideoUploader({
 function StatusBadge({ status }: { status: VideoStatus }) {
   if (!status) return <span className="rounded-pill bg-surface px-2 py-1 text-[13px] text-text-secondary">No video</span>;
   const styles: Record<NonNullable<VideoStatus>, string> = {
-    PREPARING: "bg-blue-light text-blue",
+    PREPARING: "bg-[#F4ECF8] text-[#683290]",
     READY: "bg-success-light text-success",
     ERRORED: "bg-red-light text-red",
   };

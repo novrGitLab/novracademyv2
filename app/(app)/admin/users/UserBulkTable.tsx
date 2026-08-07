@@ -62,8 +62,8 @@ export function UserBulkTable({
   return (
     <div>
       {selected.size > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-card border border-blue bg-blue-light px-4 py-3">
-          <span className="text-[13px] font-medium text-blue">{selected.size} selected</span>
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-card border border-[#683290] bg-[#F4ECF8] px-4 py-3">
+          <span className="text-[13px] font-medium text-[#683290]">{selected.size} selected</span>
           <button
             disabled={pending}
             onClick={() => runAction(() => bulkSetStatusAction(ids, "SUSPENDED"))}

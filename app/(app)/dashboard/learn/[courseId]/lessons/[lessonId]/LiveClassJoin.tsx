@@ -81,7 +81,7 @@ export function LiveClassJoin({
             type="button"
             onClick={() => handleRsvp(true)}
             className={`rounded-card px-4 py-2 text-[15px] font-medium ${
-              rsvp === true ? "bg-blue text-white" : "border border-blue text-blue hover:bg-blue-light"
+              rsvp === true ? "bg-[#4451A2] text-white" : "border border-[#4451A2] text-[#4451A2] hover:bg-[#4451A2]/10"
             }`}
           >
             I'm going
@@ -100,7 +100,7 @@ export function LiveClassJoin({
             <button
               type="button"
               onClick={handleJoin}
-              className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90"
+              className="rounded-card bg-[#4451A2] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#39458e]"
             >
               Join live class
             </button>
@@ -110,7 +110,7 @@ export function LiveClassJoin({
             <button
               type="button"
               onClick={handleViewRecording}
-              className="rounded-card border border-blue px-4 py-2 text-[15px] font-medium text-blue hover:bg-blue-light"
+              className="rounded-card border border-[#4451A2] px-4 py-2 text-[15px] font-medium text-[#4451A2] hover:bg-[#4451A2]/10"
             >
               Watch recording
             </button>
@@ -118,7 +118,7 @@ export function LiveClassJoin({
         </div>
       )}
 
-      {error && <p className="mt-3 rounded-pill bg-red-light px-3 py-2 text-[13px] text-red">{error}</p>}
+      {error && <p className="mt-3 rounded-pill bg-[#E82027]/15 px-3 py-2 text-[13px] font-semibold text-[#E82027]">{error}</p>}
 
       {recordingUrl && (
         <video controls src={recordingUrl} className="mt-4 w-full rounded-card" />
@@ -129,7 +129,7 @@ export function LiveClassJoin({
       {(initialCompleted || joined) && nextLessonHref && (
         <Link
           href={nextLessonHref}
-          className="mt-4 inline-block rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90"
+          className="mt-4 inline-block rounded-card bg-[#4451A2] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#39458e]"
         >
           Next lesson →
         </Link>

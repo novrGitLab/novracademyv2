@@ -48,7 +48,7 @@ export function EnrollButton({
           type="button"
           onClick={handleFree}
           disabled={loading !== null}
-          className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90 disabled:opacity-50"
+          className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
         >
           {loading === "FREE" ? "Enrolling…" : "Enroll for free"}
         </button>
@@ -62,7 +62,7 @@ export function EnrollButton({
               type="button"
               onClick={() => handleCheckout("STRIPE")}
               disabled={loading !== null}
-              className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90 disabled:opacity-50"
+              className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
             >
               {loading === "STRIPE" ? "Redirecting…" : "Pay with card (Stripe)"}
             </button>
@@ -70,14 +70,14 @@ export function EnrollButton({
               type="button"
               onClick={() => handleCheckout("PAYSTACK")}
               disabled={loading !== null}
-              className="rounded-card border border-blue px-4 py-2 text-[15px] font-medium text-blue hover:bg-blue-light disabled:opacity-50"
+              className="rounded-card border border-[#4451A2] px-4 py-2 text-[15px] font-medium text-[#4451A2] hover:bg-[#4451A2]/10 disabled:opacity-50"
             >
               {loading === "PAYSTACK" ? "Redirecting…" : "Pay with Paystack"}
             </button>
           </div>
         </div>
       )}
-      {error && <p className="mt-3 rounded-pill bg-red-light px-3 py-2 text-[13px] text-red">{error}</p>}
+      {error && <p className="mt-3 rounded-pill bg-[#E82027]/15 px-3 py-2 text-[13px] font-semibold text-[#E82027]">{error}</p>}
     </div>
   );
 }

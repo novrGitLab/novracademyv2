@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { Briefcase } from "lucide-react";
 import { authOptions } from "@/lib/auth";
-import { EmptyState } from "@/components/EmptyState";
+import { BackLink, Badge, Button, Card, EmptyState, Input, PageHeader, Textarea } from "@/components/DesignSystem";
 import { getJobListingsAction, postJobAction, setOpenToWorkAction } from "./actions";
 
 const locationLabels: Record<string, string> = { REMOTE: "Remote", ONSITE: "On-site", HYBRID: "Hybrid" };
@@ -12,96 +12,74 @@ export default async function JobBoardPage() {
   const { listings } = await getJobListingsAction();
 
   return (
-    <div className="max-w-3xl">
-      <Link href="/dashboard/community" className="text-[13px] text-text-secondary hover:text-purple">
-        ← Community
-      </Link>
-      <h1 className="mt-2 text-[24px] font-semibold text-text-primary">Job board</h1>
-      <p className="mt-1 text-[15px] text-text-secondary">
-        Opportunities posted by admins and alumni. New listings need admin approval before they're visible here.
-      </p>
+    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
+      <BackLink href="/dashboard/community" label="Community" className="mb-4" />
+      <PageHeader title="Job Board" description="Opportunities posted by admins and alumni." />
 
-      <form action={setOpenToWorkAction.bind(null, true, session!.user.id)} className="mt-4 inline-block">
-        <button type="submit" className="rounded-card border border-purple px-3 py-1.5 text-[13px] font-medium text-purple hover:bg-purple-light">
-          Mark myself "open to work"
-        </button>
-      </form>
-      <form action={setOpenToWorkAction.bind(null, false, session!.user.id)} className="mt-4 ml-2 inline-block">
-        <button type="submit" className="rounded-card border border-border px-3 py-1.5 text-[13px] text-text-secondary hover:border-red hover:text-red">
-          Not looking
-        </button>
-      </form>
-
-      <details className="mt-6 rounded-card border border-dashed border-border p-4">
-        <summary className="cursor-pointer text-[13px] font-medium text-text-secondary">Post an opportunity</summary>
-        <form action={postJobAction} className="mt-4 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              name="title"
-              required
-              placeholder="Role title"
-              className="rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-purple"
-            />
-            <input
-              name="company"
-              required
-              placeholder="Company"
-              className="rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-purple"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <select
-              name="locationType"
-              className="rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-purple"
-            >
-              <option value="REMOTE">Remote</option>
-              <option value="ONSITE">On-site</option>
-              <option value="HYBRID">Hybrid</option>
-            </select>
-            <input
-              name="location"
-              placeholder="Location (e.g. Lagos, NG)"
-              className="rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-purple"
-            />
-          </div>
-          <input
-            name="link"
-            type="url"
-            placeholder="Application link"
-            className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-purple"
-          />
-          <textarea
-            name="description"
-            rows={3}
-            placeholder="Description"
-            className="w-full resize-none rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-purple"
-          />
-          <button type="submit" className="rounded-card bg-purple px-4 py-2 text-[15px] font-medium text-white hover:bg-purple/90">
-            Submit for approval
-          </button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <form action={setOpenToWorkAction.bind(null, true, session!.user.id)}>
+          <Button type="submit" variant="secondary" className="w-full border-[#683290] text-[#683290] hover:bg-[#683290]/5 sm:w-auto">
+            Mark myself open to work
+          </Button>
         </form>
+        <form action={setOpenToWorkAction.bind(null, false, session!.user.id)}>
+          <Button type="submit" variant="secondary" className="w-full border-[#E82027] text-[#E82027] hover:bg-[#E82027]/5 sm:w-auto">
+            Not looking
+          </Button>
+        </form>
+      </div>
+
+      <details className="mt-8 overflow-hidden rounded-[8px] border border-[#E5E5E5] bg-white shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
+        <summary className="cursor-pointer px-5 py-4 text-sm font-semibold text-[#1A1A2E] marker:text-[#683290]">
+          Post an opportunity
+        </summary>
+        <Card padding="none" className="rounded-none border-0 border-t border-[#E5E5E5] shadow-none">
+          <form action={postJobAction} className="space-y-4 p-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input name="title" required label="Role title" placeholder="e.g. Product Designer" />
+              <Input name="company" required label="Company" placeholder="e.g. Cybernovr" />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="locationType" className="mb-1.5 block text-sm font-medium text-[#1A1A2E]">Location type</label>
+                <select id="locationType" name="locationType" className="w-full rounded-[8px] border border-[#E5E5E5] bg-white px-3 py-2.5 text-sm text-[#1A1A2E] outline-none transition-colors focus:border-[#4451A2] focus:ring-2 focus:ring-[#4451A2]/15">
+                  <option value="REMOTE">Remote</option>
+                  <option value="ONSITE">On-site</option>
+                  <option value="HYBRID">Hybrid</option>
+                </select>
+              </div>
+              <Input name="location" label="Location" placeholder="e.g. Lagos, NG" />
+            </div>
+            <Input name="link" type="url" label="Application link" placeholder="https://..." />
+            <Textarea name="description" label="Description" rows={3} placeholder="Tell the community about this opportunity" />
+            <Button type="submit" variant="purple">Submit for approval</Button>
+          </form>
+        </Card>
       </details>
 
-      <div className="mt-6 space-y-3">
+      <div className="mt-8 space-y-4">
         {listings.map((job) => (
-          <div key={job.id} className="rounded-card border border-border bg-background p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-[15px] font-medium text-text-primary">
-                {job.isFeatured && "⭐ "}
-                {job.title} · {job.company}
-              </p>
-              <span className="rounded-pill bg-purple-light px-2 py-1 text-[13px] text-purple">
+          <Card key={job.id} hover className="p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-[#1A1A2E]">
+                  {job.isFeatured && <span aria-label="Featured" title="Featured">⭐ </span>}
+                  {job.title}
+                </h2>
+                <p className="mt-1 text-sm text-[#666666]">{job.company}</p>
+              </div>
+              <Badge variant="purple" className="w-fit">
                 {locationLabels[job.locationType]}
                 {job.location ? ` · ${job.location}` : ""}
-              </span>
+              </Badge>
             </div>
-            {job.description && <p className="mt-2 text-[15px] text-text-secondary">{job.description}</p>}
+            {job.description && <p className="mt-4 text-sm leading-6 text-[#666666]">{job.description}</p>}
             {job.link && (
-              <a href={job.link} target="_blank" rel="noreferrer" className="mt-2 inline-block text-[13px] text-purple hover:underline">
-                Apply →
-              </a>
+              <Link href={job.link} target="_blank" rel="noreferrer" className="mt-4 inline-flex text-sm font-medium text-[#4451A2] hover:underline">
+                Apply <span aria-hidden="true" className="ml-1">→</span>
+              </Link>
             )}
-          </div>
+          </Card>
         ))}
         {listings.length === 0 && (
           <EmptyState icon={Briefcase} title="No open opportunities right now" description="Check back soon, or post one above." />

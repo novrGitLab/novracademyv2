@@ -61,7 +61,7 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
     return (
       <div className="max-w-3xl">
         <p className="text-[15px] text-text-secondary">Course not found.</p>
-        <Link href="/admin/courses" className="mt-2 inline-block text-[13px] text-blue hover:underline">
+        <Link href="/admin/courses" className="mt-2 inline-block text-[13px] text-[#683290] hover:underline">
           ← Back to courses
         </Link>
       </div>
@@ -98,7 +98,7 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
           <div className="flex items-center gap-2">
             <Link
               href={`/admin/courses/${course.id}/preview`}
-              className="flex items-center gap-1.5 rounded-card border border-border px-3 py-1.5 text-[13px] text-text-primary hover:border-blue"
+              className="flex items-center gap-1.5 rounded-card border border-border px-3 py-1.5 text-[13px] text-text-primary hover:border-[#683290]"
             >
               <Eye className="h-3.5 w-3.5" strokeWidth={2} />
               Preview
@@ -113,7 +113,7 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
             </button>
             <Link
               href={`/admin/courses/${course.id}/enrollments`}
-              className="rounded-card border border-border px-3 py-1.5 text-[13px] text-text-primary hover:border-blue"
+              className="rounded-card border border-border px-3 py-1.5 text-[13px] text-text-primary hover:border-[#683290]"
             >
               Manage enrollments
             </Link>
@@ -145,7 +145,7 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
                 name="thumbnailUrl"
                 defaultValue={course.thumbnailUrl ?? ""}
                 placeholder="https://…"
-                className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+                className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
               />
             </div>
           </div>
@@ -156,7 +156,7 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
               <select
                 name="status"
                 defaultValue={course.status}
-                className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+                className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
               >
                 <option value="DRAFT">Draft</option>
                 <option value="PUBLISHED">Published</option>
@@ -190,7 +190,7 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
 
           <button
             type="submit"
-            className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90"
+            className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573]"
           >
             Save settings
           </button>
@@ -237,7 +237,7 @@ function Field({
           defaultValue={defaultValue}
           placeholder={placeholder}
           rows={3}
-          className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+          className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
         />
       ) : (
         <input
@@ -247,7 +247,7 @@ function Field({
           defaultValue={defaultValue}
           placeholder={placeholder}
           required={required}
-          className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+          className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
         />
       )}
     </div>

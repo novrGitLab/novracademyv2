@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { BookOpen, Clock3, Layers3 } from "lucide-react";
+import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/DesignSystem";
 import { getPublishedCourses } from "@/lib/courses-data";
 
 export default async function LearnPage() {
@@ -6,39 +7,81 @@ export default async function LearnPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-[24px] font-semibold text-text-primary">Browse courses</h1>
-      <p className="mt-1 text-[15px] text-text-secondary">
-        Explore cybersecurity courses to build your skills and earn certificates.
-      </p>
+      <PageHeader
+        title="Browse Courses"
+        description="Explore cybersecurity courses to build your skills and earn certificates."
+      />
 
       {courses.length === 0 ? (
-        <div className="mt-12 rounded-card border border-dashed border-border bg-background p-12 text-center">
-          <p className="text-[15px] font-medium text-text-primary">No courses available yet</p>
-          <p className="mt-1 text-[13px] text-text-secondary">Check back soon — new content is on the way.</p>
-        </div>
+        <EmptyState
+          icon={BookOpen}
+          title="No courses available yet"
+          description="Check back soon — new content is on the way."
+          className="mt-8"
+        />
       ) : (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {courses.map((course) => (
-            <Link
-              key={course.id}
-              href={`/dashboard/learn/${course.id}`}
-              className="group rounded-card border border-border bg-background p-5 shadow-card transition hover:-translate-y-0.5 hover:border-blue/30 hover:shadow-card-hover"
-            >
-              <h3 className="text-[16px] font-semibold text-text-primary group-hover:text-blue">
-                {course.title}
-              </h3>
-              {course.description && (
-                <p className="mt-2 line-clamp-2 text-[13px] text-text-secondary">
-                  {course.description}
-                </p>
-              )}
-              <p className="mt-3 text-[14px] font-medium text-text-primary">
-                {course.priceCents === 0
-                  ? "Free"
-                  : `${(course.priceCents / 100).toFixed(2)} ${course.currency}`}
-              </p>
-            </Link>
-          ))}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {courses.map((course, index) => {
+            const isFree = course.priceCents === 0;
+            const accent = index % 2 === 0 ? "blue" : "purple";
+
+            return (
+              <Card
+                key={course.id}
+                padding="none"
+                hover
+                className="group flex h-full flex-col overflow-hidden transition-transform duration-200 hover:-translate-y-1"
+              >
+                <div
+                  aria-hidden="true"
+                  className={
+                    accent === "blue"
+                      ? "h-2 bg-gradient-to-r from-[#4451A2] to-[#6874c4]"
+                      : "h-2 bg-gradient-to-r from-[#683290] to-[#9863bc]"
+                  }
+                />
+                <div className="flex flex-1 flex-col p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <Badge variant={isFree ? "blue" : "purple"}>
+                      {isFree ? "Free" : "Premium"}
+                    </Badge>
+                    <span className="text-xs font-medium text-[#767782]">
+                      {course._count.lessons} {course._count.lessons === 1 ? "lesson" : "lessons"}
+                    </span>
+                  </div>
+
+                  <h2 className="mt-4 font-serif text-xl font-semibold leading-snug text-[#1A1A2E] transition-colors group-hover:text-[#4451A2]">
+                    {course.title}
+                  </h2>
+                  <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-[#666666]">
+                    {course.description}
+                  </p>
+
+                  <div className="mt-5 flex items-center gap-4 text-xs text-[#767782]">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Layers3 aria-hidden="true" className="h-3.5 w-3.5 text-[#683290]" />
+                      Certificate included
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Clock3 aria-hidden="true" className="h-3.5 w-3.5 text-[#4451A2]" />
+                      Self-paced
+                    </span>
+                  </div>
+
+                  <div className="mt-auto flex items-center justify-between gap-4 pt-6">
+                    <Badge variant={isFree ? "blue" : "purple"}>
+                      {isFree ? "Free" : `${(course.priceCents / 100).toFixed(2)} ${course.currency}`}
+                    </Badge>
+                    <Button
+                      href={`/dashboard/learn/${course.id}`}
+                    >
+                      View Course
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { apiFetch } from "@/lib/api";
+import { Badge, Card, PageHeader } from "@/components/DesignSystem";
 import { getPostsAction } from "../actions";
 import { PostFeed } from "../PostFeed";
 import { GroupJoinButton } from "./GroupJoinButton";
@@ -27,23 +27,24 @@ export default async function GroupPage({ params }: { params: { groupId: string 
   const isMember = group.members.some((m) => m.user.id === session!.user.id);
 
   return (
-    <div className="max-w-2xl">
-      <Link href="/dashboard/community" className="text-[13px] text-text-secondary hover:text-purple">
-        ← All channels
-      </Link>
+    <div className="mx-auto max-w-2xl px-4 pb-10 sm:px-6">
+      <PageHeader
+        title={`# ${group.name}`}
+        description={group.description ?? undefined}
+        backLink={{ href: "/dashboard/community", label: "All channels" }}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="blue">
+              {group._count.members} member{group._count.members === 1 ? "" : "s"}
+            </Badge>
+            <GroupJoinButton groupId={group.id} isMember={isMember} />
+          </div>
+        }
+      />
 
-      <div className="mt-2 flex items-center justify-between">
-        <div>
-          <h1 className="text-[24px] font-semibold text-text-primary"># {group.name}</h1>
-          {group.description && <p className="mt-1 text-[15px] text-text-secondary">{group.description}</p>}
-          <p className="mt-1 text-[13px] text-text-secondary">{group._count.members} members</p>
-        </div>
-        <GroupJoinButton groupId={group.id} isMember={isMember} />
-      </div>
-
-      <div className="mt-6">
+      <Card padding="md">
         <PostFeed initialPosts={posts} groupId={group.id} currentUserId={session!.user.id} />
-      </div>
+      </Card>
     </div>
   );
 }

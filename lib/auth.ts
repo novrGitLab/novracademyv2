@@ -6,6 +6,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@novr/db";
 import { GroupType, UserStatus } from "@novr/types";
+import { TEST_CREDENTIALS } from "./test-credentials";
 
 async function autoJoinGeneralChannel(userId: string) {
   const general = await prisma.communityGroup.upsert({
@@ -35,6 +36,15 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+
+        // Development-only test users bypass the database for quick UI testing.
+        if (process.env.NODE_ENV === "development") {
+          const testUser = Object.values(TEST_CREDENTIALS).find(
+            ({ email, password }) =>
+              email === credentials.email && password === credentials.password,
+          );
+          if (testUser) return testUser.user as any;
+        }
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
@@ -88,8 +98,13 @@ export const authOptions: AuthOptions = {
         token.role = (user as any).role;
         token.memberType = (user as any).memberType;
         token.status = (user as any).status;
+        token.xp = (user as any).xp ?? 0;
+        token.enrollmentCount = (user as any).enrollmentCount ?? 0;
+        token.certificateCount = (user as any).certificateCount ?? 0;
+        token.postCount = (user as any).postCount ?? 0;
       }
-      if (token.id) {
+      const isTestUser = typeof token.id === "string" && token.id.startsWith("test-");
+      if (token.id && !isTestUser) {
         // Refresh claims from the DB so role/status/xp changes take effect
         // without forcing a re-login. Counts power the dashboard stat cards
         // directly from the session, so that page never has to call the API.
