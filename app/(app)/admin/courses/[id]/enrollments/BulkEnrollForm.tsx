@@ -32,7 +32,7 @@ export function BulkEnrollForm({ courseId }: { courseId: string }) {
           required
           rows={5}
           placeholder={"alice@example.com\nbob@example.com"}
-          className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+          className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
         />
         <input type="file" accept=".csv,text/csv,text/plain" onChange={handleFile} className="mt-2 text-[13px]" />
       </div>
@@ -40,11 +40,11 @@ export function BulkEnrollForm({ courseId }: { courseId: string }) {
         name="validityDays"
         type="number"
         placeholder="Validity (days, blank = course default)"
-        className="w-64 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+        className="w-64 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
       />
       <button
         type="submit"
-        className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90"
+        className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573]"
       >
         Bulk enroll
       </button>

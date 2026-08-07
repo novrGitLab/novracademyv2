@@ -1,3 +1,6 @@
+import { Bell } from "lucide-react";
+
+import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/DesignSystem";
 import { getNotificationsAction, markAllReadAction, markReadAction } from "./actions";
 
 export default async function NotificationsPage() {
@@ -5,44 +8,61 @@ export default async function NotificationsPage() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="max-w-2xl">
-      <div className="flex items-center justify-between">
-        <h1 className="text-[24px] font-semibold text-text-primary">Notifications</h1>
-        {unreadCount > 0 && (
-          <form action={markAllReadAction}>
-            <button type="submit" className="text-[13px] text-blue hover:underline">
-              Mark all read
-            </button>
-          </form>
-        )}
-      </div>
+    <div className="w-full max-w-2xl">
+      <PageHeader
+        title="Notifications"
+        description="Stay updated with your learning and community activity."
+        action={
+          unreadCount > 0 ? (
+            <div className="flex items-center gap-3">
+              <Badge variant="blue">
+                {unreadCount} unread
+              </Badge>
+              <form action={markAllReadAction}>
+                <Button type="submit" size="sm">
+                  Mark all read
+                </Button>
+              </form>
+            </div>
+          ) : undefined
+        }
+      />
 
-      <div className="mt-6 space-y-2">
-        {notifications.map((n) => (
-          <div
-            key={n.id}
-            className={`rounded-card border border-border px-4 py-3 ${n.read ? "bg-background" : "bg-blue-light"}`}
+      <div className="space-y-3">
+        {notifications.map((notification) => (
+          <Card
+            key={notification.id}
+            hover
+            className={notification.read ? "bg-white" : "border-[#4451A2]/20 bg-[#EEF0FA]"}
           >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[15px] font-medium text-text-primary">{n.title}</p>
-                {n.content && <p className="mt-1 text-[13px] text-text-secondary">{n.content}</p>}
-                <p className="mt-1 text-[13px] text-text-secondary">{new Date(n.createdAt).toLocaleString()}</p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-start gap-2">
+                  {!notification.read && <span aria-hidden="true" className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[#4451A2]" />}
+                  <p className="text-base font-semibold text-[#1A1A2E]">{notification.title}</p>
+                </div>
+                {notification.content && <p className="mt-2 text-sm leading-6 text-[#666666]">{notification.content}</p>}
+                <p className="mt-3 text-xs text-[#767782]">
+                  {new Date(notification.createdAt).toLocaleString()}
+                </p>
               </div>
-              {!n.read && (
-                <form action={markReadAction.bind(null, n.id)}>
-                  <button type="submit" className="whitespace-nowrap text-[13px] text-blue hover:underline">
+              {!notification.read && (
+                <form action={markReadAction.bind(null, notification.id)} className="shrink-0">
+                  <Button type="submit" size="sm" variant="secondary">
                     Mark read
-                  </button>
+                  </Button>
                 </form>
               )}
             </div>
-          </div>
+          </Card>
         ))}
+
         {notifications.length === 0 && (
-          <p className="rounded-card border border-border bg-surface px-4 py-8 text-center text-[15px] text-text-secondary">
-            You're all caught up.
-          </p>
+          <EmptyState
+            icon={Bell}
+            title="You're all caught up"
+            description="New learning and community updates will appear here."
+          />
         )}
       </div>
     </div>

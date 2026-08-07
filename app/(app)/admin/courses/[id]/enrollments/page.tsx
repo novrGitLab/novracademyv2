@@ -34,7 +34,7 @@ export default async function EnrollmentsPage({ params }: { params: { id: string
 
   return (
     <div className="max-w-4xl">
-      <Link href={`/admin/courses/${params.id}`} className="text-[13px] text-text-secondary hover:text-blue">
+      <Link href={`/admin/courses/${params.id}`} className="text-[13px] text-text-secondary hover:text-[#683290]">
         ← Back to course
       </Link>
       <h1 className="mt-2 text-[24px] font-semibold text-text-primary">Enrollments</h1>
@@ -48,17 +48,17 @@ export default async function EnrollmentsPage({ params }: { params: { id: string
               type="email"
               required
               placeholder="learner@example.com"
-              className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+              className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
             />
             <input
               name="validityDays"
               type="number"
               placeholder="Validity (days)"
-              className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+              className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
             />
             <button
               type="submit"
-              className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90"
+              className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573]"
             >
               Assign
             </button>
@@ -78,7 +78,7 @@ export default async function EnrollmentsPage({ params }: { params: { id: string
             <select
               name="cohortId"
               required
-              className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+              className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
             >
               <option value="">Select a cohort…</option>
               {cohorts.map((c) => (
@@ -91,12 +91,12 @@ export default async function EnrollmentsPage({ params }: { params: { id: string
               name="validityDays"
               type="number"
               placeholder="Validity (days)"
-              className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+              className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
             />
             <button
               type="submit"
               disabled={cohorts.length === 0}
-              className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90 disabled:opacity-50"
+              className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
             >
               Enroll cohort
             </button>

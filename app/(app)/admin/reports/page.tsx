@@ -26,7 +26,7 @@ export default function ReportsPage() {
             </div>
             <a
               href={`${API_URL}${r.path}`}
-              className="rounded-card bg-blue px-3 py-1.5 text-[13px] font-medium text-white hover:bg-blue/90"
+              className="rounded-card bg-[#683290] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[#542573]"
             >
               Download CSV
             </a>
@@ -41,9 +41,9 @@ export default function ReportsPage() {
             name="userId"
             required
             placeholder="Learner user ID"
-            className="flex-1 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+            className="flex-1 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
           />
-          <button type="submit" className="rounded-card bg-blue px-4 py-2 text-[13px] font-medium text-white hover:bg-blue/90">
+          <button type="submit" className="rounded-card bg-[#683290] px-4 py-2 text-[13px] font-medium text-white hover:bg-[#542573]">
             Download
           </button>
         </form>

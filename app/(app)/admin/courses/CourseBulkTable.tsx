@@ -47,8 +47,8 @@ export function CourseBulkTable({ courses }: { courses: CourseListItem[] }) {
   return (
     <div>
       {selected.size > 0 && (
-        <div className="mb-3 flex items-center gap-2 rounded-card border border-blue bg-blue-light px-4 py-3">
-          <span className="text-[13px] font-medium text-blue">{selected.size} selected</span>
+        <div className="mb-3 flex items-center gap-2 rounded-card border border-[#683290] bg-[#F4ECF8] px-4 py-3">
+          <span className="text-[13px] font-medium text-[#683290]">{selected.size} selected</span>
           <button
             disabled={pending}
             onClick={handleArchive}
@@ -81,7 +81,7 @@ export function CourseBulkTable({ courses }: { courses: CourseListItem[] }) {
                     <input type="checkbox" checked={selected.has(course.id)} onChange={() => toggle(course.id)} />
                   </td>
                   <td className="px-4 py-3">
-                    <Link href={`/admin/courses/${course.id}`} className="font-medium text-text-primary hover:text-blue">
+                    <Link href={`/admin/courses/${course.id}`} className="font-medium text-text-primary hover:text-[#683290]">
                       {course.title}
                     </Link>
                   </td>

@@ -83,7 +83,7 @@ export default function AdminJobsPage() {
                         )}
                         <button
                           onClick={() => run(() => setJobFeaturedAction(job.id, !job.isFeatured))}
-                          className="text-blue hover:underline"
+                          className="text-[#683290] hover:underline"
                         >
                           {job.isFeatured ? "Unfeature" : "Feature"}
                         </button>

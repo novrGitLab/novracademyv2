@@ -94,7 +94,7 @@ export function QuizContent({
       <div className="rounded-card border border-border bg-background p-8 text-center shadow-card">
         <div
           className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full ${
-            passed ? "bg-success" : "bg-surface"
+            passed ? "bg-emerald-600" : "bg-surface"
           } text-white`}
         >
           <Award className="h-8 w-8" />
@@ -122,7 +122,7 @@ export function QuizContent({
           {passed && nextLessonId && (
             <Link
               href={`/dashboard/learn/${courseId}/lessons/${nextLessonId}`}
-              className="inline-flex items-center gap-2 rounded-card bg-blue px-5 py-2.5 text-[14px] font-medium text-white hover:bg-blue/90"
+              className="inline-flex items-center gap-2 rounded-card bg-[#4451A2] px-5 py-2.5 text-[14px] font-medium text-white hover:bg-[#39458e]"
             >
               Continue to next lesson <ChevronRight className="h-4 w-4" />
             </Link>
@@ -130,7 +130,7 @@ export function QuizContent({
           {passed && !nextLessonId && (
             <Link
               href={`/dashboard/learn/${courseId}/certificate`}
-              className="inline-flex items-center gap-2 rounded-card bg-success px-5 py-2.5 text-[14px] font-medium text-white hover:bg-success/90"
+              className="inline-flex items-center gap-2 rounded-card bg-emerald-600 px-5 py-2.5 text-[14px] font-medium text-white hover:bg-emerald-700"
             >
               <Award className="h-4 w-4" /> View certificate
             </Link>
@@ -172,15 +172,15 @@ export function QuizContent({
           let bgColor = "bg-background";
           if (answered) {
             if (isCorrect) {
-              borderColor = "border-success";
-              bgColor = "bg-success-light";
+              borderColor = "border-emerald-600";
+              bgColor = "bg-emerald-50";
             } else if (isSelected && !isCorrect) {
-              borderColor = "border-red";
-              bgColor = "bg-red-light";
+              borderColor = "border-[#E82027]";
+              bgColor = "bg-[#E82027]/15";
             }
           } else if (isSelected) {
-            borderColor = "border-blue";
-            bgColor = "bg-blue-light";
+            borderColor = "border-[#4451A2]";
+            bgColor = "bg-[#4451A2]/10";
           }
 
           return (
@@ -189,14 +189,14 @@ export function QuizContent({
               onClick={() => !answered && setSelected(i)}
               disabled={answered}
               className={`flex w-full items-center gap-3 rounded-card border px-4 py-3 text-left text-[14px] transition ${borderColor} ${bgColor} ${
-                !answered ? "hover:border-blue/50 cursor-pointer" : "cursor-default"
+                !answered ? "hover:border-[#4451A2]/50 cursor-pointer" : "cursor-default"
               }`}
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-current text-[12px] font-medium">
                 {answered && isCorrect ? (
-                  <CheckCircle className="h-4 w-4 text-success" />
+                  <CheckCircle className="h-4 w-4 text-emerald-600" />
                 ) : answered && isSelected && !isCorrect ? (
-                  <XCircle className="h-4 w-4 text-red" />
+                  <XCircle className="h-4 w-4 text-[#E82027]" />
                 ) : (
                   String.fromCharCode(65 + i)
                 )}
@@ -212,8 +212,8 @@ export function QuizContent({
         <div
           className={`mt-4 rounded-card px-4 py-3 text-[13px] ${
             selected === question.correctIndex
-              ? "bg-success-light text-success"
-              : "bg-red-light text-red"
+              ? "bg-emerald-50 text-emerald-600"
+              : "bg-[#E82027]/15 text-[#E82027]"
           }`}
         >
           {selected === question.correctIndex ? "✓ Correct!" : "✗ Incorrect."}{" "}
@@ -227,14 +227,14 @@ export function QuizContent({
           <button
             onClick={handleAnswer}
             disabled={selected === null}
-            className="rounded-card bg-blue px-5 py-2.5 text-[14px] font-medium text-white shadow-card transition hover:bg-blue/90 disabled:opacity-40"
+            className="rounded-card bg-[#4451A2] px-5 py-2.5 text-[14px] font-medium text-white shadow-card transition hover:bg-[#39458e] disabled:opacity-40"
           >
             Submit answer
           </button>
         ) : (
           <button
             onClick={handleNext}
-            className="rounded-card bg-blue px-5 py-2.5 text-[14px] font-medium text-white shadow-card transition hover:bg-blue/90"
+            className="rounded-card bg-[#4451A2] px-5 py-2.5 text-[14px] font-medium text-white shadow-card transition hover:bg-[#39458e]"
           >
             {currentQ + 1 < totalQuestions ? "Next question" : "See results"}
           </button>

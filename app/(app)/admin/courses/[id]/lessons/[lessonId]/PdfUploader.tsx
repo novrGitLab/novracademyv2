@@ -69,14 +69,14 @@ export function PdfUploader({
       </div>
 
       <div className="mt-4">
-        <label className="inline-block cursor-pointer rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90">
+        <label className="inline-block cursor-pointer rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573]">
           {uploading ? "Uploading…" : uploaded ? "Replace PDF" : "Choose PDF file"}
           <input type="file" accept="application/pdf" className="hidden" onChange={handleFileChange} disabled={uploading} />
         </label>
 
         {uploading && (
           <div className="mt-3 h-2 w-full overflow-hidden rounded-pill bg-surface">
-            <div className="h-full bg-blue transition-all" style={{ width: `${progress}%` }} />
+            <div className="h-full bg-[#683290] transition-all" style={{ width: `${progress}%` }} />
           </div>
         )}
 

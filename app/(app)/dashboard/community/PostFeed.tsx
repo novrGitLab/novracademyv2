@@ -89,13 +89,13 @@ export function PostFeed({
           onChange={(e) => setContent(e.target.value)}
           placeholder="Share something with the community…"
           rows={3}
-          className="w-full resize-none rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-purple"
+          className="w-full resize-none rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
         />
         <div className="mt-2 flex justify-end">
           <button
             type="submit"
             disabled={posting || !content.trim()}
-            className="rounded-card bg-purple px-4 py-2 text-[15px] font-medium text-white hover:bg-purple/90 disabled:opacity-50"
+          className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
           >
             Post
           </button>
@@ -162,14 +162,14 @@ function PostCard({
           <p className="text-[13px] text-text-secondary">{new Date(post.createdAt).toLocaleString()}</p>
         </div>
         {post.author.id === currentUserId && (
-          <button type="button" onClick={onDelete} className="text-[13px] text-red hover:underline">
+          <button type="button" onClick={onDelete} className="text-[13px] text-[#E82027] hover:underline">
             Delete
           </button>
         )}
       </div>
 
       {post.isCertificateShare && post.certificate && (
-        <p className="mt-2 rounded-pill bg-purple-light px-3 py-1 text-[13px] text-purple">
+        <p className="mt-2 rounded-pill bg-[#683290]/15 px-3 py-1 text-[13px] font-semibold text-[#683290]">
           🎓 Earned a certificate in {post.certificate.course?.title}
         </p>
       )}
@@ -180,11 +180,11 @@ function PostCard({
         <button
           type="button"
           onClick={onReact}
-          className={post.viewerReaction ? "font-medium text-purple" : "hover:text-purple"}
+          className={post.viewerReaction ? "font-medium text-[#683290]" : "hover:text-[#683290]"}
         >
           👍 {post._count.reactions}
         </button>
-        <button type="button" onClick={toggleComments} className="hover:text-purple">
+        <button type="button" onClick={toggleComments} className="hover:text-[#683290]">
           💬 {post._count.comments}
         </button>
       </div>
@@ -202,9 +202,9 @@ function PostCard({
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               placeholder="Write a comment…"
-              className="flex-1 rounded-card border border-border bg-surface px-3 py-2 text-[13px] text-text-primary outline-none focus:border-purple"
+              className="flex-1 rounded-card border border-border bg-surface px-3 py-2 text-[13px] text-text-primary outline-none focus:border-[#683290]"
             />
-            <button type="submit" className="rounded-card bg-purple px-3 py-2 text-[13px] font-medium text-white hover:bg-purple/90">
+            <button type="submit" className="rounded-card bg-[#683290] px-3 py-2 text-[13px] font-medium text-white hover:bg-[#542573]">
               Send
             </button>
           </form>

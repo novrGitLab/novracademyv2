@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CalendarDays, ExternalLink, Users, Video } from "lucide-react";
+import { Badge, Button, Card } from "@/components/DesignSystem";
 import {
   cancelRsvpAction,
   deleteEventAction,
@@ -45,58 +47,59 @@ export function EventCard({
   const isFull = event.capacity != null && event._count.rsvps >= event.capacity;
 
   return (
-    <div className="rounded-card border border-border bg-background p-4">
-      <div className="flex items-center justify-between">
+    <Card hover className="group p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[15px] font-medium text-text-primary">{event.title}</p>
-          <p className="text-[13px] text-text-secondary">
+          <h2 className="font-serif text-xl font-semibold leading-snug text-[#1A1A2E] transition-colors group-hover:text-[#4451A2]">{event.title}</h2>
+          <p className="mt-2 flex items-center gap-1.5 text-sm text-[#666666]">
+            <CalendarDays aria-hidden="true" className="h-4 w-4 text-[#683290]" />
             {new Date(event.startAt).toLocaleString()} · Hosted by {event.host.name ?? event.host.email}
           </p>
         </div>
         {isOwner && (
           <form action={deleteEventAction.bind(null, event.id)}>
-            <button type="submit" className="text-[13px] text-red hover:underline">
+            <button type="submit" className="text-xs font-medium text-[#E82027] opacity-80 transition-opacity hover:opacity-100 hover:underline">
               Delete
             </button>
           </form>
         )}
       </div>
 
-      {event.description && <p className="mt-2 text-[15px] text-text-secondary">{event.description}</p>}
+      {event.description && <p className="mt-4 text-sm leading-6 text-[#666666]">{event.description}</p>}
 
-      <p className="mt-2 text-[13px] text-text-secondary">
-        {event._count.rsvps} going{event.capacity ? ` / ${event.capacity} capacity` : ""}
-      </p>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Badge variant={isFull ? "red" : "blue"}>
+          <Users aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />
+          {event._count.rsvps} going{event.capacity ? ` / ${event.capacity}` : ""}
+        </Badge>
+        {isFull && <Badge variant="red">Full — join waitlist</Badge>}
+        {status === "GOING" && <Badge variant="success">RSVP confirmed</Badge>}
+        {status === "WAITLIST" && <Badge variant="purple">On the waitlist</Badge>}
+      </div>
 
-      <div className="mt-3 flex items-center gap-3">
-        <button
-          type="button"
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <Button
           onClick={handleRsvp}
           disabled={pending}
-          className={
-            status === "GOING" || status === "WAITLIST"
-              ? "rounded-card border border-border px-3 py-1.5 text-[13px] text-text-secondary hover:border-red hover:text-red disabled:opacity-50"
-              : "rounded-card bg-purple px-3 py-1.5 text-[13px] font-medium text-white hover:bg-purple/90 disabled:opacity-50"
-          }
+          loading={pending}
+          variant={status === "GOING" || status === "WAITLIST" ? "secondary" : "purple"}
+          size="sm"
         >
           {status === "GOING" ? "Cancel RSVP" : status === "WAITLIST" ? "Leave waitlist" : isFull ? "Join waitlist" : "RSVP"}
-        </button>
-        {status === "WAITLIST" && <span className="text-[13px] text-text-secondary">You're on the waitlist</span>}
+        </Button>
         {event.meetingUrl && (status === "GOING") && (
-          <a href={event.meetingUrl} target="_blank" rel="noreferrer" className="text-[13px] text-purple hover:underline">
-            Join link →
-          </a>
+          <Button href={event.meetingUrl} variant="secondary" size="sm">
+            <Video aria-hidden="true" className="h-4 w-4" /> Join meeting <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+          </Button>
         )}
         {event.recordingUrl && (
-          <button type="button" onClick={handleViewRecording} className="text-[13px] text-purple hover:underline">
-            Watch recording →
-          </button>
+          <Button type="button" onClick={handleViewRecording} variant="secondary" size="sm">Watch recording</Button>
         )}
       </div>
 
       {recordingUrl && (
         <video src={recordingUrl} controls className="mt-3 w-full rounded-card" />
       )}
-    </div>
+    </Card>
   );
 }

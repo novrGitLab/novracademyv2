@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Award,
   BookOpen,
@@ -10,6 +11,7 @@ import {
   HelpCircle,
   Lock,
 } from "lucide-react";
+import { Badge, Button, Card } from "@/components/DesignSystem";
 import {
   getCompletedLessons,
   getCourseProgress,
@@ -38,6 +40,7 @@ export function LessonList({
   courseId: string;
   lessons: HardcodedLesson[];
 }) {
+  const router = useRouter();
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [mounted, setMounted] = useState(false);
 
@@ -68,11 +71,11 @@ export function LessonList({
   return (
     <>
       {/* Progress bar */}
-      <div className="mt-6 rounded-card border border-border bg-background p-5 shadow-card">
+      <Card padding="md" className="mt-6">
         <div className="flex items-center justify-between">
           <p className="text-[14px] font-medium text-text-primary">
             {allComplete ? (
-              <span className="flex items-center gap-2 text-success">
+                <span className="flex items-center gap-2 text-emerald-700">
                 <CheckCircle className="h-4 w-4" /> Completed
               </span>
             ) : (
@@ -82,25 +85,36 @@ export function LessonList({
           {allComplete && (
             <Link
               href={`/dashboard/learn/${courseId}/certificate`}
-              className="flex items-center gap-1.5 text-[13px] font-medium text-blue hover:underline"
+              className="flex items-center gap-1.5 text-[13px] font-medium text-[#4451A2] hover:underline"
             >
               <Award className="h-4 w-4" /> View certificate
             </Link>
           )}
         </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface">
+        <div
+          className="mt-3 h-2 overflow-hidden rounded-full bg-[#F8F9FB]"
+          aria-label={`${courseProgressPct}% complete`}
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={courseProgressPct}
+        >
           <div
-            className="h-full rounded-full bg-gradient-brand transition-all"
+            className="h-full rounded-full bg-gradient-to-r from-[#4451A2] to-[#683290] transition-all duration-500"
             style={{ width: `${courseProgressPct}%` }}
           />
         </div>
-      </div>
+      </Card>
 
       {/* Lesson list */}
-      <h2 className="mt-8 text-[17px] font-semibold text-text-primary">
-        Lessons
-      </h2>
-      <div className="mt-3 space-y-2">
+      <div className="mt-8 flex items-end justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-[#1A1A2E]">Lessons</h2>
+          <p className="mt-1 text-sm text-[#666666]">Work through each lesson to complete the course.</p>
+        </div>
+        <span className="hidden text-xs font-medium text-[#767782] sm:block">{completedCount}/{totalLessons} complete</span>
+      </div>
+      <div className="mt-4 space-y-3">
         {sortedLessons.map((lesson) => {
           const Icon = typeIcons[lesson.type] ?? BookOpen;
           const completed = mounted && completedIds.includes(lesson.lessonId);
@@ -108,66 +122,50 @@ export function LessonList({
             ? isLessonUnlocked(courseId, lesson.order, sortedLessons)
             : lesson.order === 1; // SSR: only first lesson unlocked
 
-          const rowClass = `flex items-center gap-4 rounded-card border px-4 py-3 transition ${
+          const rowClass = `flex items-center gap-4 rounded-[8px] border bg-white p-4 transition-all duration-200 ${
             unlocked
-              ? "border-border bg-background shadow-card hover:shadow-card-hover cursor-pointer"
-              : "border-border/50 bg-surface/50 opacity-60"
+              ? "border-[#E5E5E5] shadow-[0_1px_3px_rgba(26,26,46,0.08)] hover:-translate-y-0.5 hover:border-[#4451A2]/30 hover:shadow-[0_8px_24px_rgba(26,26,46,0.12)]"
+              : "border-[#E5E5E5]/60 bg-[#F8F9FB]/60 opacity-60"
           }`;
 
           const lessonContent = (
             <>
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${completed ? "bg-emerald-50" : "bg-[#4451A2]/10"}`}>
                 {completed ? (
-                  <CheckCircle className="h-4 w-4 text-success" />
+                    <CheckCircle className="h-5 w-5 text-emerald-700" />
                 ) : unlocked ? (
-                  <Icon className="h-4 w-4 text-text-secondary" />
+                    <Icon className="h-5 w-5 text-[#4451A2]" />
                 ) : (
-                  <Lock className="h-4 w-4 text-text-secondary" />
+                    <Lock className="h-5 w-5 text-[#767782]" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
                 <p
                   className={`text-[14px] font-medium ${
-                    unlocked ? "text-text-primary" : "text-text-secondary"
+                    unlocked ? "text-[#1A1A2E]" : "text-[#666666]"
                   }`}
                 >
                   {lesson.title}
                 </p>
                 <div className="mt-0.5 flex items-center gap-2">
-                  <span className="rounded-pill bg-surface px-2 py-0.5 text-[11px] font-medium text-text-secondary">
+                  <Badge variant={lesson.type === "QUIZ" ? "purple" : lesson.type === "PDF" ? "red" : "blue"}>
                     {typeLabels[lesson.type]}
-                  </span>
+                  </Badge>
                 </div>
               </div>
-              <div>
+              <div className="shrink-0">
                 {completed ? (
-                  <span className="text-[12px] font-medium text-success">
-                    Completed
-                  </span>
+                  <Badge variant="success">Completed</Badge>
                 ) : unlocked ? (
-                  <span className="text-[12px] font-medium text-blue">
-                    Start
-                  </span>
+                  <Button size="sm" onClick={() => router.push(`/dashboard/learn/${courseId}/lessons/${lesson.lessonId}`)}>
+                    {completedIds.length > 0 ? "Continue" : "Start"}
+                  </Button>
                 ) : (
-                  <span className="text-[12px] font-medium text-text-secondary">
-                    Locked
-                  </span>
+                  <Badge>Locked</Badge>
                 )}
               </div>
             </>
           );
-
-          if (unlocked) {
-            return (
-              <Link
-                key={lesson.lessonId}
-                href={`/dashboard/learn/${courseId}/lessons/${lesson.lessonId}`}
-                className={rowClass}
-              >
-                {lessonContent}
-              </Link>
-            );
-          }
 
           return (
             <div key={lesson.lessonId} className={rowClass}>

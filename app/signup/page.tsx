@@ -4,62 +4,84 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { BookOpen, Lock, Mail, Sparkles, User, Users2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { createUserAccount } from "./actions";
 
-function GoogleIcon() {
+const fieldClassName =
+  "h-[42px] w-full rounded-none border border-[#C6C5D3] bg-white px-3 text-[14px] text-[#1A1A2E] outline-none transition placeholder:text-[#767782] focus:border-[#4451A2] focus:ring-2 focus:ring-[#4451A2]/10";
+
+function BrandMark({ mobile = false }: { mobile?: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden="true">
-      <path
-        fill="#4285F4"
-        d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.82Z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.87-3c-1.08.72-2.46 1.15-4.08 1.15-3.13 0-5.79-2.11-6.74-4.96H1.27v3.11A12 12 0 0 0 12 24Z"
-      />
-      <path fill="#FBBC05" d="M5.26 14.28a7.2 7.2 0 0 1 0-4.56V6.61H1.27a12 12 0 0 0 0 10.78l3.99-3.11Z" />
-      <path
-        fill="#EA4335"
-        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.27 6.61l3.99 3.11C6.21 6.86 8.87 4.75 12 4.75Z"
-      />
-    </svg>
+    <img
+      src="/novracademy-logo.png"
+      alt="Novr Academy"
+      className={mobile ? "h-14 w-auto object-contain" : "h-20 w-auto object-contain"}
+    />
   );
 }
 
-function MicrosoftIcon() {
+function PasswordField({
+  id,
+  value,
+  onChange,
+  visible,
+  onToggle,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  visible: boolean;
+  onToggle: () => void;
+}) {
   return (
-    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden="true">
-      <path fill="#F25022" d="M1 1h10.5v10.5H1z" />
-      <path fill="#7FBA00" d="M12.5 1H23v10.5H12.5z" />
-      <path fill="#00A4EF" d="M1 12.5h10.5V23H1z" />
-      <path fill="#FFB900" d="M12.5 12.5H23V23H12.5z" />
-    </svg>
+    <div className="relative">
+      <input
+        id={id}
+        type={visible ? "text" : "password"}
+        required
+        minLength={id === "password" ? 8 : undefined}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="••••••••"
+        className={`${fieldClassName} pr-12`}
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={visible ? "Hide password" : "Show password"}
+        className="absolute right-0 top-0 flex h-[42px] w-11 items-center justify-center text-[#767782] transition hover:text-[#1A1A2E]"
+      >
+        {visible ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
+      </button>
+    </div>
   );
 }
 
 export default function SignUpPage() {
   const router = useRouter();
-
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [organizationCode, setOrganizationCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   function validate(): string | null {
     if (!fullName.trim()) return "Please enter your full name.";
     if (!email.trim()) return "Please enter your email.";
-    // Basic email format check
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Please enter a valid email address.";
     if (password.length < 8) return "Password must be at least 8 characters.";
     if (password !== confirmPassword) return "Passwords do not match.";
+    if (!termsAccepted) return "Please agree to the Terms of Service and Privacy Policy.";
     return null;
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError(null);
 
     const validationError = validate();
@@ -75,7 +97,7 @@ export default function SignUpPage() {
         setError(result.error || "Something went wrong. Please try again.");
         return;
       }
-      // Auto sign-in after successful registration
+
       const signInResult = await signIn("credentials", {
         email,
         password,
@@ -83,7 +105,6 @@ export default function SignUpPage() {
         callbackUrl: "/dashboard",
       });
       if (signInResult?.error) {
-        // Account created but sign-in failed — redirect to login
         router.push("/login?success=1");
         return;
       }
@@ -95,188 +116,96 @@ export default function SignUpPage() {
     }
   }
 
-  const inputClasses =
-    "w-full rounded-card border border-border bg-surface py-2 pl-9 pr-3 text-[15px] text-text-primary outline-none transition focus:border-blue focus:bg-background focus:ring-2 focus:ring-blue/10";
-
   return (
-    <main className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-      {/* Left — branding */}
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-brand p-12 text-white lg:flex">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 20% 20%, white 1px, transparent 1px), radial-gradient(circle at 80% 60%, white 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-          }}
+    <main className="grid h-screen grid-cols-1 overflow-hidden bg-gradient-to-br from-white to-[#FCF8FF] lg:grid-cols-[40%_60%]">
+      {/* Left — brand panel with image */}
+      <aside className="relative hidden h-screen overflow-hidden bg-[#F4ECF8] lg:flex">
+        <img
+          src="/Signin_Image.svg"
+          alt="Novr Academy security training"
+          className="h-full w-full object-cover"
         />
-
-        <div className="relative flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15 backdrop-blur">
-            <Sparkles className="h-5 w-5" strokeWidth={2.25} />
-          </div>
-          <span className="text-[19px] font-bold tracking-tight">Novr Academy</span>
-        </div>
-
-        <div className="relative max-w-md">
-          <h1 className="text-[38px] font-semibold leading-tight tracking-tight">
-            Start your learning journey.
-          </h1>
-          <p className="mt-4 text-[16px] text-white/85">
-            Create your account to access courses, connect with mentors, and earn certificates.
-          </p>
-
-          <div className="mt-10 space-y-4">
-            <Feature icon={BookOpen} text="Structured courses with certificates that verify instantly" />
-            <Feature icon={Users2} text="A real community — mentors, events, and a job board" />
-          </div>
-        </div>
-
-        <p className="relative text-[13px] text-white/60">© {new Date().getFullYear()} Novr Academy</p>
-      </div>
+      </aside>
 
       {/* Right — form */}
-      <div className="flex items-center justify-center bg-background px-6 py-12">
-        <div className="w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand text-white">
-              <Sparkles className="h-4 w-4" strokeWidth={2.25} />
-            </div>
-            <span className="text-[17px] font-bold tracking-tight text-text-primary">Novr Academy</span>
+      <section className="flex h-screen items-center justify-center overflow-y-auto bg-white px-6 py-12 sm:px-10 lg:px-12">
+        <div className="w-full max-w-[420px]">
+          <div className="mb-8 flex justify-center lg:hidden">
+            <BrandMark mobile />
           </div>
 
-          <h1 className="text-[24px] font-semibold text-text-primary">Create your account</h1>
-          <p className="mt-1 text-[15px] text-text-secondary">Join Novr Academy today.</p>
+          <div className="mb-8 hidden justify-center lg:flex">
+            <BrandMark />
+          </div>
 
-          <form onSubmit={handleSubmit} className="mt-7 space-y-4">
+          <h1 className="font-serif text-[32px] font-bold leading-[40px] text-[#1A1A2E]">
+            Join your security program
+          </h1>
+
+          <form onSubmit={handleSubmit} className="mt-8 space-y-6">
             <div>
-              <label htmlFor="fullName" className="text-[13px] font-medium text-text-secondary">
-                Full name
+              <label htmlFor="fullName" className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
+                FULL NAME
               </label>
-              <div className="relative mt-1">
-                <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" strokeWidth={2} />
-                <input
-                  id="fullName"
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Jane Doe"
-                  className={inputClasses}
-                />
+              <input id="fullName" type="text" required value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Jane Doe" className={`${fieldClassName} mt-2`} />
+            </div>
+
+            <div>
+              <label htmlFor="email" className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
+                WORK EMAIL
+              </label>
+              <input id="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className={`${fieldClassName} mt-2`} />
+            </div>
+
+            <div>
+              <div className="flex items-baseline justify-between gap-3">
+                <label htmlFor="organizationCode" className="text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
+                  ORGANIZATION CODE
+                </label>
+                <span className="text-right text-[12px] font-medium text-[#767782]">Provided by your administrator</span>
+              </div>
+              <input id="organizationCode" type="text" value={organizationCode} onChange={(event) => setOrganizationCode(event.target.value)} placeholder="e.g. NOVR-2024" className={`${fieldClassName} mt-2`} />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
+                PASSWORD
+              </label>
+              <div className="mt-2">
+                <PasswordField id="password" value={password} onChange={setPassword} visible={showPassword} onToggle={() => setShowPassword((visible) => !visible)} />
               </div>
             </div>
 
             <div>
-              <label htmlFor="email" className="text-[13px] font-medium text-text-secondary">
-                Email
+              <label htmlFor="confirmPassword" className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
+                CONFIRM PASSWORD
               </label>
-              <div className="relative mt-1">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" strokeWidth={2} />
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className={inputClasses}
-                />
+              <div className="mt-2">
+                <PasswordField id="confirmPassword" value={confirmPassword} onChange={setConfirmPassword} visible={showConfirmPassword} onToggle={() => setShowConfirmPassword((visible) => !visible)} />
               </div>
             </div>
 
-            <div>
-              <label htmlFor="password" className="text-[13px] font-medium text-text-secondary">
-                Password
+            <div className="pt-0">
+              <label className="flex items-start gap-3 text-[12px] font-medium leading-5 text-[#767782]">
+                <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 rounded-[2px] border border-[#C6C5D3] accent-[#4451A2]" />
+                <span>
+                  I agree to the <Link href="/terms" className="text-[#4451A2] hover:underline">Terms of Service</Link> and <Link href="/privacy" className="text-[#4451A2] hover:underline">Privacy Policy</Link>.
+                </span>
               </label>
-              <div className="relative mt-1">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" strokeWidth={2} />
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  minLength={8}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className={inputClasses}
-                />
-              </div>
             </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="text-[13px] font-medium text-text-secondary">
-                Confirm password
-              </label>
-              <div className="relative mt-1">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" strokeWidth={2} />
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className={inputClasses}
-                />
-              </div>
-            </div>
+            {error && <p className="bg-red-50 px-3 py-2 text-[13px] text-red-700">{error}</p>}
 
-            {error && (
-              <p className="rounded-card bg-red-light px-3 py-2 text-[13px] text-red">{error}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-card bg-blue px-4 py-2.5 text-[15px] font-medium text-white shadow-card transition hover:bg-blue/90 hover:shadow-card-hover disabled:opacity-60"
-            >
-              {loading ? "Creating account…" : "Create account"}
+            <button type="submit" disabled={loading} className="h-[42px] w-full rounded-none bg-[#4451A2] px-4 text-[12px] font-bold tracking-[0.6px] text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-[#39458f] disabled:cursor-not-allowed disabled:opacity-60">
+              {loading ? "CREATING ACCOUNT…" : "CREATE ACCOUNT"}
             </button>
           </form>
 
-          <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-[12px] text-text-secondary">OR</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-
-          <div className="space-y-2.5">
-            <button
-              type="button"
-              className="flex w-full items-center justify-center gap-2.5 rounded-card border border-border bg-background px-4 py-2.5 text-[14px] font-medium text-text-primary shadow-card transition hover:bg-surface"
-            >
-              <GoogleIcon />
-              Continue with Google
-            </button>
-            <button
-              type="button"
-              className="flex w-full items-center justify-center gap-2.5 rounded-card border border-border bg-background px-4 py-2.5 text-[14px] font-medium text-text-primary shadow-card transition hover:bg-surface"
-            >
-              <MicrosoftIcon />
-              Continue with Microsoft
-            </button>
-          </div>
-
-          <p className="mt-8 text-center text-[13px] text-text-secondary">
-            Already have an account?{" "}
-            <Link href="/login" className="font-medium text-blue hover:underline">
-              Sign in
-            </Link>
-          </p>
+          <footer className="mt-8 border-t border-[#C6C5D3] pt-4 text-center text-[14px] text-[#454651]">
+            Already have an account? <Link href="/login" className="font-medium text-[#4451A2] hover:underline">Sign in</Link>
+          </footer>
         </div>
-      </div>
+      </section>
     </main>
-  );
-}
-
-function Feature({ icon: Icon, text }: { icon: typeof BookOpen; text: string }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/15">
-        <Icon className="h-3.5 w-3.5" strokeWidth={2.25} />
-      </div>
-      <p className="text-[14px] text-white/85">{text}</p>
-    </div>
   );
 }

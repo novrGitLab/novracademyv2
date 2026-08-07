@@ -1,6 +1,6 @@
 import { getHardcodedCourse } from "@/lib/courses-data";
 import { notFound } from "next/navigation";
-import { BookOpen } from "lucide-react";
+import { Badge, PageHeader } from "@/components/DesignSystem";
 import { LessonList } from "./LessonList";
 
 export default async function CourseDetailPage({
@@ -14,26 +14,33 @@ export default async function CourseDetailPage({
   const lessons = course.lessons;
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-4xl px-4 pb-10 sm:px-6">
       {/* Course header */}
-      <div className="rounded-card bg-gradient-brand p-8 text-white shadow-premium">
-        <h1 className="text-[28px] font-semibold tracking-tight">{course.title}</h1>
-        {course.description && (
-          <p className="mt-2 max-w-xl text-[15px] text-white/85">{course.description}</p>
-        )}
-        <div className="mt-4 flex items-center gap-4">
-          <span className="text-[14px] font-medium text-white/80">
+      <div className="rounded-card bg-gradient-brand p-5 text-white shadow-premium sm:p-8">
+        <PageHeader
+          title={course.title}
+          description={course.description}
+          backLink={{ href: "/dashboard/learn", label: "Back to courses" }}
+          className="mb-0 [&_a]:!text-white [&_a]:!text-white/80 [&_a]:hover:!text-white [&_h1]:!text-white [&_p]:!text-white/85"
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="border-white/25 bg-white/15 text-white backdrop-blur">
+                {lessons.length} lesson{lessons.length !== 1 ? "s" : ""}
+              </Badge>
+              <Badge className="border-white/25 bg-white/15 text-white backdrop-blur">
+                {course.priceCents === 0
+                  ? "Free"
+                  : `${(course.priceCents / 100).toFixed(2)} ${course.currency}`}
+              </Badge>
+            </div>
+          }
+        />
+        <div className="mt-5 flex items-center gap-4 text-[13px] text-white/70">
+          <span>
             {lessons.length} lesson{lessons.length !== 1 ? "s" : ""}
           </span>
-          {course.priceCents === 0 ? (
-            <span className="rounded-pill bg-white/15 px-3 py-1 text-[13px] font-medium backdrop-blur">
-              Free
-            </span>
-          ) : (
-            <span className="rounded-pill bg-white/15 px-3 py-1 text-[13px] font-medium backdrop-blur">
-              {(course.priceCents / 100).toFixed(2)} {course.currency}
-            </span>
-          )}
+          <span aria-hidden="true" className="h-1 w-1 rounded-full bg-white/50" />
+          <span>{course.priceCents === 0 ? "Free access" : "Premium course"}</span>
         </div>
       </div>
 

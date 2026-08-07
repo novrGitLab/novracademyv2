@@ -49,13 +49,13 @@ export function LessonList({
           className="flex items-center justify-between rounded-card border border-border bg-background px-4 py-3"
         >
           <div className="flex items-center gap-3">
-            <span className="rounded-pill bg-blue-light px-2 py-1 text-[13px] font-medium text-blue">
+            <span className="rounded-pill bg-[#F4ECF8] px-2 py-1 text-[13px] font-medium text-[#683290]">
               {typeLabels[lesson.type]}
             </span>
             <div>
               <Link
                 href={`/admin/courses/${courseId}/lessons/${lesson.id}`}
-                className="text-[15px] font-medium text-text-primary hover:text-blue"
+                className="text-[15px] font-medium text-text-primary hover:text-[#683290]"
               >
                 {lesson.title}
               </Link>
@@ -108,13 +108,13 @@ export function LessonList({
             name="title"
             required
             placeholder="Lesson title"
-            className="rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+            className="rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
           />
           <select
             name="type"
             value={newType}
             onChange={(e) => setNewType(e.target.value as Lesson["type"])}
-            className="rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+            className="rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
           >
             <option value="VIDEO">Video</option>
             <option value="PDF">PDF</option>
@@ -129,7 +129,7 @@ export function LessonList({
             type="number"
             defaultValue={80}
             placeholder="Min watch %"
-            className="w-40 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+            className="w-40 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
           />
         )}
         {newType === "QUIZ" && (
@@ -139,21 +139,21 @@ export function LessonList({
               type="number"
               defaultValue={70}
               placeholder="Pass mark %"
-              className="w-40 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+              className="w-40 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
             />
             <input
               name="quizMaxAttempts"
               type="number"
               defaultValue={3}
               placeholder="Max attempts"
-              className="w-40 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+              className="w-40 rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
             />
           </div>
         )}
 
         <button
           type="submit"
-          className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90"
+          className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573]"
         >
           Add lesson
         </button>

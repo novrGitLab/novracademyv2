@@ -63,7 +63,7 @@ export function ClaimForm({ claimToken, hasExistingAccount }: { claimToken: stri
         <p className="text-[13px] text-text-secondary">
           An account already exists for this email. If you're logged in as that account, claiming will link
           instantly. Otherwise,{" "}
-          <a href="/login" className="text-blue underline">
+          <a href="/login" className="text-[#683290] underline">
             log in
           </a>{" "}
           first, then return to this link.
@@ -78,7 +78,7 @@ export function ClaimForm({ claimToken, hasExistingAccount }: { claimToken: stri
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+               className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
             />
           </div>
           <div>
@@ -89,7 +89,7 @@ export function ClaimForm({ claimToken, hasExistingAccount }: { claimToken: stri
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={8}
-              className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue"
+               className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
             />
           </div>
         </>
@@ -100,7 +100,7 @@ export function ClaimForm({ claimToken, hasExistingAccount }: { claimToken: stri
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-card bg-blue px-4 py-2 text-[15px] font-medium text-white hover:bg-blue/90 disabled:opacity-50"
+        className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
       >
         {submitting ? "Claiming…" : "Claim your profile"}
       </button>

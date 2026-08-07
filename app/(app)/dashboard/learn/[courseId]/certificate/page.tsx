@@ -1,238 +1,130 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useMemo, useState } from "react";
+import { Award, CalendarDays, CheckCircle2, Download, Hash, Share2, UserRound } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { Award, Download, ArrowLeft, CheckCircle } from "lucide-react";
+import { BackLink, Badge, Button, Card, PageHeader } from "@/components/DesignSystem";
 import { getHardcodedCourse } from "@/lib/courses-data";
-import { getCompletedLessons } from "@/lib/progress";
 
-export default function CertificatePage({
-  params,
-}: {
-  params: { courseId: string };
-}) {
-  return <CertificateClient courseId={params.courseId} />;
-}
-
-function CertificateClient({ courseId }: { courseId: string }) {
+export default function CertificatePage({ params }: { params: { courseId: string } }) {
   const { data: session } = useSession();
-  const [completedCount, setCompletedCount] = useState(0);
-  const [totalLessons, setTotalLessons] = useState(0);
-  const [mounted, setMounted] = useState(false);
+  const [shareLabel, setShareLabel] = useState("Share");
+  const course = getHardcodedCourse(params.courseId);
 
-  const course = getHardcodedCourse(courseId);
-  const learnerName = session?.user?.name || session?.user?.email || "Learner";
-  const completionDate = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const certificate = useMemo(() => {
+    const date = new Date();
+    const dateLabel = date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
 
-  useEffect(() => {
-    if (course) {
-      const completed = getCompletedLessons(courseId);
-      setCompletedCount(completed.length);
-      setTotalLessons(course.lessons.length);
+    return {
+      learnerName: session?.user?.name || session?.user?.email || "Alex Johnson",
+      courseName: course?.title || "Cybersecurity Foundations",
+      completionDate: dateLabel,
+      id: `NOVR-${params.courseId.replace(/[^a-z0-9]/gi, "").toUpperCase()}-2026`,
+    };
+  }, [course?.title, params.courseId, session?.user?.email, session?.user?.name]);
+
+  const printCertificate = () => window.print();
+
+  const shareCertificate = async () => {
+    const shareData = {
+      title: "Novr Academy Certificate",
+      text: `${certificate.learnerName} completed ${certificate.courseName}.`,
+      url: window.location.href,
+    };
+
+    if (navigator.share) {
+      await navigator.share(shareData).catch(() => undefined);
+      return;
     }
-    setMounted(true);
-  }, [courseId, course]);
+
+    await navigator.clipboard?.writeText(window.location.href);
+    setShareLabel("Link copied");
+    window.setTimeout(() => setShareLabel("Share"), 2000);
+  };
 
   if (!course) {
     return (
-      <div className="mx-auto max-w-2xl text-center">
-        <p className="text-text-secondary">Course not found.</p>
-        <Link href="/dashboard/learn" className="mt-4 inline-block text-blue hover:underline">
-          Browse courses
-        </Link>
+      <div className="mx-auto max-w-2xl px-4 py-10 text-center sm:px-6">
+        <PageHeader title="Certificate of Completion" description="Your certificate for completing this course." />
+        <Card padding="lg">
+          <p className="text-sm text-[#666666]">Course not found.</p>
+          <Button href="/dashboard/learn" className="mt-5">Browse courses</Button>
+        </Card>
       </div>
     );
-  }
-
-  const allComplete = mounted && completedCount === totalLessons && totalLessons > 0;
-
-  if (!allComplete && mounted) {
-    return (
-      <div className="mx-auto max-w-2xl text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-surface text-text-secondary">
-          <Award className="h-8 w-8" />
-        </div>
-        <h1 className="mt-4 text-[22px] font-semibold text-text-primary">Not yet!</h1>
-        <p className="mt-2 text-[15px] text-text-secondary">
-          You need to complete all {totalLessons} lessons to earn your certificate.
-          {mounted && ` You've completed ${completedCount} so far.`}
-        </p>
-        <Link
-          href={`/dashboard/learn/${courseId}`}
-          className="mt-6 inline-flex items-center gap-2 rounded-card bg-blue px-5 py-2.5 text-[14px] font-medium text-white hover:bg-blue/90"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to course
-        </Link>
-      </div>
-    );
-  }
-
-  // Generate a cert UID based on courseId + date
-  const certUid = `NOVR-${courseId.replace("course-", "").toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
-
-  function handleDownload() {
-    if (!course) return;
-    // Create a printable version
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Certificate - ${course.title}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f1f5f9; font-family: 'Inter', sans-serif; }
-          .certificate { width: 800px; padding: 60px; background: white; border: 3px solid #3b82f6; border-radius: 16px; text-align: center; position: relative; }
-          .certificate::before { content: ''; position: absolute; inset: 8px; border: 1px solid #e2e8f0; border-radius: 12px; }
-          .logo { font-size: 14px; font-weight: 600; color: #3b82f6; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 24px; }
-          .title { font-size: 32px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
-          .subtitle { font-size: 14px; color: #64748b; margin-bottom: 32px; }
-          .name { font-size: 28px; font-weight: 700; color: #3b82f6; margin-bottom: 8px; }
-          .course-label { font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-          .course-name { font-size: 18px; font-weight: 600; color: #0f172a; margin-bottom: 32px; }
-          .details { display: flex; justify-content: center; gap: 48px; margin-bottom: 32px; }
-          .detail-item { text-align: center; }
-          .detail-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
-          .detail-value { font-size: 13px; font-weight: 500; color: #334155; margin-top: 2px; }
-          .footer { font-size: 11px; color: #94a3b8; }
-          @media print { body { background: none; } .certificate { border-color: #3b82f6; } }
-        </style>
-      </head>
-      <body>
-        <div class="certificate">
-          <div class="logo">✦ Novr Academy</div>
-          <div class="title">Certificate of Completion</div>
-          <div class="subtitle">This certifies that</div>
-          <div class="name">${learnerName}</div>
-          <div class="course-label">has successfully completed</div>
-          <div class="course-name">${course.title}</div>
-          <div class="details">
-            <div class="detail-item">
-              <div class="detail-label">Date</div>
-              <div class="detail-value">${completionDate}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Certificate ID</div>
-              <div class="detail-value">${certUid}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Lessons</div>
-              <div class="detail-value">${totalLessons}</div>
-            </div>
-          </div>
-          <div class="footer">Verify at novracademy.com/verify/${certUid}</div>
-        </div>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
-      {/* Success banner */}
-      <div className="rounded-card border border-success/30 bg-success-light p-6 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success text-white">
-          <CheckCircle className="h-6 w-6" />
-        </div>
-        <h1 className="mt-3 text-[22px] font-semibold text-text-primary">
-          Congratulations!
-        </h1>
-        <p className="mt-1 text-[15px] text-text-secondary">
-          You&apos;ve completed all {totalLessons} lessons in <strong>{course.title}</strong>
-        </p>
+    <main className="mx-auto max-w-2xl px-4 pb-12 pt-2 sm:px-6">
+      <BackLink href={`/dashboard/learn/${params.courseId}`} label="Back to Course" className="mb-5" />
+      <PageHeader title="Certificate of Completion" description="Your certificate for completing this course." />
+
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <Badge variant="success" className="gap-1.5">
+          <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5" /> Completed
+        </Badge>
+        <span className="text-xs text-[#767782]">Issued by Novr Academy</span>
       </div>
 
-      {/* Certificate card */}
-      <div className="mt-6 overflow-hidden rounded-card border-2 border-blue bg-white shadow-premium">
-        {/* Decorative top bar */}
-        <div className="h-2 bg-gradient-brand" />
+      <Card id="certificate" padding="none" className="overflow-hidden border-0 bg-[#F8F9FB] shadow-[0_8px_30px_rgba(26,26,46,0.12)] print:shadow-none">
+        <div className="bg-gradient-to-r from-[#4451A2] via-[#683290] to-[#4451A2] p-1">
+          <div className="relative overflow-hidden bg-white px-5 py-10 text-center sm:px-12 sm:py-14">
+            <div aria-hidden="true" className="pointer-events-none absolute inset-3 border border-[#683290]/20 sm:inset-5" />
+            <div aria-hidden="true" className="absolute left-0 top-0 h-24 w-24 rounded-br-full bg-[#4451A2]/5" />
+            <div aria-hidden="true" className="absolute bottom-0 right-0 h-24 w-24 rounded-tl-full bg-[#683290]/5" />
 
-        <div className="px-12 py-10 text-center">
-          {/* Branding */}
-          <p className="text-[12px] font-semibold uppercase tracking-[3px] text-blue">
-            ✦ Novr Academy
-          </p>
+            <div className="relative">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#4451A2]/10 text-[#4451A2]">
+                <Award aria-hidden="true" className="h-7 w-7" />
+              </div>
+              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.28em] text-[#683290]">Novr Academy</p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-[#1A1A2E] sm:text-4xl">Certificate of Completion</h2>
+              <p className="mt-3 text-sm text-[#666666]">This certificate is proudly presented to</p>
+              <p className="mt-5 break-words font-serif text-3xl font-semibold text-[#4451A2] sm:text-4xl">{certificate.learnerName}</p>
+              <p className="mt-4 text-sm uppercase tracking-[0.18em] text-[#767782]">for successfully completing</p>
+              <p className="mx-auto mt-3 max-w-lg text-xl font-semibold text-[#1A1A2E]">{certificate.courseName}</p>
 
-          <h2 className="mt-4 text-[28px] font-bold text-text-primary">
-            Certificate of Completion
-          </h2>
-          <p className="mt-1 text-[14px] text-text-secondary">
-            This certifies that
-          </p>
-
-          {/* Learner name */}
-          <p className="mt-4 text-[26px] font-bold text-blue">
-            {learnerName}
-          </p>
-
-          <p className="mt-1 text-[13px] uppercase tracking-wider text-text-secondary">
-            has successfully completed
-          </p>
-
-          {/* Course name */}
-          <p className="mt-2 text-[18px] font-semibold text-text-primary">
-            {course.title}
-          </p>
-
-          {/* Divider */}
-          <div className="mx-auto mt-6 h-px w-48 bg-border" />
-
-          {/* Details */}
-          <div className="mt-6 flex items-center justify-center gap-12">
-            <div className="text-center">
-              <p className="text-[11px] uppercase tracking-wider text-text-secondary">
-                Date
-              </p>
-              <p className="mt-1 text-[13px] font-medium text-text-primary">
-                {completionDate}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-[11px] uppercase tracking-wider text-text-secondary">
-                Certificate ID
-              </p>
-              <p className="mt-1 font-mono text-[13px] font-medium text-text-primary">
-                {certUid}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-[11px] uppercase tracking-wider text-text-secondary">
-                Lessons
-              </p>
-              <p className="mt-1 text-[13px] font-medium text-text-primary">
-                {totalLessons} completed
-              </p>
+              <div className="mx-auto my-8 h-px max-w-sm bg-gradient-to-r from-transparent via-[#E5E5E5] to-transparent" />
+              <div className="grid gap-5 text-left sm:grid-cols-3 sm:gap-3">
+                <CertificateDetail icon={CalendarDays} label="Completion date" value={certificate.completionDate} />
+                <CertificateDetail icon={Hash} label="Certificate ID" value={certificate.id} mono />
+                <CertificateDetail icon={UserRound} label="Credential" value="Verified learner" />
+              </div>
             </div>
           </div>
         </div>
+      </Card>
 
-        {/* Bottom bar */}
-        <div className="h-2 bg-gradient-brand" />
+      <div className="mt-6 flex flex-wrap justify-center gap-3 print:hidden">
+        <Button onClick={printCertificate}>
+          <Download aria-hidden="true" className="h-4 w-4" /> Download
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={shareCertificate}
+          className="border-[#683290] text-[#683290] hover:bg-[#683290]/5 focus-visible:ring-[#683290]"
+        >
+          <Share2 aria-hidden="true" className="h-4 w-4" /> {shareLabel}
+        </Button>
+        <Button variant="secondary" onClick={printCertificate}>
+          Print
+        </Button>
       </div>
+    </main>
+  );
+}
 
-      {/* Actions */}
-      <div className="mt-6 flex items-center justify-center gap-3">
-        <button
-          onClick={handleDownload}
-          className="inline-flex items-center gap-2 rounded-card bg-blue px-5 py-2.5 text-[14px] font-medium text-white shadow-card transition hover:bg-blue/90"
-        >
-          <Download className="h-4 w-4" /> Download / Print
-        </button>
-        <Link
-          href={`/dashboard/learn/${courseId}`}
-          className="inline-flex items-center gap-2 rounded-card border border-border bg-background px-5 py-2.5 text-[14px] font-medium text-text-primary shadow-card transition hover:bg-surface"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to course
-        </Link>
+function CertificateDetail({ icon: Icon, label, value, mono = false }: { icon: typeof CalendarDays; label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-start gap-2.5 sm:block sm:text-center">
+      <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[#683290] sm:mx-auto sm:mb-2" />
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#767782]">{label}</p>
+        <p className={`mt-1 break-all text-xs font-medium text-[#1A1A2E] ${mono ? "font-mono" : ""}`}>{value}</p>
       </div>
     </div>
   );

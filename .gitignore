@@ -10,3 +10,5 @@ out/
 packages/db/generated/
 .env.production
 *.tsbuildinfo
+.mimocode/
+DESIGN.md
