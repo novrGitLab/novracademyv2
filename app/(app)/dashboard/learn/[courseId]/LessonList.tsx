@@ -14,10 +14,19 @@ import {
 import { Badge, Button, Card } from "@/components/DesignSystem";
 import {
   getCompletedLessons,
-  getCourseProgress,
   isLessonUnlocked,
 } from "@/lib/progress";
-import type { HardcodedLesson } from "@/lib/courses-data";
+
+/* -------------------------------------------------------------------------- */
+/*  Types                                                                      */
+/* -------------------------------------------------------------------------- */
+
+interface Lesson {
+  id: string;
+  title: string;
+  type: string;
+  order: number;
+}
 
 const typeLabels: Record<string, string> = {
   VIDEO: "Video",
@@ -33,12 +42,16 @@ const typeIcons: Record<string, typeof BookOpen> = {
   LIVE: BookOpen,
 };
 
+/* -------------------------------------------------------------------------- */
+/*  Component                                                                  */
+/* -------------------------------------------------------------------------- */
+
 export function LessonList({
   courseId,
   lessons,
 }: {
   courseId: string;
-  lessons: HardcodedLesson[];
+  lessons: Lesson[];
 }) {
   const router = useRouter();
   const [completedIds, setCompletedIds] = useState<string[]>([]);
@@ -48,7 +61,6 @@ export function LessonList({
     setCompletedIds(getCompletedLessons(courseId));
     setMounted(true);
 
-    // Re-read on storage events (from other tabs) and focus
     const onStorage = () => setCompletedIds(getCompletedLessons(courseId));
     const onFocus = () => setCompletedIds(getCompletedLessons(courseId));
     window.addEventListener("storage", onStorage);
@@ -65,7 +77,6 @@ export function LessonList({
     totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
   const allComplete = courseProgressPct === 100;
 
-  // Re-check after mount using real progress
   const sortedLessons = [...lessons].sort((a, b) => a.order - b.order);
 
   return (
@@ -117,10 +128,10 @@ export function LessonList({
       <div className="mt-4 space-y-3">
         {sortedLessons.map((lesson) => {
           const Icon = typeIcons[lesson.type] ?? BookOpen;
-          const completed = mounted && completedIds.includes(lesson.lessonId);
+          const completed = mounted && completedIds.includes(lesson.id);
           const unlocked = mounted
-            ? isLessonUnlocked(courseId, lesson.order, sortedLessons)
-            : lesson.order === 1; // SSR: only first lesson unlocked
+            ? isLessonUnlocked(courseId, lesson.order, sortedLessons.map(l => ({ lessonId: l.id, order: l.order })))
+            : lesson.order === 1;
 
           const rowClass = `flex items-center gap-4 rounded-[8px] border bg-white p-4 transition-all duration-200 ${
             unlocked
@@ -149,7 +160,7 @@ export function LessonList({
                 </p>
                 <div className="mt-0.5 flex items-center gap-2">
                   <Badge variant={lesson.type === "QUIZ" ? "purple" : lesson.type === "PDF" ? "red" : "blue"}>
-                    {typeLabels[lesson.type]}
+                    {typeLabels[lesson.type] ?? lesson.type}
                   </Badge>
                 </div>
               </div>
@@ -157,7 +168,7 @@ export function LessonList({
                 {completed ? (
                   <Badge variant="success">Completed</Badge>
                 ) : unlocked ? (
-                  <Button size="sm" onClick={() => router.push(`/dashboard/learn/${courseId}/lessons/${lesson.lessonId}`)}>
+                  <Button size="sm" onClick={() => router.push(`/dashboard/learn/${courseId}/lessons/${lesson.id}`)}>
                     {completedIds.length > 0 ? "Continue" : "Start"}
                   </Button>
                 ) : (
@@ -168,7 +179,7 @@ export function LessonList({
           );
 
           return (
-            <div key={lesson.lessonId} className={rowClass}>
+            <div key={lesson.id} className={rowClass}>
               {lessonContent}
             </div>
           );

@@ -1,17 +1,37 @@
-import { getHardcodedCourse } from "@/lib/courses-data";
+import { apiFetchSafe } from "@/lib/api";
 import { notFound } from "next/navigation";
 import { Badge, PageHeader } from "@/components/DesignSystem";
 import { LessonList } from "./LessonList";
+
+interface Lesson {
+  id: string;
+  title: string;
+  type: string;
+  order: number;
+}
+
+interface Course {
+  id: string;
+  title: string;
+  description: string | null;
+  priceCents: number;
+  currency: string;
+  lessons: Lesson[];
+}
 
 export default async function CourseDetailPage({
   params,
 }: {
   params: { courseId: string };
 }) {
-  const course = getHardcodedCourse(params.courseId);
+  const course = await apiFetchSafe<Course | null>(
+    `/courses/${params.courseId}`,
+    null
+  );
+
   if (!course) notFound();
 
-  const lessons = course.lessons;
+  const lessons = course.lessons ?? [];
 
   return (
     <div className="mx-auto max-w-4xl px-4 pb-10 sm:px-6">
@@ -19,7 +39,7 @@ export default async function CourseDetailPage({
       <div className="rounded-card bg-gradient-brand p-5 text-white shadow-premium sm:p-8">
         <PageHeader
           title={course.title}
-          description={course.description}
+          description={course.description ?? ""}
           backLink={{ href: "/dashboard/learn", label: "Back to courses" }}
           className="mb-0 [&_a]:!text-white [&_a]:!text-white/80 [&_a]:hover:!text-white [&_h1]:!text-white [&_p]:!text-white/85"
           action={
@@ -44,7 +64,7 @@ export default async function CourseDetailPage({
         </div>
       </div>
 
-      {/* Client-side lesson list with localStorage progress */}
+      {/* Client-side lesson list with progress tracking */}
       <LessonList courseId={course.id} lessons={lessons} />
     </div>
   );
