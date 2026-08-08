@@ -3,6 +3,13 @@
 import Link from "next/link";
 import { Building2, Plus, Search } from "lucide-react";
 import { useState } from "react";
+import { useApi } from "@/lib/useApi";
+
+/* -------------------------------------------------------------------------- */
+/*  NOTE: This page requires a dedicated Tenant Management API that does not    */
+/*  exist yet. Currently using placeholder data. When the API is built,        */
+/*  replace the organizations array with: useApi("/tenants?type=ORG", ...)     */
+/* -------------------------------------------------------------------------- */
 
 interface Organization {
   id: string;
@@ -12,6 +19,9 @@ interface Organization {
   compliance: number;
   status: "ACTIVE" | "TRIAL" | "SUSPENDED";
 }
+
+// TODO: Replace with API call when tenant management endpoints are built
+// const { data, loading } = useApi<{ tenants: Organization[] }>("/tenants?type=ORG", { tenants: [] });
 
 const organizations: Organization[] = [
   { id: "1", name: "Dangote Group", plan: "Enterprise", activeUsers: 2450, compliance: 92, status: "ACTIVE" },

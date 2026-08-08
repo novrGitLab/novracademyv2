@@ -3,6 +3,13 @@
 import Link from "next/link";
 import { GraduationCap, Plus, Search } from "lucide-react";
 import { useState } from "react";
+import { useApi } from "@/lib/useApi";
+
+/* -------------------------------------------------------------------------- */
+/*  NOTE: This page requires a dedicated Tenant Management API that does not    */
+/*  exist yet. Currently using placeholder data. When the API is built,        */
+/*  replace the institutions array with: useApi("/tenants?type=INST", ...)     */
+/* -------------------------------------------------------------------------- */
 
 interface Institution {
   id: string;
@@ -12,6 +19,9 @@ interface Institution {
   compliance: number;
   status: "ACTIVE" | "ONBOARDING" | "SUSPENDED";
 }
+
+// TODO: Replace with API call when tenant management endpoints are built
+// const { data, loading } = useApi<{ tenants: Institution[] }>("/tenants?type=INST", { tenants: [] });
 
 const institutions: Institution[] = [
   { id: "1", name: "Lagos State University", program: "Academic Pro", students: 8120, compliance: 78, status: "ACTIVE" },
