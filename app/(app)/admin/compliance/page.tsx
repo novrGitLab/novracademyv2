@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useApi } from "@/lib/useApi";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import {
@@ -15,6 +16,12 @@ import {
   ShieldCheck,
   TrendingUp,
 } from "lucide-react";
+
+/* -------------------------------------------------------------------------- */
+/*  NOTE: This page requires a dedicated Compliance API that does not          */
+/*  exist yet. Currently using placeholder data. When the API is built,        */
+/*  replace complianceData with: useApi("/compliance", { records: [] })        */
+/* -------------------------------------------------------------------------- */
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                      */
@@ -30,6 +37,9 @@ interface ComplianceRecord {
   status: "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT";
   dueDate: string;
 }
+
+// TODO: Replace with API call when compliance endpoints are built
+// const { data, loading } = useApi<{ records: ComplianceRecord[] }>("/compliance", { records: [] });
 
 /* -------------------------------------------------------------------------- */
 /*  Static data                                                                */

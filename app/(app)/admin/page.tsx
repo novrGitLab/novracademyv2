@@ -49,6 +49,25 @@ const emptyMetrics: OverviewMetrics = {
   expiringEnrollments30d: 0,
 };
 
+interface Course {
+  id: string;
+  title: string;
+  status: string;
+  _count: { lessons: number; enrollments: number };
+}
+
+interface User {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+  status: string;
+}
+
+function formatCents(cents: number) {
+  return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Static data                                                                */
 /* -------------------------------------------------------------------------- */
@@ -145,14 +164,19 @@ function ComplianceBar({ value }: { value: number }) {
 /* -------------------------------------------------------------------------- */
 
 function SuperAdminDashboard() {
+  const { data: metrics } = useApi<OverviewMetrics>("/analytics/overview", emptyMetrics);
+  const { data: usersData } = useApi<{ users: User[] }>("/users?pageSize=100", { users: [] });
+
+  const totalUsers = Object.values(metrics.membersByType).reduce((a, b) => a + b, 0);
+  const revenue = formatCents(metrics.revenueCents.thisMonth);
+
   return (
     <div className="space-y-6">
       <StatsRow stats={[
-        { label: "Total Active Users", value: "14,285" },
-        { label: "Monthly Revenue", value: "$845k", color: "purple" },
-        { label: "Org Tenants", value: 47 },
-        { label: "Inst Tenants", value: 23 },
-        { label: "System Uptime", value: "99.97%" },
+        { label: "Total Active Users", value: totalUsers.toLocaleString() || "—" },
+        { label: "Monthly Revenue", value: revenue !== "$0" ? revenue : "—", color: "purple" },
+        { label: "Enrollments Today", value: metrics.enrollments.today || 0 },
+        { label: "Expiring in 30d", value: metrics.expiringEnrollments30d || 0, color: metrics.expiringEnrollments30d > 0 ? "red" : undefined },
       ]} />
 
       <div className="rounded-[8px] border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
@@ -233,13 +257,17 @@ function SuperAdminDashboard() {
 /* -------------------------------------------------------------------------- */
 
 function CybernovrAdminDashboard() {
+  const { data: coursesData } = useApi<{ courses: Course[] }>("/courses?pageSize=50", { courses: [] });
+  const courses = coursesData.courses;
+  const published = courses.filter((c) => c.status === "PUBLISHED");
+  const totalEnrollments = courses.reduce((sum, c) => sum + (c._count?.enrollments ?? 0), 0);
+
   return (
     <div className="space-y-6">
       <StatsRow stats={[
-        { label: "Total Courses", value: 12 },
-        { label: "Published", value: 9, color: "purple" },
-        { label: "Total Enrollments", value: "4,820" },
-        { label: "Avg Completion", value: "78%" },
+        { label: "Total Courses", value: courses.length },
+        { label: "Published", value: published.length, color: "purple" },
+        { label: "Total Enrollments", value: totalEnrollments.toLocaleString() },
       ]} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_320px]">
@@ -263,17 +291,19 @@ function CybernovrAdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {courseStats.map((c) => (
+                  {courses.slice(0, 5).map((c) => (
                     <tr key={c.id} className="border-b border-[#E5E7EB] last:border-b-0 transition hover:bg-[#F8F9FB]">
                       <td className="px-6 py-4 text-[14px] font-medium text-[#1A1A2E]">{c.title}</td>
                       <td className="px-6 py-4">
                         <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${c.status === "PUBLISHED" ? "bg-[#F0FDF4] text-[#16A34A]" : "bg-[#FFF7ED] text-[#EA580C]"}`}>{c.status}</span>
                       </td>
-                      <td className="px-6 py-4 text-[14px] tabular-nums text-[#1A1A2E]">{c.enrollments.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-[14px] tabular-nums text-[#1A1A2E]">{c.completionRate}%</td>
-                      <td className="px-6 py-4 text-[14px] text-[#6B7280]">{c.lessons}</td>
+                      <td className="px-6 py-4 text-[14px] tabular-nums text-[#1A1A2E]">{c._count?.enrollments ?? 0}</td>
+                      <td className="px-6 py-4 text-[14px] text-[#6B7280]">{c._count?.lessons ?? 0}</td>
                     </tr>
                   ))}
+                  {courses.length === 0 && (
+                    <tr><td colSpan={4} className="px-6 py-8 text-center text-[14px] text-[#9CA3AF]">No courses yet</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>

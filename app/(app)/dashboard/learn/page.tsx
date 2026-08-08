@@ -1,9 +1,19 @@
 import { BookOpen, Clock3, Layers3 } from "lucide-react";
 import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/DesignSystem";
-import { getPublishedCourses } from "@/lib/courses-data";
+import { apiFetchSafe } from "@/lib/api";
+
+interface Course {
+  id: string;
+  title: string;
+  description: string | null;
+  priceCents: number;
+  currency: string;
+  status: string;
+  _count: { lessons: number; enrollments: number };
+}
 
 export default async function LearnPage() {
-  const courses = getPublishedCourses();
+  const { courses } = await apiFetchSafe<{ courses: Course[] }>("/courses", { courses: [] });
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -54,7 +64,7 @@ export default async function LearnPage() {
                     {course.title}
                   </h2>
                   <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-[#666666]">
-                    {course.description}
+                    {course.description ?? "No description available."}
                   </p>
 
                   <div className="mt-5 flex items-center gap-4 text-xs text-[#767782]">
