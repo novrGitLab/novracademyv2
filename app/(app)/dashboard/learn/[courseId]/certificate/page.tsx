@@ -1,18 +1,32 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Award, CalendarDays, CheckCircle2, Download, Hash, Share2, UserRound } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { BackLink, Badge, Button, Card, PageHeader } from "@/components/DesignSystem";
-import { getHardcodedCourse } from "@/lib/courses-data";
+import { apiFetchSafe } from "@/lib/api";
+
+interface Course {
+  id: string;
+  title: string;
+}
+
+interface Certificate {
+  certUid: string;
+  learnerName: string;
+  courseTitle: string;
+  issuedAt: string;
+}
 
 export default function CertificatePage({ params }: { params: { courseId: string } }) {
   const { data: session } = useSession();
   const [shareLabel, setShareLabel] = useState("Share");
-  const course = getHardcodedCourse(params.courseId);
 
-  const certificate = useMemo(() => {
-    const date = new Date();
+  const { data: course } = useApiSafe<Course>(`/courses/${params.courseId}`, null);
+  const { data: certificate } = useApiSafe<Certificate>(`/courses/${params.courseId}/certificate`, null);
+
+  const certificateData = useMemo(() => {
+    const date = certificate?.issuedAt ? new Date(certificate.issuedAt) : new Date();
     const dateLabel = date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -20,19 +34,19 @@ export default function CertificatePage({ params }: { params: { courseId: string
     });
 
     return {
-      learnerName: session?.user?.name || session?.user?.email || "Alex Johnson",
-      courseName: course?.title || "Cybersecurity Foundations",
+      learnerName: certificate?.learnerName || session?.user?.name || session?.user?.email || "Learner",
+      courseName: certificate?.courseTitle || course?.title || "Course",
       completionDate: dateLabel,
-      id: `NOVR-${params.courseId.replace(/[^a-z0-9]/gi, "").toUpperCase()}-2026`,
+      id: certificate?.certUid || `NOVR-${params.courseId.replace(/[^a-z0-9]/gi, "").toUpperCase()}-2026`,
     };
-  }, [course?.title, params.courseId, session?.user?.email, session?.user?.name]);
+  }, [certificate, course, params.courseId, session?.user]);
 
   const printCertificate = () => window.print();
 
   const shareCertificate = async () => {
     const shareData = {
       title: "Novr Academy Certificate",
-      text: `${certificate.learnerName} completed ${certificate.courseName}.`,
+      text: `${certificateData.learnerName} completed ${certificateData.courseName}.`,
       url: window.location.href,
     };
 
@@ -84,14 +98,14 @@ export default function CertificatePage({ params }: { params: { courseId: string
               <p className="mt-5 text-xs font-semibold uppercase tracking-[0.28em] text-[#683290]">Novr Academy</p>
               <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-[#1A1A2E] sm:text-4xl">Certificate of Completion</h2>
               <p className="mt-3 text-sm text-[#666666]">This certificate is proudly presented to</p>
-              <p className="mt-5 break-words font-serif text-3xl font-semibold text-[#4451A2] sm:text-4xl">{certificate.learnerName}</p>
+              <p className="mt-5 break-words font-serif text-3xl font-semibold text-[#4451A2] sm:text-4xl">{certificateData.learnerName}</p>
               <p className="mt-4 text-sm uppercase tracking-[0.18em] text-[#767782]">for successfully completing</p>
-              <p className="mx-auto mt-3 max-w-lg text-xl font-semibold text-[#1A1A2E]">{certificate.courseName}</p>
+              <p className="mx-auto mt-3 max-w-lg text-xl font-semibold text-[#1A1A2E]">{certificateData.courseName}</p>
 
               <div className="mx-auto my-8 h-px max-w-sm bg-gradient-to-r from-transparent via-[#E5E5E5] to-transparent" />
               <div className="grid gap-5 text-left sm:grid-cols-3 sm:gap-3">
-                <CertificateDetail icon={CalendarDays} label="Completion date" value={certificate.completionDate} />
-                <CertificateDetail icon={Hash} label="Certificate ID" value={certificate.id} mono />
+                <CertificateDetail icon={CalendarDays} label="Completion date" value={certificateData.completionDate} />
+                <CertificateDetail icon={Hash} label="Certificate ID" value={certificateData.id} mono />
                 <CertificateDetail icon={UserRound} label="Credential" value="Verified learner" />
               </div>
             </div>
@@ -128,4 +142,37 @@ function CertificateDetail({ icon: Icon, label, value, mono = false }: { icon: t
       </div>
     </div>
   );
+}
+
+/** Simple client-side fetch hook */
+function useApiSafe<T>(path: string, fallback: T | null) {
+  const [data, setData] = useState<T | null>(fallback);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    fetch(`/api/proxy${path}`, { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+        return (await res.json()) as T;
+      })
+      .then((json) => {
+        if (!cancelled) {
+          setData(json);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setData(fallback);
+          setLoading(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [path]);
+
+  return { data, loading };
 }
