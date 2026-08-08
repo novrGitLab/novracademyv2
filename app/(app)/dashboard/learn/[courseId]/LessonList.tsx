@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Badge, Button, Card } from "@/components/DesignSystem";
 import {
+  fetchCompletedLessons,
   getCompletedLessons,
   isLessonUnlocked,
 } from "@/lib/progress";
@@ -58,11 +59,20 @@ export function LessonList({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Load from localStorage first for instant render
     setCompletedIds(getCompletedLessons(courseId));
     setMounted(true);
 
+    // Then fetch from API and sync
+    fetchCompletedLessons(courseId).then((apiCompleted) => {
+      setCompletedIds(apiCompleted);
+    });
+
+    // Re-read on storage events (from other tabs) and focus
     const onStorage = () => setCompletedIds(getCompletedLessons(courseId));
-    const onFocus = () => setCompletedIds(getCompletedLessons(courseId));
+    const onFocus = () => {
+      fetchCompletedLessons(courseId).then(setCompletedIds);
+    };
     window.addEventListener("storage", onStorage);
     window.addEventListener("focus", onFocus);
     return () => {
