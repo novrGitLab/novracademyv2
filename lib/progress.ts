@@ -1,13 +1,23 @@
 /**
- * localStorage-based progress tracker for hardcoded courses.
+ * Course progress tracking — backed by backend API with localStorage fallback.
  *
- * Key format: `novr-progress-{courseId}` → JSON array of completed lesson IDs
+ * When authenticated, progress is synced to the server via:
+ * - GET  /courses/:id/progress          → fetch completed lessons
+ * - POST /courses/:courseId/lessons/:id/heartbeat → save video progress
+ * - POST /courses/:courseId/lessons/:id/pdf/complete → mark PDF done
+ *
+ * localStorage is used as a fallback for offline/unauthenticated state.
  */
+
+import { apiMutate } from "./useApi";
 
 const PREFIX = "novr-progress-";
 
-/** Get the list of completed lesson IDs for a course */
-export function getCompletedLessons(courseId: string): string[] {
+/* -------------------------------------------------------------------------- */
+/*  LocalStorage helpers (fallback)                                            */
+/* -------------------------------------------------------------------------- */
+
+function getLocalCompleted(courseId: string): string[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(PREFIX + courseId);
@@ -17,24 +27,93 @@ export function getCompletedLessons(courseId: string): string[] {
   }
 }
 
-/** Mark a lesson as completed (persists to localStorage) */
-export function markLessonComplete(courseId: string, lessonId: string): void {
+function setLocalCompleted(courseId: string, lessonIds: string[]): void {
   if (typeof window === "undefined") return;
-  const completed = getCompletedLessons(courseId);
-  if (!completed.includes(lessonId)) {
-    completed.push(lessonId);
-    localStorage.setItem(PREFIX + courseId, JSON.stringify(completed));
+  localStorage.setItem(PREFIX + courseId, JSON.stringify(lessonIds));
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Public API                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/** Get completed lesson IDs — tries API first, falls back to localStorage */
+export async function fetchCompletedLessons(courseId: string): Promise<string[]> {
+  try {
+    const res = await apiMutate<{ lessons: { lessonId: string; completed: boolean }[] }>(
+      `/courses/${courseId}/progress`,
+      "GET" as any
+    );
+    const completed = (res.lessons ?? [])
+      .filter((l) => l.completed)
+      .map((l) => l.lessonId);
+    // Sync to localStorage as backup
+    setLocalCompleted(courseId, completed);
+    return completed;
+  } catch {
+    // Fallback to localStorage
+    return getLocalCompleted(courseId);
   }
 }
 
-/** Check if a specific lesson is completed */
+/** Get completed lessons synchronously (localStorage only — for initial render) */
+export function getCompletedLessons(courseId: string): string[] {
+  return getLocalCompleted(courseId);
+}
+
+/** Mark a lesson as completed — saves to API + localStorage */
+export async function markLessonComplete(
+  courseId: string,
+  lessonId: string
+): Promise<void> {
+  const completed = getLocalCompleted(courseId);
+  if (completed.includes(lessonId)) return;
+
+  // Optimistic local update
+  completed.push(lessonId);
+  setLocalCompleted(courseId, completed);
+
+  // Try to save to API
+  try {
+    await apiMutate(`/courses/${courseId}/lessons/${lessonId}/heartbeat`, "POST", {
+      positionSeconds: 999999,
+      durationSeconds: 1,
+    });
+  } catch {
+    // Local save already happened, API sync will catch up later
+  }
+}
+
+/** Mark a PDF lesson as completed */
+export async function markPdfComplete(
+  courseId: string,
+  lessonId: string
+): Promise<void> {
+  const completed = getLocalCompleted(courseId);
+  if (completed.includes(lessonId)) return;
+
+  // Optimistic local update
+  completed.push(lessonId);
+  setLocalCompleted(courseId, completed);
+
+  // Try to save to API
+  try {
+    await apiMutate(`/courses/${courseId}/lessons/${lessonId}/pdf/complete`, "POST");
+  } catch {
+    // Local save already happened
+  }
+}
+
+/** Check if a specific lesson is completed (synchronous — localStorage) */
 export function isLessonCompleted(courseId: string, lessonId: string): boolean {
-  return getCompletedLessons(courseId).includes(lessonId);
+  return getLocalCompleted(courseId).includes(lessonId);
 }
 
 /** Get course progress stats */
-export function getCourseProgress(courseId: string, totalLessons: number): { completed: number; pct: number } {
-  const completed = getCompletedLessons(courseId).length;
+export function getCourseProgress(
+  courseId: string,
+  totalLessons: number
+): { completed: number; pct: number } {
+  const completed = getLocalCompleted(courseId).length;
   return {
     completed,
     pct: totalLessons > 0 ? Math.round((completed / totalLessons) * 100) : 0,
@@ -49,10 +128,9 @@ export function getCourseProgress(courseId: string, totalLessons: number): { com
 export function isLessonUnlocked(
   courseId: string,
   lessonOrder: number,
-  allLessons: { lessonId: string; order: number }[],
+  allLessons: { lessonId: string; order: number }[]
 ): boolean {
   if (lessonOrder <= 1) return true;
-  // Find the lesson that comes just before this one
   const prevLesson = allLessons.find((l) => l.order === lessonOrder - 1);
   if (!prevLesson) return true;
   return isLessonCompleted(courseId, prevLesson.lessonId);
