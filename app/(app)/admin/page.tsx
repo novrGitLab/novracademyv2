@@ -227,6 +227,7 @@ function SuperAdminDashboard() {
         <div>
           <h3 className="text-[15px] font-semibold text-[#1A1A2E]">Quick Actions</h3>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <ActionLink href="/admin/courses/new" label="Create Course" icon={BookOpen} color="blue" />
             <ActionLink href="/admin/organizations" label="New Tenant" icon={Plus} color="blue" />
             <ActionLink href="/admin/analytics" label="Audit Logs" icon={BarChart3} color="blue" />
             <ActionLink href="/admin/settings" label="Global Policies" icon={ShieldCheck} color="blue" />

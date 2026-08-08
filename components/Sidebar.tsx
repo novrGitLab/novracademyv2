@@ -53,6 +53,7 @@ const superAdminSections: NavSection[] = [
     label: "PLATFORM",
     items: [
       { label: "Dashboard", href: "/admin", icon: Home },
+      { label: "Courses", href: "/admin/courses", icon: BookOpen },
       { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
     ],
   },
