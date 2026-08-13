@@ -107,7 +107,12 @@ export default function NewCampaignPage() {
       setToast({ message: "Campaign launched successfully!", type: "success" });
       setTimeout(() => router.push("/admin/phishing"), 1000);
     } catch (err) {
-      setError((err as Error).message || "Failed to launch campaign");
+      const msg = (err as Error).message || "Failed to launch campaign";
+      if (msg.includes("401") || msg.toLowerCase().includes("unauthenticated") || msg.toLowerCase().includes("not authenticated")) {
+        setError("Backend not configured. The phishing campaign API endpoints are not available yet. Contact your backend team to deploy them.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
