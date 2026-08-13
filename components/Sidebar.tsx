@@ -13,6 +13,7 @@ import {
   LogOut,
   Settings,
   ShieldCheck,
+  ShieldAlert,
   Sparkles,
   Users,
   Users2,
@@ -68,6 +69,7 @@ const superAdminSections: NavSection[] = [
     label: "MANAGEMENT",
     items: [
       { label: "User Management", href: "/admin/users", icon: Users },
+      { label: "Phishing Campaigns", href: "/admin/phishing", icon: ShieldAlert },
       { label: "Settings", href: "/admin/settings", icon: Settings },
     ],
   },
@@ -104,6 +106,7 @@ const institutionAdminNav: NavItem[] = [
   { label: "Students", href: "/admin/users", icon: Users },
   { label: "Grading", href: "/admin/grading", icon: BarChart3 },
   { label: "Certificates", href: "/admin/certificates", icon: ShieldCheck },
+  { label: "Phishing Campaigns", href: "/admin/phishing", icon: ShieldAlert },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
