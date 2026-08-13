@@ -28,7 +28,10 @@ async function proxy(req: NextRequest, { params }: { params: { path: string[] } 
   }
 
   try {
-    const res = await fetch(`${API_URL}${path}${search}`, {
+    const targetUrl = `${API_URL}${path}${search}`;
+    console.log(`[proxy] ${req.method} ${targetUrl}`);
+
+    const res = await fetch(targetUrl, {
       method: req.method,
       headers: {
         "Content-Type": "application/json",
@@ -39,10 +42,13 @@ async function proxy(req: NextRequest, { params }: { params: { path: string[] } 
       signal: controller.signal,
     });
 
+    console.log(`[proxy] ${req.method} ${path} → ${res.status}`);
+
     const responseBody = res.status === 204 ? null : await res.json().catch(() => null);
     return NextResponse.json(responseBody, { status: res.status });
   } catch (err) {
     const timedOut = err instanceof Error && err.name === "AbortError";
+    console.error(`[proxy] ${req.method} ${path} error:`, err);
     return NextResponse.json(
       { error: timedOut ? `API request to ${path} timed out` : `API request to ${path} failed` },
       { status: 502 }
