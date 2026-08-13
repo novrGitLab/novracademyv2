@@ -3,38 +3,53 @@ import { NextRequest, NextResponse } from "next/server";
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
 const TIMEOUT_MS = 8000;
 
+const SESSION_COOKIE_NAMES = [
+  "__Secure-next-auth.session-token",
+  "next-auth.session-token",
+];
+
+/**
+ * Extract the raw NextAuth JWT string from the request cookies.
+ */
+function extractSessionToken(req: NextRequest): string | null {
+  for (const name of SESSION_COOKIE_NAMES) {
+    const value = req.cookies.get(name)?.value;
+    if (value) return value;
+  }
+  return null;
+}
+
 /**
  * Same-origin proxy from the browser to the Express API.
  *
- * Forwards ALL headers from the incoming request (including cookies) to the
- * backend, replacing only `host` and `origin` with the backend URL. This
- * ensures __Secure-next-auth.session-token and any other auth cookies arrive
- * intact at the backend.
- *
- * Uses req.arrayBuffer() to preserve the raw request body bytes exactly —
- * avoids any double-stringification that req.text() can cause.
+ * Extracts the raw NextAuth JWT from the session cookie and forwards it as
+ * an Authorization: Bearer header. The backend validates it using the
+ * shared NEXTAUTH_SECRET. Also forwards the raw cookie header as a fallback.
  */
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {
   const path = "/" + params.path.join("/");
   const search = req.nextUrl.search;
   const backendUrl = `${API_URL}${path}${search}`;
-  const backendHost = new URL(API_URL).host;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-  // Forward ALL incoming headers, replacing host/origin with the backend.
-  const headers = new Headers();
-  req.headers.forEach((value, key) => {
-    const lower = key.toLowerCase();
-    if (lower === "host" || lower === "origin" || lower === "referer") {
-      headers.set(key, lower === "host" ? backendHost : API_URL);
-    } else if (lower !== "connection") {
-      headers.set(key, value);
-    }
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
 
-  // Read the raw body bytes — arrayBuffer avoids string encoding issues.
+  // Extract the raw JWT token and send as Authorization: Bearer.
+  const token = extractSessionToken(req);
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  // Also forward the raw cookie header as a fallback.
+  const cookie = req.headers.get("cookie");
+  if (cookie) {
+    headers["cookie"] = cookie;
+  }
+
   let body: ArrayBuffer | undefined;
   if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "DELETE") {
     body = await req.arrayBuffer();
