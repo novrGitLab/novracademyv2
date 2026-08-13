@@ -10,6 +10,9 @@ const TIMEOUT_MS = 8000;
  * backend, replacing only `host` and `origin` with the backend URL. This
  * ensures __Secure-next-auth.session-token and any other auth cookies arrive
  * intact at the backend.
+ *
+ * Uses req.arrayBuffer() to preserve the raw request body bytes exactly —
+ * avoids any double-stringification that req.text() can cause.
  */
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {
   const path = "/" + params.path.join("/");
@@ -24,7 +27,6 @@ async function proxy(req: NextRequest, { params }: { params: { path: string[] } 
   const headers = new Headers();
   req.headers.forEach((value, key) => {
     const lower = key.toLowerCase();
-    // Skip headers that shouldn't be forwarded or need replacement
     if (lower === "host" || lower === "origin" || lower === "referer") {
       headers.set(key, lower === "host" ? backendHost : API_URL);
     } else if (lower !== "connection") {
@@ -32,16 +34,17 @@ async function proxy(req: NextRequest, { params }: { params: { path: string[] } 
     }
   });
 
-  let body: string | undefined;
+  // Read the raw body bytes — arrayBuffer avoids string encoding issues.
+  let body: ArrayBuffer | undefined;
   if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "DELETE") {
-    body = await req.text();
+    body = await req.arrayBuffer();
   }
 
   try {
     const res = await fetch(backendUrl, {
       method: req.method,
       headers,
-      body,
+      body: body && body.byteLength > 0 ? body : undefined,
       cache: "no-store",
       signal: controller.signal,
     });
