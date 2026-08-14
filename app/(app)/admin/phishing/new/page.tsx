@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { apiMutate } from "@/lib/useApi";
 import { Toast } from "@/components/ui/Toast";
+import { HtmlEditor } from "@/components/ui/HtmlEditor";
 import type { LaunchCampaignPayload } from "@/types/campaigns";
 import {
   ArrowLeft,
@@ -233,40 +234,32 @@ export default function NewCampaignPage() {
         </div>
 
         {/* Email Template */}
-        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
-          <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
-            EMAIL TEMPLATE (HTML)
-          </label>
-          <p className="mt-1 text-[13px] text-[#6B7280]">
-            Use <code className="rounded bg-[#F1F3F5] px-1.5 py-0.5 text-[12px] font-mono">{"{{.URL}}"}</code> as
-            the phishing link placeholder. GoPhish will replace it with the tracking URL.
-          </p>
-          <textarea
-            value={templateHtml}
-            onChange={(e) => setTemplateHtml(e.target.value)}
-            rows={10}
-            className="mt-3 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-4 py-3 text-[13px] font-mono text-[#1A1A2E] outline-none transition focus:border-[#683290] focus:ring-2 focus:ring-[#683290]/10"
-            spellCheck={false}
-          />
-        </div>
+        <HtmlEditor
+          label="EMAIL TEMPLATE (HTML)"
+          value={templateHtml}
+          onChange={setTemplateHtml}
+          hint={
+            <>
+              Use <code className="rounded bg-[#F1F3F5] px-1.5 py-0.5 text-[12px] font-mono">{"{{.URL}}"}</code> as
+              the phishing link placeholder. GoPhish will replace it with the tracking URL.
+            </>
+          }
+          placeholder="<p>Dear {{.FirstName}}, ...</p>"
+        />
 
         {/* Landing Page */}
-        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
-          <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
-            LANDING PAGE (HTML)
-          </label>
-          <p className="mt-1 text-[13px] text-[#6B7280]">
-            The page employees see after clicking. Typically a fake login form to
-            capture submitted credentials for the simulation.
-          </p>
-          <textarea
-            value={landingPageHtml}
-            onChange={(e) => setLandingPageHtml(e.target.value)}
-            rows={10}
-            className="mt-3 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-4 py-3 text-[13px] font-mono text-[#1A1A2E] outline-none transition focus:border-[#683290] focus:ring-2 focus:ring-[#683290]/10"
-            spellCheck={false}
-          />
-        </div>
+        <HtmlEditor
+          label="LANDING PAGE (HTML)"
+          value={landingPageHtml}
+          onChange={setLandingPageHtml}
+          hint={
+            <>
+              The page employees see after clicking. Typically a fake login form to
+              capture submitted credentials for the simulation.
+            </>
+          }
+          placeholder="<form>...</form>"
+        />
 
         {/* Submit */}
         <div className="flex items-center justify-end gap-3">
