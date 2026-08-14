@@ -129,6 +129,7 @@ export default function CampaignDetailPage() {
   );
 
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [showLandingPage, setShowLandingPage] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   // Auto-poll results every 15 seconds when campaign is active
@@ -229,6 +230,32 @@ export default function CampaignDetailPage() {
         <ResultStatCard label="Submitted" value={results.submittedData} icon={ShieldAlert} color="text-[#DC2626]" />
         <ResultStatCard label="Reported" value={results.reported} icon={CheckCircle2} color="text-[#16A34A]" />
       </div>
+
+      {/* Landing Page Preview */}
+      {campaign.landingPageHtml && (
+        <div className="rounded-[8px] border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
+          <div className="flex items-center justify-between px-6 py-4">
+            <h3 className="text-[14px] font-semibold text-[#1A1A2E]">Landing Page Preview</h3>
+            <button
+              onClick={() => setShowLandingPage(!showLandingPage)}
+              className="flex items-center gap-2 rounded-[8px] border border-[#E5E7EB] px-4 py-2 text-[13px] font-medium text-[#6B7280] transition hover:bg-[#F8F9FB]"
+            >
+              <Eye className="h-3.5 w-3.5" strokeWidth={2} />
+              {showLandingPage ? "Hide" : "Show Preview"}
+            </button>
+          </div>
+          {showLandingPage && (
+            <div className="border-t border-[#E5E7EB] p-6">
+              <iframe
+                srcDoc={campaign.landingPageHtml}
+                title={`${campaign.name} landing page`}
+                sandbox="allow-forms allow-scripts"
+                className="h-[420px] w-full rounded-[8px] border border-[#E5E7EB] bg-white"
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Click Rate Visual */}
       <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">

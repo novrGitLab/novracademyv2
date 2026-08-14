@@ -7,6 +7,8 @@ export interface Campaign {
   launchedAt: string | null;
   completedAt: string | null;
   results: CampaignResults;
+  templateHtml?: string | null;
+  landingPageHtml?: string | null;
   campaignResults: CampaignResult[];
   createdAt: string;
   updatedAt: string;
