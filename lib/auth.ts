@@ -115,6 +115,7 @@ export const authOptions: AuthOptions = {
             memberType: true,
             status: true,
             xp: true,
+            organizationId: true,
             _count: { select: { enrollmentsAsAssignee: true, certificates: true, posts: true } },
           },
         });
@@ -126,6 +127,36 @@ export const authOptions: AuthOptions = {
           token.enrollmentCount = dbUser._count.enrollmentsAsAssignee;
           token.certificateCount = dbUser._count.certificates;
           token.postCount = dbUser._count.posts;
+          if (dbUser.organizationId) {
+            const organization = await prisma.organization.findUnique({
+              where: { id: dbUser.organizationId },
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                primaryColor: true,
+                secondaryColor: true,
+                accentColor: true,
+                backgroundColor: true,
+                textColor: true,
+              },
+            });
+            if (organization) {
+              // NOTE: logoUrl is deliberately excluded — it's a base64 data
+              // URL that can be hundreds of KB, and embedding it in the JWT
+              // blows past header limits (HTTP 431). Fetch it via /me/org.
+              token.organization = {
+                id: organization.id,
+                name: organization.name,
+                slug: organization.slug,
+                primaryColor: organization.primaryColor,
+                secondaryColor: organization.secondaryColor,
+                accentColor: organization.accentColor,
+                backgroundColor: organization.backgroundColor,
+                textColor: organization.textColor,
+              };
+            }
+          }
         }
       }
       return token;
@@ -140,6 +171,7 @@ export const authOptions: AuthOptions = {
         session.user.enrollmentCount = token.enrollmentCount ?? 0;
         session.user.certificateCount = token.certificateCount ?? 0;
         session.user.postCount = token.postCount ?? 0;
+        session.user.organization = token.organization ?? null;
       }
       return session;
     },

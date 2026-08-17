@@ -34,6 +34,13 @@ const config: Config = {
           red: "#EB2027",
           tint: "#F4ECF8",
         },
+        tenant: {
+          primary: "var(--tenant-primary)",
+          secondary: "var(--tenant-secondary)",
+          accent: "var(--tenant-accent)",
+          bg: "var(--tenant-bg)",
+          text: "var(--tenant-text)",
+        },
         success: {
           DEFAULT: "#16A34A",
           light: "#F0FDF4",

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Eye } from "lucide-react";
 import { useApi } from "@/lib/useApi";
 import { Skeleton } from "@/components/Skeleton";
+import { ThumbnailUpload } from "@/components/ui/ThumbnailUpload";
+import { CURRENCIES } from "@/lib/currency";
 import { updateCourseAction, deleteCourseAction, setCourseStatusAction } from "../actions";
 import { LessonList } from "./LessonList";
 
@@ -131,23 +133,8 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
           <Field label="Description" name="description" defaultValue={course.description ?? ""} textarea />
 
           <div>
-            <label className="text-[13px] font-medium text-text-secondary">Thumbnail image URL</label>
-            <div className="mt-1 flex items-start gap-3">
-              {course.thumbnailUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={course.thumbnailUrl}
-                  alt=""
-                  className="h-16 w-28 shrink-0 rounded-card border border-border object-cover"
-                />
-              )}
-              <input
-                name="thumbnailUrl"
-                defaultValue={course.thumbnailUrl ?? ""}
-                placeholder="https://…"
-                className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
-              />
-            </div>
+            <label className="text-[13px] font-medium text-text-secondary">Thumbnail image</label>
+            <ThumbnailUpload name="thumbnailUrl" initialValue={course.thumbnailUrl} />
           </div>
 
           <div className="grid grid-cols-3 gap-4">
@@ -163,8 +150,28 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
                 <option value="ARCHIVED">Archived</option>
               </select>
             </div>
-            <Field label="Price (cents)" name="priceCents" type="number" defaultValue={String(course.priceCents)} />
-            <Field label="Currency" name="currency" defaultValue={course.currency} />
+            <Field
+              label="Price (₦)"
+              name="priceNaira"
+              type="number"
+              step="0.01"
+              min="0"
+              defaultValue={String(course.priceCents / 100)}
+            />
+            <div>
+              <label className="text-[13px] font-medium text-text-secondary">Currency</label>
+              <select
+                name="currency"
+                defaultValue={course.currency}
+                className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -216,6 +223,8 @@ function Field({
   placeholder,
   required,
   textarea,
+  step,
+  min,
 }: {
   label: string;
   name: string;
@@ -224,6 +233,8 @@ function Field({
   placeholder?: string;
   required?: boolean;
   textarea?: boolean;
+  step?: string;
+  min?: string;
 }) {
   return (
     <div>
@@ -247,6 +258,8 @@ function Field({
           defaultValue={defaultValue}
           placeholder={placeholder}
           required={required}
+          step={step}
+          min={min}
           className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
         />
       )}

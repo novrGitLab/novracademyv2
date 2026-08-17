@@ -71,8 +71,9 @@ export default function PhishingCampaignsPage() {
       await apiMutate(`/campaigns/${deleteId}`, "DELETE");
       setToast({ message: "Campaign deleted successfully", type: "success" });
       refetch();
-    } catch {
-      setToast({ message: "Failed to delete campaign", type: "error" });
+    } catch (err) {
+      setToast({ message: (err as Error).message || "Failed to delete campaign", type: "error" });
+      refetch();
     } finally {
       setDeleting(false);
       setDeleteId(null);

@@ -164,7 +164,11 @@ export default function LandingPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <img src="/novracademy-logo.png" alt="Novr Academy" className="h-12 w-auto object-contain" />
+            <img
+              src="/novracademy-logo.png"
+              alt="Novr Academy"
+              className="h-16 w-auto object-contain"
+            />
           </Link>
 
           {/* Desktop nav */}
@@ -213,8 +217,8 @@ export default function LandingPage() {
             </h1>
             <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-[#6B7280] sm:text-[16px]">
               Mandatory phishing simulations, compliance assessments, and
-              certified cybersecurity training — multi-tenant and ready for
-              your organization or institution.
+              certified cybersecurity training — multi-tenant and ready for your
+              organization or institution.
             </p>
 
             {/* CTAs */}
@@ -355,7 +359,7 @@ export default function LandingPage() {
               </h2>
               <div className="mt-6 overflow-hidden rounded-[12px] bg-[#F8F9FB]">
                 <img
-                  src="https://images.unsplash.com/photo-1523050854058-8df90110c8f1?w=600&h=340&fit=crop&crop=center"
+                  src="https://images.unsplash.com/photo-1571260899304-425eee4c7efc?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                   alt="Students in an academic setting"
                   className="h-[200px] w-full object-cover sm:h-[240px]"
                 />
@@ -494,7 +498,11 @@ export default function LandingPage() {
             {/* Brand */}
             <div>
               <div className="flex items-center gap-2">
-                <img src="/novracademy-logo.png" alt="Novr Academy" className="h-10 w-auto object-contain" />
+                <img
+                  src="/novracademy-logo.png"
+                  alt="Novr Academy"
+                  className="h-14 w-auto object-contain"
+                />
               </div>
               <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-[#6B7280]">
                 Secure by Design. Building resilient cultures through continuous

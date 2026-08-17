@@ -82,7 +82,7 @@ function LoginForm() {
             <img
               src="/novracademy-logo.png"
               alt="Novr Academy"
-              className="h-14 w-auto object-contain"
+              className="h-16 w-auto object-contain"
             />
           </div>
 
@@ -90,7 +90,7 @@ function LoginForm() {
             <img
               src="/novracademy-logo.png"
               alt="Novr Academy"
-              className="mx-auto mb-8 h-14 w-auto object-contain"
+              className="mx-auto mb-8 h-16 w-auto object-contain"
             />
             <h1 className="font-serif text-[34px] leading-[51px] text-auth-ink">Welcome back</h1>
             <p className="text-[15px] leading-[22.5px] text-auth-secondary">Sign in to your security portal.</p>

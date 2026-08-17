@@ -5,31 +5,15 @@ import { Building2, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { useApi } from "@/lib/useApi";
 
-/* -------------------------------------------------------------------------- */
-/*  NOTE: This page requires a dedicated Tenant Management API that does not    */
-/*  exist yet. Currently using placeholder data. When the API is built,        */
-/*  replace the organizations array with: useApi("/tenants?type=ORG", ...)     */
-/* -------------------------------------------------------------------------- */
-
 interface Organization {
   id: string;
   name: string;
+  slug: string;
   plan: string;
-  activeUsers: number;
-  compliance: number;
-  status: "ACTIVE" | "TRIAL" | "SUSPENDED";
+  logoUrl?: string | null;
+  createdAt: string;
+  _count: { users: number };
 }
-
-// TODO: Replace with API call when tenant management endpoints are built
-// const { data, loading } = useApi<{ tenants: Organization[] }>("/tenants?type=ORG", { tenants: [] });
-
-const organizations: Organization[] = [
-  { id: "1", name: "Dangote Group", plan: "Enterprise", activeUsers: 2450, compliance: 92, status: "ACTIVE" },
-  { id: "2", name: "Airtel Nigeria", plan: "Enterprise Plus", activeUsers: 1890, compliance: 45, status: "ACTIVE" },
-  { id: "3", name: "GTBank", plan: "Enterprise", activeUsers: 3200, compliance: 88, status: "ACTIVE" },
-  { id: "4", name: "Flutterwave", plan: "Starter", activeUsers: 420, compliance: 76, status: "TRIAL" },
-  { id: "5", name: "Interswitch", plan: "Enterprise", activeUsers: 1560, compliance: 91, status: "ACTIVE" },
-];
 
 const statusStyles: Record<string, { bg: string; text: string; dot: string }> = {
   ACTIVE: { bg: "bg-[#F0FDF4]", text: "text-[#16A34A]", dot: "bg-[#16A34A]" },
@@ -37,20 +21,9 @@ const statusStyles: Record<string, { bg: string; text: string; dot: string }> = 
   SUSPENDED: { bg: "bg-[#FEF2F2]", text: "text-[#DC2626]", dot: "bg-[#DC2626]" },
 };
 
-function ComplianceBar({ value }: { value: number }) {
-  const color = value >= 80 ? "#16A34A" : value >= 50 ? "#EA580C" : "#DC2626";
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-2 w-24 overflow-hidden rounded-full bg-[#F1F3F5]">
-        <div className="h-full rounded-full" style={{ width: `${value}%`, backgroundColor: color }} />
-      </div>
-      <span className="text-[13px] font-medium tabular-nums" style={{ color }}>{value}%</span>
-    </div>
-  );
-}
-
 export default function OrganizationsPage() {
   const [search, setSearch] = useState("");
+  const { data: organizations, loading } = useApi<Organization[]>("/organizations", []);
 
   const filtered = organizations.filter((o) =>
     o.name.toLowerCase().includes(search.toLowerCase())
@@ -98,40 +71,54 @@ export default function OrganizationsPage() {
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Type</th>
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Plan</th>
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Active Users</th>
-                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Compliance</th>
+                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Created</th>
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Status</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((org) => {
-                const s = statusStyles[org.status];
-                return (
-                  <tr key={org.id} className="border-b border-[#E5E7EB] last:border-b-0 transition hover:bg-[#F8F9FB]">
-                    <td className="px-6 py-4">
-                      <Link href={`/admin/organizations/${org.id}`} className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[#F4ECF8]">
-                          <Building2 className="h-4 w-4 text-[#683290]" strokeWidth={2} />
-                        </div>
-                        <span className="text-[14px] font-medium text-[#1A1A2E] hover:text-[#683290]">{org.name}</span>
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="rounded-full bg-[#F4ECF8] px-2.5 py-1 text-[11px] font-semibold text-[#683290]">
-                        ORG
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-[14px] text-[#6B7280]">{org.plan}</td>
-                    <td className="px-6 py-4 text-[14px] font-medium tabular-nums text-[#1A1A2E]">{org.activeUsers.toLocaleString()}</td>
-                    <td className="px-6 py-4"><ComplianceBar value={org.compliance} /></td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-                        {org.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+              {filtered.length === 0 && !loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-[14px] text-[#9CA3AF]">
+                    No organizations yet. Create your first tenant to get started.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((org) => {
+                  const s = statusStyles.ACTIVE;
+                  return (
+                    <tr key={org.id} className="border-b border-[#E5E7EB] last:border-b-0 transition hover:bg-[#F8F9FB]">
+                      <td className="px-6 py-4">
+                        <Link href={`/admin/organizations/${org.id}`} className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[#F4ECF8]">
+                            {org.logoUrl ? (
+                              <img src={org.logoUrl} alt="" className="h-6 w-6 object-contain" />
+                            ) : (
+                              <Building2 className="h-4 w-4 text-[#683290]" strokeWidth={2} />
+                            )}
+                          </div>
+                          <span className="text-[14px] font-medium text-[#1A1A2E] hover:text-[#683290]">{org.name}</span>
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="rounded-full bg-[#F4ECF8] px-2.5 py-1 text-[11px] font-semibold text-[#683290]">
+                          ORG
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-[14px] text-[#6B7280]">{org.plan}</td>
+                      <td className="px-6 py-4 text-[14px] font-medium tabular-nums text-[#1A1A2E]">{org._count.users.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-[13px] text-[#6B7280]">
+                        {new Date(org.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+                          ACTIVE
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

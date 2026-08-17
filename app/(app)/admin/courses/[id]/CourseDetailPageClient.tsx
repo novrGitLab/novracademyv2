@@ -24,6 +24,8 @@ import {
   deleteLessonAction,
   reorderLessonAction,
 } from "../actions";
+import { ThumbnailUpload } from "@/components/ui/ThumbnailUpload";
+import { CURRENCIES, formatPrice } from "@/lib/currency";
 
 interface Lesson {
   id: string;
@@ -140,12 +142,8 @@ export default function CourseDetailPageClient({ course }: { course: CourseDetai
                   />
                 </div>
                 <div>
-                  <label className="text-[12px] font-medium text-text-secondary">Thumbnail Image URL</label>
-                  <input
-                    name="thumbnailUrl"
-                    defaultValue={course.thumbnailUrl || ""}
-                    className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-1.5 text-[14px]"
-                  />
+                  <label className="text-[12px] font-medium text-text-secondary">Thumbnail Image</label>
+                  <ThumbnailUpload name="thumbnailUrl" initialValue={course.thumbnailUrl} />
                 </div>
                 <div>
                   <label className="text-[12px] font-medium text-text-secondary">Description</label>
@@ -161,21 +159,29 @@ export default function CourseDetailPageClient({ course }: { course: CourseDetai
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[12px] font-medium text-text-secondary">Price (Cents)</label>
+                    <label className="text-[12px] font-medium text-text-secondary">Price (₦)</label>
                     <input
                       type="number"
-                      name="priceCents"
-                      defaultValue={course.priceCents}
+                      step="0.01"
+                      min="0"
+                      name="priceNaira"
+                      defaultValue={course.priceCents / 100}
                       className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-1.5 text-[14px]"
                     />
                   </div>
                   <div>
                     <label className="text-[12px] font-medium text-text-secondary">Currency</label>
-                    <input
+                    <select
                       name="currency"
                       defaultValue={course.currency}
                       className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-1.5 text-[14px]"
-                    />
+                    >
+                      {CURRENCIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -240,9 +246,7 @@ export default function CourseDetailPageClient({ course }: { course: CourseDetai
                   {course.status}
                 </span>
                 <span className="text-[13px] text-text-secondary">
-                  {course.priceCents === 0
-                    ? "Free"
-                    : `${(course.priceCents / 100).toFixed(2)} ${course.currency}`}
+                  {formatPrice(course.priceCents, course.currency)}
                 </span>
               </div>
               <h1 className="text-[22px] font-semibold text-text-primary">{course.title}</h1>

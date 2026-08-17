@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
+import { apiMutate, useApi } from "@/lib/useApi";
 import { extractColorsFromLogo, generatePalette, type TenantBranding } from "@/lib/branding";
 import { Upload, Palette, Save, RotateCcw, CheckCircle2 } from "lucide-react";
 
@@ -26,6 +27,7 @@ const defaultBranding: TenantBranding = {
 
 export default function BrandingPage() {
   const { data: session } = useSession();
+  const org = session?.user?.organization;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [branding, setBranding] = useState<TenantBranding>(defaultBranding);
@@ -33,6 +35,23 @@ export default function BrandingPage() {
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  // The logo is fetched via /me/org — it's too large to live in the session.
+  const { data: orgDetail } = useApi<{ logoUrl?: string | null } | null>("/me/org", null);
+
+  // Load the org's existing branding into the editor on mount
+  useEffect(() => {
+    if (!org?.primaryColor) return;
+    setBranding({
+      logoUrl: orgDetail?.logoUrl ?? "",
+      primaryColor: org.primaryColor,
+      secondaryColor: org.secondaryColor ?? org.primaryColor,
+      accentColor: org.accentColor ?? org.primaryColor,
+      backgroundColor: org.backgroundColor ?? `${org.primaryColor}08`,
+      textColor: org.textColor ?? "#1A1A2E",
+    });
+    if (orgDetail?.logoUrl) setLogoPreview(orgDetail.logoUrl);
+  }, [org?.id, orgDetail?.logoUrl]);
 
   const handleLogoUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -72,10 +91,21 @@ export default function BrandingPage() {
   }, []);
 
   async function handleSave() {
+    if (!org?.id) {
+      setToast({ message: "No organization linked to your account", type: "error" });
+      return;
+    }
     setSaving(true);
     try {
-      // TODO: Save branding to backend API
-      // await apiMutate("/settings/branding", "PATCH", branding);
+      const payload = {
+        logoUrl: logoPreview ?? (branding.logoUrl || null),
+        primaryColor: branding.primaryColor,
+        secondaryColor: branding.secondaryColor,
+        accentColor: branding.accentColor,
+        backgroundColor: branding.backgroundColor,
+        textColor: branding.textColor,
+      };
+      await apiMutate(`/organizations/${org.id}/branding`, "PATCH", payload);
 
       // Apply branding to the current page
       const palette = generatePalette(branding.primaryColor);
@@ -84,8 +114,8 @@ export default function BrandingPage() {
       document.documentElement.style.setProperty("--tenant-accent", branding.accentColor);
 
       setToast({ message: "Branding saved successfully", type: "success" });
-    } catch {
-      setToast({ message: "Failed to save branding", type: "error" });
+    } catch (err) {
+      setToast({ message: (err as Error).message || "Failed to save branding", type: "error" });
     } finally {
       setSaving(false);
     }

@@ -9,6 +9,13 @@ function numberOrUndefined(value: FormDataEntryValue | null) {
   return Number(value);
 }
 
+/** The price form fields collect the amount in major units (₦); store minor units. */
+function priceCentsFromForm(formData: FormData): number | undefined {
+  const major = numberOrUndefined(formData.get("priceNaira"));
+  if (major === undefined || Number.isNaN(major)) return undefined;
+  return Math.round(major * 100);
+}
+
 export async function createCourseAction(formData: FormData) {
   const course = await apiFetch<{ id: string }>("/courses", {
     method: "POST",
@@ -16,8 +23,8 @@ export async function createCourseAction(formData: FormData) {
       title: String(formData.get("title")),
       description: String(formData.get("description") ?? "") || undefined,
       thumbnailUrl: String(formData.get("thumbnailUrl") ?? "") || undefined,
-      priceCents: numberOrUndefined(formData.get("priceCents")),
-      currency: String(formData.get("currency") ?? "USD"),
+      priceCents: priceCentsFromForm(formData),
+      currency: String(formData.get("currency") ?? "NGN"),
       passMarkPct: numberOrUndefined(formData.get("passMarkPct")),
       allowForwardScrub: formData.get("allowForwardScrub") === "on",
       defaultValidityDays: numberOrUndefined(formData.get("defaultValidityDays")),
@@ -35,8 +42,8 @@ export async function updateCourseAction(courseId: string, formData: FormData) {
       description: String(formData.get("description") ?? "") || undefined,
       thumbnailUrl: String(formData.get("thumbnailUrl") ?? "") || undefined,
       status: String(formData.get("status")),
-      priceCents: numberOrUndefined(formData.get("priceCents")),
-      currency: String(formData.get("currency") ?? "USD"),
+      priceCents: priceCentsFromForm(formData),
+      currency: String(formData.get("currency") ?? "NGN"),
       passMarkPct: numberOrUndefined(formData.get("passMarkPct")),
       allowForwardScrub: formData.get("allowForwardScrub") === "on",
       defaultValidityDays: numberOrUndefined(formData.get("defaultValidityDays")),
