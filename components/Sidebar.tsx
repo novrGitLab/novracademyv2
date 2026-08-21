@@ -98,6 +98,8 @@ const cybernovrAdminSections: NavSection[] = [
 const orgAdminNav: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: Home },
   { label: "Employees", href: "/admin/users", icon: Users },
+  { label: "Assign Course", href: "/admin/courses/assign", icon: BookOpen },
+  { label: "Phishing Campaigns", href: "/admin/phishing", icon: ShieldAlert },
   { label: "Compliance", href: "/admin/compliance", icon: ShieldCheck },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];

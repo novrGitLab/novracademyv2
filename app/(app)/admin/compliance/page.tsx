@@ -3,64 +3,197 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useApi } from "@/lib/useApi";
+import { useApi, apiMutate } from "@/lib/useApi";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import {
   AlertTriangle,
+  BookOpen,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   Clock,
   Download,
-  Filter,
+  Eye,
   Search,
-  ShieldCheck,
-  TrendingUp,
+  ShieldAlert,
 } from "lucide-react";
-
-/* -------------------------------------------------------------------------- */
-/*  NOTE: This page requires a dedicated Compliance API that does not          */
-/*  exist yet. Currently using placeholder data. When the API is built,        */
-/*  replace complianceData with: useApi("/compliance", { records: [] })        */
-/* -------------------------------------------------------------------------- */
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                      */
 /* -------------------------------------------------------------------------- */
 
 interface ComplianceRecord {
-  id: string;
-  employeeName: string;
-  department: string;
-  requiredCourses: number;
-  completedCourses: number;
-  lastCompleted: string;
+  userId: string;
+  name: string | null;
+  email: string;
+  totalRequired: number;
+  completed: number;
+  progressPct: number;
   status: "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT";
-  dueDate: string;
+  lastCompletedAt: string | null;
+  dueDate: string | null;
+  phishingClicked: boolean;
+  campaignCount: number;
 }
 
-// TODO: Replace with API call when compliance endpoints are built
-// const { data, loading } = useApi<{ records: ComplianceRecord[] }>("/compliance", { records: [] });
+interface ComplianceStats {
+  rate: number;
+  compliant: number;
+  partial: number;
+  nonCompliant: number;
+  total: number;
+}
+
+interface ComplianceSettings {
+  organizationId: string;
+  deadline: string | null;
+  threshold: number;
+  autoSuspend: boolean;
+}
+
+interface CourseItem {
+  courseId: string;
+  courseTitle: string;
+  status: "COMPLETED" | "IN_PROGRESS" | "NOT_STARTED";
+  progressPct: number;
+  completedAt: string | null;
+  isMandatory: boolean;
+}
+
+interface PhishingItem {
+  campaignId: string;
+  campaignName: string;
+  eventType: string;
+  occurredAt: string | null;
+}
+
+interface UserComplianceDetail {
+  userId: string;
+  name: string | null;
+  email: string;
+  overallStatus: "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT";
+  courseBreakdown: CourseItem[];
+  phishingBreakdown: PhishingItem[];
+}
 
 /* -------------------------------------------------------------------------- */
-/*  Static data                                                                */
+/*  Expandable Row                                                             */
 /* -------------------------------------------------------------------------- */
 
-const complianceData: ComplianceRecord[] = [
-  { id: "1", employeeName: "Sarah Jenkins", department: "Engineering", requiredCourses: 5, completedCourses: 5, lastCompleted: "2026-07-28", status: "COMPLIANT", dueDate: "2026-09-30" },
-  { id: "2", employeeName: "Marcus Chen", department: "Sales", requiredCourses: 5, completedCourses: 2, lastCompleted: "2026-06-15", status: "PARTIAL", dueDate: "2026-09-30" },
-  { id: "3", employeeName: "Elena Rostova", department: "HR", requiredCourses: 5, completedCourses: 4, lastCompleted: "2026-08-01", status: "PARTIAL", dueDate: "2026-09-30" },
-  { id: "4", employeeName: "Amina Yusuf", department: "Marketing", requiredCourses: 5, completedCourses: 1, lastCompleted: "2026-05-20", status: "NON_COMPLIANT", dueDate: "2026-09-30" },
-  { id: "5", employeeName: "Tunde Bakare", department: "Operations", requiredCourses: 5, completedCourses: 0, lastCompleted: "—", status: "NON_COMPLIANT", dueDate: "2026-09-30" },
-  { id: "6", employeeName: "Fatima Bello", department: "Finance", requiredCourses: 5, completedCourses: 5, lastCompleted: "2026-08-05", status: "COMPLIANT", dueDate: "2026-09-30" },
-  { id: "7", employeeName: "Chidi Eze", department: "Engineering", requiredCourses: 5, completedCourses: 3, lastCompleted: "2026-07-10", status: "PARTIAL", dueDate: "2026-09-30" },
-  { id: "8", employeeName: "Ngozi Okafor", department: "Legal", requiredCourses: 5, completedCourses: 5, lastCompleted: "2026-08-03", status: "COMPLIANT", dueDate: "2026-09-30" },
-];
+function ExpandableRow({ userId, colSpan }: { userId: string; colSpan: number }) {
+  const { data: detail, loading } = useApi<UserComplianceDetail>(
+    userId ? `/compliance/records/${userId}` : "",
+    null,
+  );
 
-const statusConfig: Record<string, { bg: string; text: string; dot: string; icon: typeof CheckCircle2 }> = {
-  COMPLIANT: { bg: "bg-[#F0FDF4]", text: "text-[#16A34A]", dot: "bg-[#16A34A]", icon: CheckCircle2 },
-  PARTIAL: { bg: "bg-[#FFF7ED]", text: "text-[#EA580C]", dot: "bg-[#EA580C]", icon: Clock },
-  NON_COMPLIANT: { bg: "bg-[#FEF2F2]", text: "text-[#DC2626]", dot: "bg-[#DC2626]", icon: AlertTriangle },
-};
+  const statusColors = {
+    COMPLETED: { bg: "bg-[#F0FDF4]", text: "text-[#16A34A]", icon: CheckCircle2 },
+    IN_PROGRESS: { bg: "bg-[#FFF7ED]", text: "text-[#EA580C]", icon: Clock },
+    NOT_STARTED: { bg: "bg-[#F8F9FB]", text: "text-[#6B7280]", icon: AlertTriangle },
+  };
+
+  const phishingColors: Record<string, { bg: string; text: string }> = {
+    clicked: { bg: "bg-[#FEF2F2]", text: "text-[#DC2626]" },
+    sent: { bg: "bg-[#EFF6FF]", text: "text-[#2563EB]" },
+    opened: { bg: "bg-[#FFF7ED]", text: "text-[#EA580C]" },
+    submitted: { bg: "bg-[#FEF2F2]", text: "text-[#DC2626]" },
+  };
+
+  return (
+    <tr>
+      <td colSpan={colSpan} className="px-6 py-0 bg-[#F8F9FB]/50">
+        {loading ? (
+          <div className="py-6 text-center">
+            <div className="mx-auto h-5 w-5 animate-spin rounded-full border-2 border-[#F1F3F5] border-t-[#683290]" />
+          </div>
+        ) : !detail ? (
+          <p className="py-6 text-center text-[13px] text-[#9CA3AF]">No data found.</p>
+        ) : (
+          <div className="space-y-4 py-4 pl-4">
+            {/* Courses */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <BookOpen className="h-3.5 w-3.5 text-[#683290]" />
+                <h4 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">
+                  Courses ({detail.courseBreakdown.length})
+                </h4>
+              </div>
+              {detail.courseBreakdown.length === 0 ? (
+                <p className="text-[13px] text-[#9CA3AF] pl-5">No courses assigned.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {detail.courseBreakdown.map((c) => {
+                    const sc = statusColors[c.status];
+                    const Icon = sc.icon;
+                    return (
+                      <div key={c.courseId} className="flex items-center justify-between rounded-[6px] border border-[#E5E7EB] bg-white px-3 py-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Icon className={`h-3.5 w-3.5 shrink-0 ${sc.text}`} />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-[13px] font-medium text-[#1A1A2E] truncate">{c.courseTitle}</p>
+                              {c.isMandatory && (
+                                <span className="shrink-0 rounded bg-[#F4ECF8] px-1.5 py-0.5 text-[10px] font-semibold text-[#683290]">Required</span>
+                              )}
+                            </div>
+                            <p className="text-[12px] text-[#6B7280]">
+                              {c.status === "COMPLETED" ? `Completed ${new Date(c.completedAt!).toLocaleDateString()}` : `${c.progressPct}% progress`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {c.status !== "NOT_STARTED" && (
+                            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[#F1F3F5]">
+                              <div className="h-full rounded-full" style={{ width: `${c.progressPct}%`, backgroundColor: c.progressPct >= 80 ? "#16A34A" : c.progressPct >= 50 ? "#EA580C" : "#DC2626" }} />
+                            </div>
+                          )}
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${sc.bg} ${sc.text}`}>
+                            {c.status === "NOT_STARTED" ? "Not Started" : c.status === "IN_PROGRESS" ? "In Progress" : "Done"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Phishing */}
+            {detail.phishingBreakdown.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <ShieldAlert className="h-3.5 w-3.5 text-[#683290]" />
+                  <h4 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">
+                    Phishing Results ({detail.phishingBreakdown.length})
+                  </h4>
+                </div>
+                <div className="space-y-1.5">
+                  {detail.phishingBreakdown.map((p, i) => {
+                    const pc = phishingColors[p.eventType] ?? { bg: "bg-[#F8F9FB]", text: "text-[#6B7280]" };
+                    return (
+                      <div key={i} className="flex items-center justify-between rounded-[6px] border border-[#E5E7EB] bg-white px-3 py-2.5">
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-medium text-[#1A1A2E] truncate">{p.campaignName}</p>
+                          <p className="text-[12px] text-[#6B7280]">
+                            {p.occurredAt ? new Date(p.occurredAt).toLocaleDateString() : "—"}
+                          </p>
+                        </div>
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${pc.bg} ${pc.text}`}>
+                          {p.eventType.charAt(0).toUpperCase() + p.eventType.slice(1)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </td>
+    </tr>
+  );
+}
 
 /* -------------------------------------------------------------------------- */
 /*  Page                                                                       */
@@ -75,23 +208,45 @@ export default function CompliancePage() {
   const [showExport, setShowExport] = useState(false);
   const [exportFormat, setExportFormat] = useState("csv");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
-  const filtered = complianceData.filter((r) => {
-    const matchesSearch =
-      r.employeeName.toLowerCase().includes(search.toLowerCase()) ||
-      r.department.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter = filter === "ALL" || r.status === filter;
-    return matchesSearch && matchesFilter;
-  });
+  const { data: statsData, loading: statsLoading } = useApi<ComplianceStats>("/compliance/stats", { rate: 0, compliant: 0, partial: 0, nonCompliant: 0, total: 0 });
+  const { data: recordsData, loading: recordsLoading } = useApi<{ records: ComplianceRecord[]; total: number }>("/compliance/records", { records: [], total: 0 });
+  const { data: settings } = useApi<ComplianceSettings>("/compliance/settings", { organizationId: "", deadline: null, threshold: 80, autoSuspend: false });
 
-  const stats = {
-    total: complianceData.length,
-    compliant: complianceData.filter((r) => r.status === "COMPLIANT").length,
-    partial: complianceData.filter((r) => r.status === "PARTIAL").length,
-    nonCompliant: complianceData.filter((r) => r.status === "NON_COMPLIANT").length,
+  const records = recordsData?.records ?? [];
+  const stats = statsData ?? { rate: 0, compliant: 0, partial: 0, nonCompliant: 0, total: 0 };
+
+  const handleExport = async () => {
+    try {
+      const response = await fetch(`/api/proxy/compliance/export?format=${exportFormat}${filter !== "ALL" ? `&status=${filter}` : ""}`, {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `compliance-report.${exportFormat}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setToast({ message: "Report exported successfully", type: "success" });
+      } else {
+        setToast({ message: "Failed to export report", type: "error" });
+      }
+    } catch {
+      setToast({ message: "Failed to export report", type: "error" });
+    }
+    setShowExport(false);
   };
 
-  const complianceRate = Math.round((stats.compliant / stats.total) * 100);
+  const statusConfig: Record<string, { bg: string; text: string; dot: string }> = {
+    COMPLIANT: { bg: "bg-[#F0FDF4]", text: "text-[#16A34A]", dot: "bg-[#16A34A]" },
+    PARTIAL: { bg: "bg-[#FFF7ED]", text: "text-[#EA580C]", dot: "bg-[#EA580C]" },
+    NON_COMPLIANT: { bg: "bg-[#FEF2F2]", text: "text-[#DC2626]", dot: "bg-[#DC2626]" },
+  };
 
   return (
     <div className="space-y-6">
@@ -113,7 +268,7 @@ export default function CompliancePage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
           <p className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Compliance Rate</p>
-          <p className="mt-1 text-[28px] font-bold tabular-nums text-[#16A34A]">{complianceRate}%</p>
+          <p className="mt-1 text-[28px] font-bold tabular-nums text-[#16A34A]">{stats.rate}%</p>
         </div>
         <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
           <p className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Compliant</p>
@@ -133,13 +288,13 @@ export default function CompliancePage() {
       <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
         <div className="flex items-center justify-between">
           <h3 className="text-[14px] font-semibold text-[#1A1A2E]">Overall Compliance Progress</h3>
-          <span className="text-[14px] font-bold text-[#16A34A]">{complianceRate}%</span>
+          <span className="text-[14px] font-bold text-[#16A34A]">{stats.rate}%</span>
         </div>
         <div className="mt-3 h-3 overflow-hidden rounded-full bg-[#F1F3F5]">
-          <div className="h-full rounded-full bg-[#16A34A] transition-all" style={{ width: `${complianceRate}%` }} />
+          <div className="h-full rounded-full bg-[#16A34A] transition-all" style={{ width: `${stats.rate}%` }} />
         </div>
         <p className="mt-2 text-[13px] text-[#6B7280]">
-          {stats.compliant} of {stats.total} employees fully compliant. Deadline: September 30, 2026.
+          {stats.compliant} of {stats.total} employees fully compliant. Threshold: {settings?.threshold ?? 80}%.
         </p>
       </div>
 
@@ -179,46 +334,88 @@ export default function CompliancePage() {
             <thead>
               <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB]">
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Employee</th>
-                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Department</th>
+                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Email</th>
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Progress</th>
+                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Phishing</th>
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Last Completed</th>
-                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Due Date</th>
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Status</th>
+                <th className="px-6 py-3"></th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => {
-                const s = statusConfig[r.status];
-                const progress = Math.round((r.completedCourses / r.requiredCourses) * 100);
-                return (
-                  <tr key={r.id} className="border-b border-[#E5E7EB] last:border-b-0 transition hover:bg-[#F8F9FB]">
-                    <td className="px-6 py-4 text-[14px] font-medium text-[#1A1A2E]">{r.employeeName}</td>
-                    <td className="px-6 py-4 text-[14px] text-[#6B7280]">{r.department}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-24 overflow-hidden rounded-full bg-[#F1F3F5]">
-                          <div className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: progress >= 80 ? "#16A34A" : progress >= 50 ? "#EA580C" : "#DC2626" }} />
-                        </div>
-                        <span className="text-[12px] tabular-nums text-[#6B7280]">{r.completedCourses}/{r.requiredCourses}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-[13px] text-[#6B7280]">{r.lastCompleted}</td>
-                    <td className="px-6 py-4 text-[13px] text-[#6B7280]">{r.dueDate}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-                        {r.status === "NON_COMPLIANT" ? "Non-Compliant" : r.status.charAt(0) + r.status.slice(1).toLowerCase()}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-              {filtered.length === 0 && (
+              {recordsLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-[14px] text-[#9CA3AF]">
-                    No records match your search.
+                  <td colSpan={7} className="px-6 py-12 text-center text-[14px] text-[#9CA3AF]">
+                    Loading...
                   </td>
                 </tr>
+              ) : records.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-[14px] text-[#9CA3AF]">
+                    No compliance records found. Assign mandatory courses to get started.
+                  </td>
+                </tr>
+              ) : (
+                records
+                  .filter((r) => {
+                    const matchesSearch = r.name?.toLowerCase().includes(search.toLowerCase()) || r.email.toLowerCase().includes(search.toLowerCase());
+                    const matchesFilter = filter === "ALL" || r.status === filter;
+                    return matchesSearch && matchesFilter;
+                  })
+                  .flatMap((r) => {
+                    const s = statusConfig[r.status];
+                    const isExpanded = expandedUser === r.userId;
+                    const rows: React.ReactNode[] = [];
+
+                    rows.push(
+                      <tr key={r.userId} className={`border-b border-[#E5E7EB] last:border-b-0 transition hover:bg-[#F8F9FB] ${isExpanded ? "bg-[#F8F9FB]/50" : ""}`}>
+                        <td className="px-6 py-4 text-[14px] font-medium text-[#1A1A2E]">{r.name ?? r.email}</td>
+                        <td className="px-6 py-4 text-[13px] text-[#6B7280]">{r.email}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-24 overflow-hidden rounded-full bg-[#F1F3F5]">
+                              <div className="h-full rounded-full" style={{ width: `${r.progressPct}%`, backgroundColor: r.progressPct >= 80 ? "#16A34A" : r.progressPct >= 50 ? "#EA580C" : "#DC2626" }} />
+                            </div>
+                            <span className="text-[12px] tabular-nums text-[#6B7280]">{r.completed}/{r.totalRequired}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {r.campaignCount > 0 ? (
+                            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${r.phishingClicked ? "bg-[#FEF2F2] text-[#DC2626]" : "bg-[#F0FDF4] text-[#16A34A]"}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${r.phishingClicked ? "bg-[#DC2626]" : "bg-[#16A34A]"}`} />
+                              {r.phishingClicked ? "Clicked" : "Passed"}
+                            </span>
+                          ) : (
+                            <span className="text-[12px] text-[#9CA3AF]">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-[13px] text-[#6B7280]">{r.lastCompletedAt ? new Date(r.lastCompletedAt).toLocaleDateString() : "—"}</td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+                            {r.status === "NON_COMPLIANT" ? "Non-Compliant" : r.status.charAt(0) + r.status.slice(1).toLowerCase()}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => setExpandedUser(isExpanded ? null : r.userId)}
+                            className="flex items-center gap-1.5 rounded-[6px] border border-[#E5E7EB] px-3 py-1.5 text-[12px] font-medium text-[#6B7280] transition hover:border-[#683290]/30 hover:bg-[#F4ECF8]/30 hover:text-[#683290]"
+                          >
+                            {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                            {isExpanded ? "Close" : "View"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+
+                    if (isExpanded) {
+                      rows.push(
+                        <ExpandableRow key={`${r.userId}-detail`} userId={r.userId} colSpan={7} />
+                      );
+                    }
+
+                    return rows;
+                  })
               )}
             </tbody>
           </table>
@@ -240,7 +437,7 @@ export default function CompliancePage() {
           </div>
           <div>
             <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">STATUS FILTER</label>
-            <select className="mt-1.5 h-10 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A1A2E] outline-none focus:border-[#683290]">
+            <select value={filter} onChange={(e) => setFilter(e.target.value)} className="mt-1.5 h-10 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A1A2E] outline-none focus:border-[#683290]">
               <option value="ALL">All Statuses</option>
               <option value="COMPLIANT">Compliant Only</option>
               <option value="PARTIAL">In Progress Only</option>
@@ -250,7 +447,7 @@ export default function CompliancePage() {
         </div>
         <Modal.Footer>
           <button onClick={() => setShowExport(false)} className="rounded-[8px] border border-[#E5E7EB] px-4 py-2 text-[13px] font-medium text-[#6B7280] hover:bg-[#F8F9FB]">Cancel</button>
-          <button onClick={() => { setToast({ message: `Report exported as ${exportFormat.toUpperCase()}`, type: "success" }); setShowExport(false); }} className="rounded-[8px] bg-[#683290] px-4 py-2 text-[13px] font-medium text-white hover:bg-[#542573]"><Download className="inline h-3.5 w-3.5 mr-1" /> Export</button>
+          <button onClick={handleExport} className="rounded-[8px] bg-[#683290] px-4 py-2 text-[13px] font-medium text-white hover:bg-[#542573]"><Download className="inline h-3.5 w-3.5 mr-1" /> Export</button>
         </Modal.Footer>
       </Modal>
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useApi, apiMutate } from "@/lib/useApi";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -258,6 +259,133 @@ function SuperAdminSettings() {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Compliance Settings Section                                                */
+/* -------------------------------------------------------------------------- */
+
+interface ComplianceSettingsData {
+  organizationId: string;
+  deadline: string | null;
+  threshold: number;
+  autoSuspend: boolean;
+}
+
+function ComplianceSettingsSection({ toast, setToast }: { toast: any; setToast: any }) {
+  const { data: settings, refetch: refetchSettings } = useApi<ComplianceSettingsData>("/compliance/settings", { organizationId: "", deadline: null, threshold: 80, autoSuspend: false });
+  const [threshold, setThreshold] = useState<number>(80);
+  const [initialized, setInitialized] = useState(false);
+
+  if (settings && !initialized) {
+    setThreshold(settings.threshold);
+    setInitialized(true);
+  }
+
+  const handleSave = async () => {
+    try {
+      await apiMutate("/compliance/settings", "PUT", {
+        threshold,
+      });
+      refetchSettings();
+      setToast({ message: "Compliance settings saved", type: "success" });
+    } catch {
+      setToast({ message: "Failed to save compliance settings", type: "error" });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <h3 className="text-[16px] font-semibold text-[#1A1A2E]">Compliance Settings</h3>
+      <Field label="COMPLIANCE THRESHOLD" hint="Minimum percentage of required courses to be considered compliant">
+        <div className="flex items-center gap-3">
+          <input type="number" value={threshold} onChange={(e) => setThreshold(parseInt(e.target.value) || 0)} min={0} max={100} className="w-24 rounded-[8px] border border-[#E5E7EB] bg-white px-3 py-2 text-[13px] text-[#1A1A2E] outline-none focus:border-[#683290]" />
+          <span className="text-[14px] text-[#6B7280]">% of required courses</span>
+        </div>
+      </Field>
+      <button onClick={handleSave} className="flex items-center gap-2 rounded-[8px] bg-[#683290] px-4 py-2.5 text-[13px] font-medium text-white transition hover:bg-[#542573]">
+        <Save className="h-3.5 w-3.5" /> Save Changes
+      </button>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Phishing Sender Section                                                    */
+/* -------------------------------------------------------------------------- */
+
+function PhishingSenderSection({ toast, setToast }: { toast: any; setToast: any }) {
+  const { data: session } = useSession();
+  const orgId = (session?.user as any)?.organization?.id;
+  const [senderName, setSenderName] = useState("");
+  const [senderEmail, setSenderEmail] = useState("");
+  const [initialized, setInitialized] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (orgId && !initialized) {
+      apiMutate<{ senderName: string | null; senderEmail: string | null }>(`/organizations/${orgId}`, "GET").then((org) => {
+        if (org) {
+          setSenderName(org.senderName ?? "");
+          setSenderEmail(org.senderEmail ?? "");
+        }
+        setInitialized(true);
+      }).catch(() => setInitialized(true));
+    }
+  }, [orgId, initialized]);
+
+  const handleSave = async () => {
+    if (!orgId) return;
+    setSaving(true);
+    try {
+      await apiMutate(`/organizations/${orgId}/sender`, "PATCH", {
+        senderName: senderName || null,
+        senderEmail: senderEmail || null,
+      });
+      setToast({ message: "Phishing sender config saved", type: "success" });
+    } catch {
+      setToast({ message: "Failed to save sender config", type: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <h3 className="text-[16px] font-semibold text-[#1A1A2E]">Phishing Campaign Sender</h3>
+      <p className="text-[13px] text-[#6B7280]">
+        Configure how phishing simulation emails appear to your employees. This is the "From" name and email they&apos;ll see.
+      </p>
+      <Field label="SENDER NAME" hint="Display name shown as the email sender">
+        <input
+          type="text"
+          value={senderName}
+          onChange={(e) => setSenderName(e.target.value)}
+          placeholder="e.g. IT Security Team"
+          className={inputClass}
+        />
+      </Field>
+      <Field label="SENDER EMAIL" hint="From address shown in the email header">
+        <input
+          type="email"
+          value={senderEmail}
+          onChange={(e) => setSenderEmail(e.target.value)}
+          placeholder="e.g. security@yourcompany.com"
+          className={inputClass}
+        />
+      </Field>
+      <div className="rounded-[8px] border border-[#FFF7ED] bg-[#FFFBEB] p-4">
+        <p className="text-[13px] text-[#92400E]">
+          <strong>Preview:</strong> Your employees will receive phishing emails from{" "}
+          <span className="font-semibold">{senderName || "IT Security Team"}</span> &lt;
+          <span className="font-semibold">{senderEmail || "security@novracademy.com"}</span>&gt;
+        </p>
+      </div>
+      <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 rounded-[8px] bg-[#683290] px-4 py-2.5 text-[13px] font-medium text-white transition hover:bg-[#542573] disabled:opacity-50">
+        <Save className="h-3.5 w-3.5" /> {saving ? "Saving..." : "Save Sender Config"}
+      </button>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Org Admin Settings                                                         */
 /* -------------------------------------------------------------------------- */
 
@@ -338,6 +466,33 @@ function BrandingSection({ toast, setToast }: { toast: any; setToast: any }) {
 
 function OrgAdminSettings() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const { data: session, update } = useSession();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
+
+  async function handlePasswordChange() {
+    setPwError(null);
+    if (newPassword.length < 8) { setPwError("Password must be at least 8 characters."); return; }
+    if (newPassword !== confirmPassword) { setPwError("Passwords do not match."); return; }
+    setPwLoading(true);
+    try {
+      const userId = session?.user?.id;
+      if (!userId) throw new Error("Not authenticated");
+      await apiMutate(`/users/${userId}/password`, "PATCH", { password: newPassword });
+      await update();
+      setToast({ message: "Password updated successfully", type: "success" });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      setPwError((err as Error).message || "Failed to update password");
+    } finally {
+      setPwLoading(false);
+    }
+  }
 
   const sections = [
     {
@@ -373,6 +528,23 @@ function OrgAdminSettings() {
           <button onClick={() => setToast({ message: "Organization profile updated", type: "success" })} className="flex items-center gap-2 rounded-[8px] bg-[#683290] px-4 py-2.5 text-[13px] font-medium text-white transition hover:bg-[#542573]">
             <Save className="h-3.5 w-3.5" /> Save Changes
           </button>
+
+          <div className="border-t border-[#E5E7EB] pt-6">
+            <h3 className="text-[16px] font-semibold text-[#1A1A2E]">Change Password</h3>
+            <p className="mt-1 text-[13px] text-[#6B7280]">Update your account password.</p>
+            <div className="mt-4 space-y-4">
+              <Field label="NEW PASSWORD">
+                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min. 8 characters" className={inputClass} />
+              </Field>
+              <Field label="CONFIRM NEW PASSWORD">
+                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter password" className={inputClass} />
+              </Field>
+              {pwError && <p className="rounded-[6px] bg-red-50 px-3 py-2 text-[13px] text-red-700">{pwError}</p>}
+              <button onClick={handlePasswordChange} disabled={pwLoading || !newPassword || !confirmPassword} className="flex items-center gap-2 rounded-[8px] bg-[#683290] px-4 py-2.5 text-[13px] font-medium text-white transition hover:bg-[#542573] disabled:opacity-60">
+                <Key className="h-3.5 w-3.5" /> {pwLoading ? "Updating..." : "Update Password"}
+              </button>
+            </div>
+          </div>
         </div>
       ),
     },
@@ -413,70 +585,7 @@ function OrgAdminSettings() {
     {
       label: "Compliance",
       content: (
-        <div className="space-y-6">
-          <h3 className="text-[16px] font-semibold text-[#1A1A2E]">Compliance Settings</h3>
-          <Field label="COMPLIANCE DEADLINE" hint="Annual deadline for mandatory training">
-            <input type="date" defaultValue="2026-12-31" className={inputClass} />
-          </Field>
-          <Field label="COMPLIANCE THRESHOLD" hint="Minimum percentage of required courses to be considered compliant">
-            <div className="flex items-center gap-3">
-              <input type="number" defaultValue={80} min={0} max={100} className="w-24" />
-              <span className="text-[14px] text-[#6B7280]">% of required courses</span>
-            </div>
-          </Field>
-          <Field label="AUTO-REMINDERS" hint="Automatically send reminders to non-compliant employees">
-            <select defaultValue="weekly" className={selectClass}>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="biweekly">Bi-weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="never">Never</option>
-            </select>
-          </Field>
-          <label className="flex items-center justify-between rounded-[8px] border border-[#E5E7EB] p-4">
-            <div>
-              <p className="text-[13px] font-medium text-[#1A1A2E]">Escalate to manager</p>
-              <p className="text-[12px] text-[#6B7280]">Notify managers when their direct reports are non-compliant</p>
-            </div>
-            <input type="checkbox" defaultChecked className="h-4 w-4 rounded accent-[#683290]" />
-          </label>
-          <button onClick={() => setToast({ message: "Compliance settings saved", type: "success" })} className="flex items-center gap-2 rounded-[8px] bg-[#683290] px-4 py-2.5 text-[13px] font-medium text-white transition hover:bg-[#542573]">
-            <Save className="h-3.5 w-3.5" /> Save Changes
-          </button>
-        </div>
-      ),
-    },
-    {
-      label: "Security",
-      content: (
-        <div className="space-y-6">
-          <h3 className="text-[16px] font-semibold text-[#1A1A2E]">Security Policies</h3>
-          <label className="flex items-center justify-between rounded-[8px] border border-[#E5E7EB] p-4">
-            <div>
-              <p className="text-[13px] font-medium text-[#1A1A2E]">Require SSO for employees</p>
-              <p className="text-[12px] text-[#6B7280]">Enforce single sign-on via Google or Microsoft</p>
-            </div>
-            <input type="checkbox" className="h-4 w-4 rounded accent-[#683290]" />
-          </label>
-          <label className="flex items-center justify-between rounded-[8px] border border-[#E5E7EB] p-4">
-            <div>
-              <p className="text-[13px] font-medium text-[#1A1A2E]">Password complexity</p>
-              <p className="text-[12px] text-[#6B7280]">Minimum 8 characters, require uppercase + number</p>
-            </div>
-            <input type="checkbox" defaultChecked className="h-4 w-4 rounded accent-[#683290]" />
-          </label>
-          <Field label="SESSION TIMEOUT">
-            <select defaultValue="30" className={selectClass}>
-              <option value="15">15 minutes</option>
-              <option value="30">30 minutes</option>
-              <option value="60">1 hour</option>
-              <option value="120">2 hours</option>
-            </select>
-          </Field>
-          <button onClick={() => setToast({ message: "Security settings saved", type: "success" })} className="flex items-center gap-2 rounded-[8px] bg-[#683290] px-4 py-2.5 text-[13px] font-medium text-white transition hover:bg-[#542573]">
-            <Save className="h-3.5 w-3.5" /> Save Changes
-          </button>
-        </div>
+        <ComplianceSettingsSection toast={toast} setToast={setToast} />
       ),
     },
   ];

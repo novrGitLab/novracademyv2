@@ -55,6 +55,9 @@ export const authOptions: AuthOptions = {
         const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!isValid) return null;
 
+        // Update lastLoginAt
+        await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+
         return {
           id: user.id,
           email: user.email,
@@ -62,6 +65,7 @@ export const authOptions: AuthOptions = {
           role: user.role,
           memberType: user.memberType,
           status: user.status,
+          mustChangePassword: (user as any).mustChangePassword ?? false,
         };
       },
     }),
@@ -102,6 +106,7 @@ export const authOptions: AuthOptions = {
         token.enrollmentCount = (user as any).enrollmentCount ?? 0;
         token.certificateCount = (user as any).certificateCount ?? 0;
         token.postCount = (user as any).postCount ?? 0;
+        token.mustChangePassword = (user as any).mustChangePassword ?? false;
       }
       const isTestUser = typeof token.id === "string" && token.id.startsWith("test-");
       if (token.id && !isTestUser) {
@@ -116,6 +121,7 @@ export const authOptions: AuthOptions = {
             status: true,
             xp: true,
             organizationId: true,
+            mustChangePassword: true,
             _count: { select: { enrollmentsAsAssignee: true, certificates: true, posts: true } },
           },
         });
@@ -124,6 +130,7 @@ export const authOptions: AuthOptions = {
           token.memberType = dbUser.memberType;
           token.status = dbUser.status;
           token.xp = dbUser.xp;
+          token.mustChangePassword = dbUser.mustChangePassword;
           token.enrollmentCount = dbUser._count.enrollmentsAsAssignee;
           token.certificateCount = dbUser._count.certificates;
           token.postCount = dbUser._count.posts;
@@ -171,6 +178,7 @@ export const authOptions: AuthOptions = {
         session.user.enrollmentCount = token.enrollmentCount ?? 0;
         session.user.certificateCount = token.certificateCount ?? 0;
         session.user.postCount = token.postCount ?? 0;
+        session.user.mustChangePassword = token.mustChangePassword ?? false;
         session.user.organization = token.organization ?? null;
       }
       return session;

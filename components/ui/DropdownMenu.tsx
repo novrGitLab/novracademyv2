@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { LucideIcon } from "lucide-react";
 
 /* -------------------------------------------------------------------------- */
@@ -27,29 +28,49 @@ interface DropdownMenuProps {
 
 export function DropdownMenu({ trigger, items, align = "right" }: DropdownMenuProps) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+
+  const updatePosition = useCallback(() => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setMenuPos({
+        top: rect.bottom + window.scrollY + 4,
+        left: align === "right" ? rect.right + window.scrollX - 180 : rect.left + window.scrollX,
+      });
+    }
+  }, [align]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        triggerRef.current && !triggerRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     }
-    if (open) document.addEventListener("mousedown", handleClickOutside);
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+      updatePosition();
+    }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
+  }, [open, updatePosition]);
 
   return (
-    <div ref={ref} className="relative inline-block">
-      <div onClick={() => setOpen(!open)} className="cursor-pointer">
-        {trigger}
+    <>
+      <div ref={triggerRef} className="relative inline-block">
+        <div onClick={() => setOpen(!open)} className="cursor-pointer">
+          {trigger}
+        </div>
       </div>
 
-      {open && (
+      {open && createPortal(
         <div
-          className={`absolute top-full z-10 mt-1 min-w-[180px] rounded-[8px] border border-[#E5E7EB] bg-white py-1 shadow-[0_8px_24px_rgba(26,26,46,0.12)] ${
-            align === "right" ? "right-0" : "left-0"
-          }`}
+          ref={menuRef}
+          className="fixed z-50 min-w-[180px] rounded-[8px] border border-[#E5E7EB] bg-white py-1 shadow-[0_8px_24px_rgba(26,26,46,0.12)]"
+          style={{ top: menuPos.top, left: menuPos.left }}
         >
           {items.map((item, i) => (
             <button
@@ -73,8 +94,9 @@ export function DropdownMenu({ trigger, items, align = "right" }: DropdownMenuPr
               {item.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }

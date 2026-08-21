@@ -12,6 +12,7 @@ declare module "next-auth" {
       enrollmentCount: number;
       certificateCount: number;
       postCount: number;
+      mustChangePassword: boolean;
       tenantType?: "ORGANIZATION" | "INSTITUTION";
       organization?: {
         id: string;
@@ -55,6 +56,7 @@ declare module "next-auth/jwt" {
     enrollmentCount: number;
     certificateCount: number;
     postCount: number;
+    mustChangePassword: boolean;
     tenantType?: "ORGANIZATION" | "INSTITUTION";
     organization?: {
       id: string;

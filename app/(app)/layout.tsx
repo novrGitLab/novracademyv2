@@ -1,6 +1,6 @@
 import { Sidebar } from "@/components/Sidebar";
 import { TopNav } from "@/components/TopNav";
-import { TenantOnboarding } from "@/components/TenantOnboarding";
+import { ChangePasswordModal } from "@/components/ChangePasswordModal";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,7 +10,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <TopNav />
         <main className="flex-1 overflow-y-auto bg-gradient-to-b from-[#F4ECF8]/60 via-surface/40 to-white p-8">{children}</main>
       </div>
-      <TenantOnboarding />
+      <ChangePasswordModal />
     </div>
   );
 }
