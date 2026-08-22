@@ -12,6 +12,7 @@ declare module "next-auth" {
       enrollmentCount: number;
       certificateCount: number;
       postCount: number;
+      tenantId: string | null;
       tenantType?: "ORGANIZATION" | "INSTITUTION";
     } & DefaultSession["user"];
   }
@@ -21,6 +22,7 @@ declare module "next-auth" {
     role: UserRole;
     memberType: MemberType;
     status: UserStatus;
+    tenantId?: string | null;
     tenantType?: "ORGANIZATION" | "INSTITUTION";
   }
 }
@@ -35,6 +37,7 @@ declare module "next-auth/jwt" {
     enrollmentCount: number;
     certificateCount: number;
     postCount: number;
+    tenantId: string | null;
     tenantType?: "ORGANIZATION" | "INSTITUTION";
   }
 }

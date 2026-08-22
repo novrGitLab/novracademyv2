@@ -62,6 +62,7 @@ export const authOptions: AuthOptions = {
           role: user.role,
           memberType: user.memberType,
           status: user.status,
+          tenantId: user.tenantId,
         };
       },
     }),
@@ -102,6 +103,7 @@ export const authOptions: AuthOptions = {
         token.enrollmentCount = (user as any).enrollmentCount ?? 0;
         token.certificateCount = (user as any).certificateCount ?? 0;
         token.postCount = (user as any).postCount ?? 0;
+        token.tenantId = (user as any).tenantId ?? null;
       }
       const isTestUser = typeof token.id === "string" && token.id.startsWith("test-");
       if (token.id && !isTestUser) {
@@ -115,6 +117,7 @@ export const authOptions: AuthOptions = {
             memberType: true,
             status: true,
             xp: true,
+            tenantId: true,
             _count: { select: { enrollmentsAsAssignee: true, certificates: true, posts: true } },
           },
         });
@@ -126,6 +129,7 @@ export const authOptions: AuthOptions = {
           token.enrollmentCount = dbUser._count.enrollmentsAsAssignee;
           token.certificateCount = dbUser._count.certificates;
           token.postCount = dbUser._count.posts;
+          token.tenantId = dbUser.tenantId;
         }
       }
       return token;
@@ -140,6 +144,7 @@ export const authOptions: AuthOptions = {
         session.user.enrollmentCount = token.enrollmentCount ?? 0;
         session.user.certificateCount = token.certificateCount ?? 0;
         session.user.postCount = token.postCount ?? 0;
+        session.user.tenantId = token.tenantId ?? null;
       }
       return session;
     },

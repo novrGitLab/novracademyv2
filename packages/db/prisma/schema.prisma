@@ -162,6 +162,42 @@ enum NotificationType {
 }
 
 // =========================================================================
+// Tenants (multi-tenancy)
+// =========================================================================
+//
+// NOTE: this schema is a separate copy of packages/db/prisma/schema.prisma
+// from the novracademyv2-backend repo, pointed at the same physical
+// database. Migrations are owned by the backend repo (see its migration
+// 20260822070000_add_tenants_and_compliance) — this copy is kept in sync
+// by hand so this app's own Prisma Client (NextAuth adapter, server
+// actions) has matching types. Do not run `prisma migrate dev/deploy` from
+// this repo against the shared database; it would re-run DDL the backend
+// repo already applied. See the backend repo's migration file for the
+// actual SQL and application instructions.
+
+model Tenant {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  plan           String   @default("Starter")
+  logoUrl        String?
+  primaryColor   String?
+  secondaryColor String?
+  accentColor    String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users              User[]
+  courses            Course[]
+  cohorts            Cohort[]
+  enrollments        Enrollment[]
+  compliancePolicies CompliancePolicy[]
+
+  @@index([slug])
+}
+
+// =========================================================================
 // Auth (NextAuth.js — Prisma adapter models)
 // =========================================================================
 
@@ -222,11 +258,14 @@ model User {
   openToWork         Boolean         @default(false)
   publicProfileSlug  String?         @unique
   managerId          String?
+  tenantId           String?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
   manager       User?  @relation("ManagerTeam", fields: [managerId], references: [id])
   directReports User[] @relation("ManagerTeam")
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id])
 
   accounts Account[]
   sessions Session[]
@@ -266,6 +305,7 @@ model User {
 
   @@index([role])
   @@index([memberType])
+  @@index([tenantId])
 }
 
 // =========================================================================
@@ -319,20 +359,24 @@ model Course {
   allowForwardScrub Boolean      @default(false)
   defaultValidityDays Int?
   createdById       String?
+  tenantId          String?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  createdBy User? @relation(fields: [createdById], references: [id])
+  createdBy User?   @relation(fields: [createdById], references: [id])
+  tenant    Tenant? @relation(fields: [tenantId], references: [id])
 
-  lessons          Lesson[]
-  enrollments      Enrollment[]
-  certificates     Certificate[]
-  payments         Payment[]
-  badges           Badge[]
-  groups           CommunityGroup[]
-  aiConversations  CourseAiConversation[]
+  lessons            Lesson[]
+  enrollments        Enrollment[]
+  certificates       Certificate[]
+  payments           Payment[]
+  badges             Badge[]
+  groups             CommunityGroup[]
+  aiConversations    CourseAiConversation[]
+  compliancePolicies CompliancePolicy[]
 
   @@index([status])
+  @@index([tenantId])
 }
 
 model CourseAiConversation {
@@ -449,6 +493,7 @@ model Enrollment {
   cohortId       String?
   assignedById   String?
   paymentId      String?           @unique
+  tenantId       String?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
@@ -457,11 +502,13 @@ model Enrollment {
   cohort     Cohort? @relation(fields: [cohortId], references: [id])
   assignedBy User?   @relation("EnrollmentAssignedBy", fields: [assignedById], references: [id])
   payment    Payment? @relation(fields: [paymentId], references: [id])
+  tenant     Tenant? @relation(fields: [tenantId], references: [id])
 
   lessonProgress LessonProgress[]
   certificate    Certificate?
 
   @@index([userId, courseId])
+  @@index([tenantId])
   @@index([status])
   @@index([expiresAt])
 }
@@ -534,13 +581,18 @@ model Cohort {
   slug        String   @unique
   year        Int?
   description String?
+  tenantId    String?
   createdAt   DateTime @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id])
 
   members       UserCohort[]
   enrollments   Enrollment[]
   groups        CommunityGroup[]
   posts         CommunityPost[]
   alumniRecords AlumniRecord[]
+
+  @@index([tenantId])
 }
 
 model UserCohort {
@@ -852,4 +904,24 @@ model Payment {
 
   @@index([userId])
   @@index([status])
+}
+
+// =========================================================================
+// Compliance tracking
+// =========================================================================
+
+model CompliancePolicy {
+  id        String    @id @default(cuid())
+  tenantId  String
+  name      String
+  courseId  String
+  roleName  String
+  deadline  DateTime?
+  createdAt DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@index([tenantId])
+  @@index([courseId])
 }

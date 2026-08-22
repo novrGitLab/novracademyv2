@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { extractColorsFromLogo, generatePalette, type TenantBranding } from "@/lib/branding";
+import { apiMutate, useApi } from "@/lib/useApi";
+import type { Tenant } from "@/types/tenants";
 import { Upload, Palette, Save, RotateCcw, CheckCircle2 } from "lucide-react";
 
 /* -------------------------------------------------------------------------- */
@@ -26,13 +28,29 @@ const defaultBranding: TenantBranding = {
 
 export default function BrandingPage() {
   const { data: session } = useSession();
+  const tenantId = session?.user?.tenantId ?? null;
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: tenant } = useApi<Tenant | null>(tenantId ? `/tenants/${tenantId}` : "/tenants/none", null);
 
   const [branding, setBranding] = useState<TenantBranding>(defaultBranding);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  // Prefill from the tenant's persisted branding once it loads.
+  useEffect(() => {
+    if (!tenant) return;
+    setBranding((prev) => ({
+      ...prev,
+      logoUrl: tenant.logoUrl ?? prev.logoUrl,
+      primaryColor: tenant.primaryColor ?? prev.primaryColor,
+      secondaryColor: tenant.secondaryColor ?? prev.secondaryColor,
+      accentColor: tenant.accentColor ?? prev.accentColor,
+    }));
+    if (tenant.logoUrl) setLogoPreview(tenant.logoUrl);
+  }, [tenant]);
 
   const handleLogoUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -72,20 +90,30 @@ export default function BrandingPage() {
   }, []);
 
   async function handleSave() {
+    if (!tenantId) {
+      setToast({ message: "No tenant on this account — nothing to save branding to.", type: "error" });
+      return;
+    }
     setSaving(true);
     try {
-      // TODO: Save branding to backend API
-      // await apiMutate("/settings/branding", "PATCH", branding);
+      // Colors persist to the tenant. The logo itself doesn't yet — logoPreview
+      // is a local blob: URL until there's an upload endpoint (e.g. via
+      // r2Service) to turn it into a durable, cross-session URL, so it's
+      // intentionally left out of this PATCH.
+      await apiMutate(`/tenants/${tenantId}/branding`, "PATCH", {
+        primaryColor: branding.primaryColor,
+        secondaryColor: branding.secondaryColor,
+        accentColor: branding.accentColor,
+      });
 
       // Apply branding to the current page
-      const palette = generatePalette(branding.primaryColor);
       document.documentElement.style.setProperty("--tenant-primary", branding.primaryColor);
       document.documentElement.style.setProperty("--tenant-secondary", branding.secondaryColor);
       document.documentElement.style.setProperty("--tenant-accent", branding.accentColor);
 
       setToast({ message: "Branding saved successfully", type: "success" });
-    } catch {
-      setToast({ message: "Failed to save branding", type: "error" });
+    } catch (err) {
+      setToast({ message: (err as Error).message || "Failed to save branding", type: "error" });
     } finally {
       setSaving(false);
     }
