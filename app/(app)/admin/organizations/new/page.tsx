@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiMutate } from "@/lib/useApi";
 import { BackLink } from "@/components/DesignSystem";
+import { CheckCircle2 } from "lucide-react";
 
 const fieldClassName =
   "h-[42px] w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A1A2E] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#683290] focus:ring-2 focus:ring-[#683290]/10";
@@ -19,6 +21,11 @@ export default function NewOrganizationPage() {
   const [adminName, setAdminName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [created, setCreated] = useState<{
+    orgName: string;
+    adminEmail: string;
+    tempPassword: string;
+  } | null>(null);
 
   function generateSlug(value: string) {
     return value
@@ -32,15 +39,23 @@ export default function NewOrganizationPage() {
     setError(null);
 
     if (!name.trim()) { setError("Organization name is required."); return; }
+    if (!slug.trim()) { setError("Slug is required."); return; }
     if (!adminEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) { setError("Valid admin email is required."); return; }
 
     setLoading(true);
     try {
-      // TODO: Replace with actual API call
-      console.log("Creating organization:", { name, slug, plan, adminEmail, adminName });
-      router.push("/admin/organizations");
-    } catch {
-      setError("Something went wrong. Please try again.");
+      const res = await apiMutate<{
+        organization: { name: string };
+        admin: { email: string };
+        tempPassword: string;
+      }>("/organizations", "POST", { name, slug, plan, adminName, adminEmail });
+      setCreated({
+        orgName: res.organization.name,
+        adminEmail: res.admin.email,
+        tempPassword: res.tempPassword,
+      });
+    } catch (err) {
+      setError((err as Error).message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -59,6 +74,40 @@ export default function NewOrganizationPage() {
         </p>
       </div>
 
+      {created ? (
+        <div className="rounded-[8px] border border-[#BBF7D0] bg-[#F0FDF4] p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-[#16A34A]" />
+            <h3 className="text-[15px] font-semibold text-[#1A1A2E]">
+              Organization & admin account created
+            </h3>
+          </div>
+          <p className="mt-2 text-[13px] text-[#6B7280]">
+            {created.orgName} is ready. Share these credentials with the admin —
+            a welcome email was also queued to their inbox.
+          </p>
+          <div className="mt-4 overflow-hidden rounded-[8px] border border-[#E5E7EB] bg-white">
+            <table className="w-full text-left">
+              <tbody>
+                <tr className="border-b border-[#E5E7EB]">
+                  <td className="px-4 py-3 text-[13px] text-[#6B7280]">Admin email</td>
+                  <td className="px-4 py-3 text-[13px] font-medium text-[#1A1A2E]">{created.adminEmail}</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 text-[13px] text-[#6B7280]">Temporary password</td>
+                  <td className="px-4 py-3 font-mono text-[13px] font-semibold text-[#1A1A2E]">{created.tempPassword}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button
+            onClick={() => router.push("/admin/organizations")}
+            className="mt-5 h-[42px] rounded-[8px] bg-[#683290] px-6 text-[13px] font-semibold text-white transition hover:bg-[#542573]"
+          >
+            View Organizations
+          </button>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit} className="rounded-[8px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
         <div className="space-y-5">
           <div>
@@ -165,6 +214,7 @@ export default function NewOrganizationPage() {
           </button>
         </div>
       </form>
+      )}
     </div>
   );
 }

@@ -15,7 +15,7 @@ function BrandMark({ mobile = false }: { mobile?: boolean }) {
     <img
       src="/novracademy-logo.png"
       alt="Novr Academy"
-      className={mobile ? "h-14 w-auto object-contain" : "h-20 w-auto object-contain"}
+      className={mobile ? "h-16 w-auto object-contain" : "h-24 w-auto object-contain"}
     />
   );
 }

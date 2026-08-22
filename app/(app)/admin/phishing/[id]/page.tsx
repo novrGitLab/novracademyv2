@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
+  Download,
   Eye,
   Mail,
   MousePointerClick,
@@ -132,6 +133,26 @@ export default function CampaignDetailPage() {
   const [showLandingPage, setShowLandingPage] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
+  function exportCsv() {
+    const rows: string[][] = [
+      ["Email", "Event", "Timestamp (UTC)", "IP Address"],
+      ...(campaign?.campaignResults ?? []).map((r: any) => [
+        r.employeeEmail ?? "",
+        r.eventType ?? "",
+        r.createdAt ? new Date(r.createdAt).toISOString() : "",
+        r.metadata?.browser?.address ?? r.metadata?.ip ?? "",
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(campaign?.name ?? "campaign").replace(/[^a-z0-9-]+/gi, "-")}-results.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   // Auto-poll results every 15 seconds when campaign is active
   useEffect(() => {
     if (!autoRefresh || campaign?.status !== "active") return;
@@ -205,20 +226,29 @@ export default function CampaignDetailPage() {
           </div>
         </div>
 
-        {/* Auto-refresh toggle */}
-        {campaign.status === "active" && (
+        {/* Actions */}
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`flex items-center gap-2 rounded-[8px] border px-4 py-2.5 text-[13px] font-medium transition ${
-              autoRefresh
-                ? "border-[#16A34A] bg-[#F0FDF4] text-[#16A34A]"
-                : "border-[#E5E7EB] text-[#6B7280] hover:bg-[#F8F9FB]"
-            }`}
+            onClick={exportCsv}
+            className="flex items-center gap-2 rounded-[8px] border border-[#E5E7EB] px-4 py-2.5 text-[13px] font-medium text-[#6B7280] transition hover:bg-[#F8F9FB]"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${autoRefresh ? "animate-spin" : ""}`} strokeWidth={2} />
-            {autoRefresh ? "Auto-refreshing" : "Auto-refresh"}
+            <Download className="h-3.5 w-3.5" strokeWidth={2} />
+            Export CSV
           </button>
-        )}
+          {campaign.status === "active" && (
+            <button
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              className={`flex items-center gap-2 rounded-[8px] border px-4 py-2.5 text-[13px] font-medium transition ${
+                autoRefresh
+                  ? "border-[#16A34A] bg-[#F0FDF4] text-[#16A34A]"
+                  : "border-[#E5E7EB] text-[#6B7280] hover:bg-[#F8F9FB]"
+              }`}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${autoRefresh ? "animate-spin" : ""}`} strokeWidth={2} />
+              {autoRefresh ? "Auto-refreshing" : "Auto-refresh"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}

@@ -476,7 +476,7 @@ export default function AssignCoursePage() {
         message: `Course assigned to ${selectedEmployees.size} employees`,
         type: "success",
       });
-      setTimeout(() => router.push("/admin/courses"), 1500);
+      setTimeout(() => router.push("/admin/compliance"), 1500);
     } catch (err) {
       setToast({
         message: `Failed to assign: ${(err as Error).message}`,
@@ -488,7 +488,7 @@ export default function AssignCoursePage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <BackLink href="/admin/courses" label="Back to Courses" />
+      <BackLink href="/admin/compliance" label="Back to Compliance" />
 
       <div>
         <h1 className="font-serif text-[24px] font-semibold text-[#1A1A2E]">

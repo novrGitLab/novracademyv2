@@ -11,7 +11,7 @@ export async function TopNav() {
   const { count } = await apiFetchSafe<{ count: number }>("/notifications/unread-count", { count: 0 });
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-4 border-b border-border bg-background/80 px-4 backdrop-blur sm:px-6">
+    <header className="flex h-16 shrink-0 items-center gap-4 border-b-2 border-[#683290]/20 bg-gradient-to-b from-white to-[#F4ECF8]/40 px-4 backdrop-blur sm:px-6">
       <Breadcrumbs />
 
       <div className="relative min-w-0 w-full max-w-sm">

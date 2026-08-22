@@ -15,6 +15,7 @@ datasource db {
 enum UserRole {
   SUPER_ADMIN
   ORG_ADMIN
+  INSTITUTION_ADMIN
   MANAGER
   LEARNER
   LEGACY_ALUMNI
@@ -222,11 +223,16 @@ model User {
   openToWork         Boolean         @default(false)
   publicProfileSlug  String?         @unique
   managerId          String?
+  organizationId     String?
+  mustChangePassword Boolean         @default(false)
+  lastLoginAt        DateTime?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
   manager       User?  @relation("ManagerTeam", fields: [managerId], references: [id])
   directReports User[] @relation("ManagerTeam")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   accounts Account[]
   sessions Session[]
@@ -263,9 +269,40 @@ model User {
   notifications     Notification[]
   payments          Payment[]
   aiConversations   CourseAiConversation[]
+  campaignResults   CampaignResult[]
 
   @@index([role])
   @@index([memberType])
+  @@index([organizationId])
+}
+
+// =========================================================================
+// Organizations (multi-tenant)
+// =========================================================================
+
+model Organization {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  plan            String   @default("free")
+  logoUrl         String?
+  primaryColor    String?
+  secondaryColor  String?
+  accentColor     String?
+  backgroundColor String?
+  textColor       String?
+  senderName      String?
+  senderEmail     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  users User[]
+  courses Course[]
+  campaigns Campaign[]
+  complianceAssignments ComplianceAssignment[]
+  complianceSetting ComplianceSetting?
+
+  @@index([plan])
 }
 
 // =========================================================================
@@ -314,15 +351,17 @@ model Course {
   thumbnailUrl      String?
   status            CourseStatus @default(DRAFT)
   priceCents        Int          @default(0)
-  currency          String       @default("USD")
+  currency          String       @default("NGN")
   passMarkPct       Int          @default(70)
   allowForwardScrub Boolean      @default(false)
   defaultValidityDays Int?
   createdById       String?
+  organizationId    String?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
   createdBy User? @relation(fields: [createdById], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   lessons          Lesson[]
   enrollments      Enrollment[]
@@ -853,3 +892,77 @@ model Payment {
   @@index([userId])
   @@index([status])
 }
+
+// =========================================================================
+// Campaigns (Phishing)
+// =========================================================================
+
+model Campaign {
+  id                 String   @id @default(cuid())
+  gophishCampaignId  Int?     @unique
+  name               String
+  type               String   @default("phishing")
+  status             String   @default("draft")
+  organizationId     String?
+  launchedAt         DateTime?
+  completedAt        DateTime?
+  results            Json     @default("{}")
+  templateHtml       String?
+  landingPageHtml    String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  campaignResults CampaignResult[]
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([status])
+  @@index([organizationId])
+}
+
+model CampaignResult {
+  id                String   @id @default(cuid())
+  campaignId        String
+  gophishCampaignId Int
+  userId            String?
+  employeeEmail     String
+  eventType         String
+  metadata          Json     @default("{}")
+  createdAt         DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id])
+
+  @@index([campaignId])
+  @@index([userId])
+  @@index([employeeEmail])
+  @@index([gophishCampaignId])
+}
+
+// =========================================================================
+// Compliance Tracking
+// =========================================================================
+
+model ComplianceSetting {
+  id              String   @id @default(cuid())
+  organizationId  String   @unique
+  deadline        DateTime
+  threshold       Int      @default(80)
+  autoSuspend     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model ComplianceAssignment {
+  id              String   @id @default(cuid())
+  courseId         String
+  organizationId  String
+  createdAt       DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, organizationId])
+  @@index([organizationId])
+}
+

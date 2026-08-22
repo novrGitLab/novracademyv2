@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BookOpen } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+import { formatPrice } from "@/lib/currency";
 import { bulkArchiveCoursesAction } from "./bulkActions";
 
 interface CourseListItem {
@@ -91,7 +92,7 @@ export function CourseBulkTable({ courses }: { courses: CourseListItem[] }) {
                   <td className="px-4 py-3 text-text-secondary">{course._count.lessons}</td>
                   <td className="px-4 py-3 text-text-secondary">{course._count.enrollments}</td>
                   <td className="px-4 py-3 text-text-secondary">
-                    {course.priceCents === 0 ? "Free" : `${(course.priceCents / 100).toFixed(2)} ${course.currency}`}
+                    {formatPrice(course.priceCents, course.currency)}
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { apiMutate } from "@/lib/useApi";
@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   Mail,
   Plus,
+  Save,
   Send,
   Trash2,
   Upload,
@@ -24,10 +25,14 @@ import {
 export default function NewCampaignPage() {
   const router = useRouter();
   const { data: session } = useSession();
+  const orgId = (session?.user as any)?.organization?.id;
 
   const [name, setName] = useState("");
   const [emails, setEmails] = useState<Array<{ email: string; firstName?: string; lastName?: string }>>([]);
   const [emailInput, setEmailInput] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [senderEmail, setSenderEmail] = useState("");
+  const [senderInitialized, setSenderInitialized] = useState(false);
   const [templateHtml, setTemplateHtml] = useState(
     `<h1>Verify your account</h1>\n<p>Click <a href="{{.URL}}">here</a> to verify your email address.</p>\n<p>If you did not request this, please ignore this email.</p>`
   );
@@ -37,6 +42,32 @@ export default function NewCampaignPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  // Load sender config on mount
+  useEffect(() => {
+    if (orgId && !senderInitialized) {
+      apiMutate<{ senderName: string | null; senderEmail: string | null }>(`/organizations/${orgId}`, "GET").then((org) => {
+        if (org) {
+          setSenderName(org.senderName ?? "");
+          setSenderEmail(org.senderEmail ?? "");
+        }
+        setSenderInitialized(true);
+      }).catch(() => setSenderInitialized(true));
+    }
+  }, [orgId, senderInitialized]);
+
+  async function handleSaveSender() {
+    if (!orgId) return;
+    try {
+      await apiMutate(`/organizations/${orgId}/sender`, "PATCH", {
+        senderName: senderName || null,
+        senderEmail: senderEmail || null,
+      });
+      setToast({ message: "Sender config saved", type: "success" });
+    } catch {
+      setToast({ message: "Failed to save sender config", type: "error" });
+    }
+  }
 
   function addEmail(raw: string) {
     const parts = raw.split(",").map((s) => s.trim()).filter(Boolean);
@@ -146,6 +177,34 @@ export default function NewCampaignPage() {
             {error}
           </div>
         )}
+
+        {/* Sender Config */}
+        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-[14px] font-semibold text-[#1A1A2E]">Email Sender</h3>
+              <p className="mt-0.5 text-[13px] text-[#6B7280]">Configure how phishing emails appear to recipients.</p>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">SENDER NAME</label>
+              <input type="text" value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="e.g. IT Security Team" className="mt-2 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-4 py-2.5 text-[14px] text-[#1A1A2E] outline-none transition focus:border-[#683290] focus:ring-2 focus:ring-[#683290]/10" />
+            </div>
+            <div>
+              <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">SENDER EMAIL</label>
+              <input type="email" value={senderEmail} onChange={(e) => setSenderEmail(e.target.value)} placeholder="e.g. security@yourcompany.com" className="mt-2 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-4 py-2.5 text-[14px] text-[#1A1A2E] outline-none transition focus:border-[#683290] focus:ring-2 focus:ring-[#683290]/10" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between rounded-[8px] border border-[#FFF7ED] bg-[#FFFBEB] px-4 py-3">
+            <p className="text-[13px] text-[#92400E]">
+              Preview: <span className="font-semibold">{senderName || "IT Security Team"}</span> &lt;<span className="font-semibold">{senderEmail || "security@novracademy.com"}</span>&gt;
+            </p>
+            <button type="button" onClick={handleSaveSender} className="flex items-center gap-1.5 rounded-[6px] bg-white border border-[#E5E7EB] px-3 py-1.5 text-[12px] font-medium text-[#6B7280] transition hover:bg-[#F8F9FB]">
+              <Save className="h-3 w-3" /> Save Sender
+            </button>
+          </div>
+        </div>
 
         {/* Campaign Name */}
         <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">

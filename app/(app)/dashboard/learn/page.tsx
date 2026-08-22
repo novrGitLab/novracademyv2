@@ -1,6 +1,7 @@
 import { BookOpen, Clock3, Layers3 } from "lucide-react";
 import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/DesignSystem";
 import { apiFetchSafe } from "@/lib/api";
+import { formatPrice } from "@/lib/currency";
 
 interface Course {
   id: string;
@@ -40,7 +41,7 @@ export default async function LearnPage() {
                 key={course.id}
                 padding="none"
                 hover
-                className="group flex h-full flex-col overflow-hidden transition-transform duration-200 hover:-translate-y-1"
+                className="group flex h-full flex-col overflow-hidden border-[#E5E5E5] transition-transform duration-200 hover:-translate-y-1 hover:border-[#683290]/50"
               >
                 <div
                   aria-hidden="true"
@@ -80,7 +81,7 @@ export default async function LearnPage() {
 
                   <div className="mt-auto flex items-center justify-between gap-4 pt-6">
                     <Badge variant={isFree ? "blue" : "purple"}>
-                      {isFree ? "Free" : `${(course.priceCents / 100).toFixed(2)} ${course.currency}`}
+                      {isFree ? "Free" : formatPrice(course.priceCents, course.currency)}
                     </Badge>
                     <Button
                       href={`/dashboard/learn/${course.id}`}

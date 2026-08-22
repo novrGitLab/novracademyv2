@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { ADMIN_ROLES, MANAGER_ROLES } from "@novr/types";
+import { useApi } from "@/lib/useApi";
 import {
   BarChart3,
   BookOpen,
@@ -97,6 +98,8 @@ const cybernovrAdminSections: NavSection[] = [
 const orgAdminNav: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: Home },
   { label: "Employees", href: "/admin/users", icon: Users },
+  { label: "Assign Course", href: "/admin/courses/assign", icon: BookOpen },
+  { label: "Phishing Campaigns", href: "/admin/phishing", icon: ShieldAlert },
   { label: "Compliance", href: "/admin/compliance", icon: ShieldCheck },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
@@ -169,6 +172,9 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const role = session?.user?.role;
+  // The org logo is fetched separately — it's not in the session (a base64
+  // data URL would blow up the JWT/cookie past header limits).
+  const { data: org } = useApi<{ logoUrl?: string | null } | null>("/me/org", null);
   const tenantType = session?.user?.tenantType;
 
   // Build full nav — base nav only for non-admin users
@@ -196,9 +202,9 @@ export function Sidebar() {
       {/* Brand */}
       <div className="px-5 py-6">
         <img
-          src="/novracademy-logo.png"
+          src={org?.logoUrl || "/novracademy-logo.png"}
           alt="Novr Academy"
-          className="h-14 w-auto object-contain"
+          className="h-16 w-auto object-contain"
         />
         {roleLabels[role ?? ""] && (
           <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
@@ -222,7 +228,7 @@ export function Sidebar() {
               href={item.href}
               className={`group flex items-center gap-3 rounded-pill px-3 py-2 text-[14px] font-medium transition-all ${
                 active
-                  ? "bg-[#683290] text-white shadow-card"
+                  ? "bg-[#E82027] text-white shadow-card"
                   : "text-text-secondary hover:bg-surface hover:text-text-primary"
               }`}
             >
@@ -257,7 +263,7 @@ export function Sidebar() {
                   href={item.href}
                   className={`group flex items-center gap-3 rounded-pill px-3 py-2 text-[14px] font-medium transition-all ${
                     active
-                      ? "bg-[#683290] text-white shadow-card"
+                      ? "bg-[#E82027] text-white shadow-card"
                       : "text-text-secondary hover:bg-surface hover:text-text-primary"
                   }`}
                 >

@@ -6,6 +6,7 @@ import { useApi, apiMutate } from "@/lib/useApi";
 import { DropdownMenu } from "@/components/ui/DropdownMenu";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Toast } from "@/components/ui/Toast";
+import { formatPrice } from "@/lib/currency";
 import { Archive, Copy, Edit, MoreVertical, Plus, Send, Trash2 } from "lucide-react";
 
 /* -------------------------------------------------------------------------- */
@@ -144,7 +145,7 @@ export default function AdminCoursesPage() {
                   </td>
                   <td className="px-4 py-3 text-text-secondary">{course._count.lessons}</td>
                   <td className="px-4 py-3 text-text-secondary">{course._count.enrollments}</td>
-                  <td className="px-4 py-3 text-text-secondary">{course.priceCents === 0 ? "Free" : `${(course.priceCents / 100).toFixed(2)} ${course.currency}`}</td>
+                  <td className="px-4 py-3 text-text-secondary">{formatPrice(course.priceCents, course.currency)}</td>
                   <td className="px-4 py-3">
                     <DropdownMenu
                       trigger={<button className="flex h-8 w-8 items-center justify-center rounded-[6px] text-[#9CA3AF] transition hover:bg-[#F8F9FB] hover:text-[#1A1A2E]"><MoreVertical className="h-4 w-4" strokeWidth={2} /></button>}

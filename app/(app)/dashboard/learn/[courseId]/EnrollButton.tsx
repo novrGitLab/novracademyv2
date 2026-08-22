@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatPrice } from "@/lib/currency";
 import { enrollFreeAction, startCheckoutAction } from "./actions";
 
 export function EnrollButton({
@@ -55,7 +56,7 @@ export function EnrollButton({
       ) : (
         <div>
           <p className="text-[15px] font-medium text-text-primary">
-            {(priceCents / 100).toFixed(2)} {currency}
+            {formatPrice(priceCents, currency)}
           </p>
           <div className="mt-3 flex gap-3">
             <button

@@ -24,8 +24,7 @@ interface UserRow {
   status: string;
   xp: number;
   reputationLevel: string;
-  department?: string;
-  lastActive?: string;
+  lastLoginAt?: string | null;
   courseProgress?: number;
 }
 
@@ -58,6 +57,7 @@ function OrgEmployeesPage() {
   const [showInvite, setShowInvite] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
   const [inviteRole, setInviteRole] = useState("Member");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
@@ -71,8 +71,7 @@ function OrgEmployeesPage() {
   const filtered = employees.filter(
     (e) =>
       (e.name?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
-      e.email.toLowerCase().includes(search.toLowerCase()) ||
-      (e.department?.toLowerCase().includes(search.toLowerCase()) ?? false)
+      e.email.toLowerCase().includes(search.toLowerCase())
   );
 
   const stats = {
@@ -85,9 +84,18 @@ function OrgEmployeesPage() {
     if (!inviteEmail) return;
     setInviteLoading(true);
     try {
-      await apiMutate("/users", "POST", { email: inviteEmail, role: inviteRole });
-      setToast({ message: `Invitation sent to ${inviteEmail}`, type: "success" });
+      const result = await apiMutate<{ tempPassword?: string }>("/users", "POST", {
+        email: inviteEmail,
+        name: inviteName || inviteEmail.split("@")[0],
+        role: inviteRole === "Member" ? "LEARNER" : inviteRole === "Manager" ? "MANAGER" : "ORG_ADMIN",
+      });
+      if (result?.tempPassword) {
+        setToast({ message: `Employee created. Temp password: ${result.tempPassword}`, type: "success" });
+      } else {
+        setToast({ message: `Invitation sent to ${inviteEmail}`, type: "success" });
+      }
       setInviteEmail("");
+      setInviteName("");
       setShowInvite(false);
       refetch();
     } catch (err) {
@@ -100,9 +108,15 @@ function OrgEmployeesPage() {
   async function handleResetPassword() {
     if (!selectedUser) return;
     setActionLoading(true);
-    setToast({ message: `Password reset email sent to ${selectedUser.email}`, type: "success" });
-    setActionLoading(false);
-    setShowResetPassword(false);
+    try {
+      await apiMutate("/auth/forgot-password", "POST", { email: selectedUser.email });
+      setToast({ message: `Password reset email sent to ${selectedUser.email}`, type: "success" });
+    } catch (err) {
+      setToast({ message: `Failed: ${(err as Error).message}`, type: "error" });
+    } finally {
+      setActionLoading(false);
+      setShowResetPassword(false);
+    }
   }
 
   async function handleChangeEmail() {
@@ -137,13 +151,25 @@ function OrgEmployeesPage() {
   }
 
   async function handleBulkImport(rows: Record<string, string>[]) {
+    let imported = 0;
+    let failed = 0;
     for (const row of rows) {
       try {
-        await apiMutate("/users", "POST", { email: row.email, name: row.name, role: row.role || "LEARNER" });
+        const result = await apiMutate<{ tempPassword?: string }>("/users", "POST", {
+          email: row.email,
+          name: row.name,
+          role: row.role?.toUpperCase() === "ADMIN" ? "ORG_ADMIN" : row.role?.toUpperCase() === "MANAGER" ? "MANAGER" : "LEARNER",
+        });
+        imported++;
       } catch (err) {
         console.error("Failed to import user:", err);
+        failed++;
       }
     }
+    setToast({
+      message: `Import complete: ${imported} imported, ${failed} failed`,
+      type: imported > 0 ? "success" : "error",
+    });
     refetch();
   }
 
@@ -194,7 +220,6 @@ function OrgEmployeesPage() {
               <thead>
                 <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB]">
                   <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Employee</th>
-                  <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Department</th>
                   <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Role</th>
                   <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Status</th>
                   <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Last Active</th>
@@ -215,14 +240,13 @@ function OrgEmployeesPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-[14px] text-[#6B7280]">{user.department ?? "—"}</td>
                       <td className="px-6 py-4 text-[14px] text-[#6B7280]">{user.role}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />{user.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-[13px] text-[#6B7280]">{user.lastActive ?? "—"}</td>
+                      <td className="px-6 py-4 text-[13px] text-[#6B7280]">{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : "Never"}</td>
                       <td className="px-6 py-4">
                         <DropdownMenu
                           trigger={<button className="flex h-8 w-8 items-center justify-center rounded-[6px] text-[#9CA3AF] transition hover:bg-[#F8F9FB] hover:text-[#1A1A2E]"><MoreVertical className="h-4 w-4" strokeWidth={2} /></button>}
@@ -237,7 +261,7 @@ function OrgEmployeesPage() {
                   );
                 })}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={6} className="px-6 py-12 text-center text-[14px] text-[#9CA3AF]">No employees found.</td></tr>
+                  <tr><td colSpan={5} className="px-6 py-12 text-center text-[14px] text-[#9CA3AF]">No employees found.</td></tr>
                 )}
               </tbody>
             </table>
@@ -248,6 +272,10 @@ function OrgEmployeesPage() {
       {/* Modals */}
       <Modal open={showInvite} onClose={() => setShowInvite(false)} title="Invite Employee" description="Send an email invitation to onboard a new employee.">
         <div className="space-y-4">
+          <div>
+            <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">FULL NAME</label>
+            <input type="text" value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder="Jane Doe" className="mt-1.5 h-10 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A1A2E] outline-none transition focus:border-[#683290]" />
+          </div>
           <div>
             <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">EMAIL</label>
             <input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="employee@company.com" className="mt-1.5 h-10 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A1A2E] outline-none transition focus:border-[#683290]" />

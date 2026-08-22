@@ -3,6 +3,14 @@
 @tailwind utilities;
 @import "./animations.css";
 
+:root {
+  --tenant-primary: #683290;
+  --tenant-secondary: #8b5cf6;
+  --tenant-accent: #4451a2;
+  --tenant-bg: #68329008;
+  --tenant-text: #1a1a2e;
+}
+
 body {
   color: #111827;
   background: #ffffff;

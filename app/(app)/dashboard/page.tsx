@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ADMIN_ROLES } from "@novr/types";
+import { apiFetchSafe } from "@/lib/api";
 import {
   Award,
   BookOpen,
@@ -21,6 +22,14 @@ import {
   featureCards,
   placeholderCertificates,
 } from "./DashboardComponents";
+
+interface MyEnrollment {
+  id: string;
+  status: string;
+  progressPct: number;
+  completedAt: string | null;
+  course: { id: string; title: string; slug: string; thumbnailUrl: string | null };
+}
 
 const roleLabels: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
@@ -92,6 +101,9 @@ export default async function DashboardPage() {
   const overallCompletion = user?.enrollmentCount ? Math.min(100, Math.max(8, Math.round(((user.certificateCount ?? 0) / user.enrollmentCount) * 100))) : 0;
   const roleLabel = user?.role ? roleLabels[user.role] ?? user.role : undefined;
 
+  // Real enrollments with live progress, driving the "My Courses" section
+  const enrollments = await apiFetchSafe<MyEnrollment[]>("/me/enrollments", []);
+
   return (
     <div className="mx-auto max-w-[1200px] space-y-8 pb-8">
       <section className="flex flex-col justify-between gap-8 overflow-hidden rounded-card bg-gradient-brand p-6 text-white shadow-premium sm:flex-row sm:items-center sm:p-8">
@@ -110,10 +122,26 @@ export default async function DashboardPage() {
       <section>
         <SectionHeader title="My Courses" action={<Link href="/dashboard/learn" className="text-xs font-bold text-auth-primary hover:underline">View All</Link>} />
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <CourseCard eyebrow="Module 4" title="Cybersecurity Fundamentals" progress={67} tone="blue" />
-          <CourseCard eyebrow="Workshop" title="Practical Security Operations" progress={42} tone="purple" />
-          <CourseCard eyebrow="Start learning" title="Explore Courses" tone="blue" />
+          {enrollments.length > 0 ? (
+            enrollments.map((enrollment, index) => (
+              <CourseCard
+                key={enrollment.id}
+                eyebrow={enrollment.status === "COMPLETED" ? "Completed" : "Enrolled"}
+                title={enrollment.course.title}
+                progress={Math.round(enrollment.progressPct)}
+                tone={index % 2 === 0 ? "blue" : "purple"}
+                href={`/dashboard/learn/${enrollment.course.id}`}
+              />
+            ))
+          ) : (
+            <CourseCard eyebrow="Start learning" title="Explore Courses" tone="blue" />
+          )}
         </div>
+        {enrollments.length === 0 && (
+          <p className="mt-3 text-center text-xs text-text-secondary">
+            You're not enrolled in any courses yet — browse the catalog and start learning.
+          </p>
+        )}
       </section>
 
       <section>

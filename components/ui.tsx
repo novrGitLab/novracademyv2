@@ -120,6 +120,6 @@ export function EmptyStateUI({ icon: Icon, title, description, action }: { icon:
 }
 
 export function BrandLogo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  const sizes = { sm: "h-10 w-auto", md: "h-14 w-auto", lg: "h-16 w-auto" };
+  const sizes = { sm: "h-12 w-auto", md: "h-16 w-auto", lg: "h-20 w-auto" };
   return <img src="/novracademy-logo.png" alt="Novr Academy" className={`${sizes[size]} object-contain`} />;
 }

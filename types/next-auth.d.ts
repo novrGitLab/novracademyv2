@@ -12,7 +12,18 @@ declare module "next-auth" {
       enrollmentCount: number;
       certificateCount: number;
       postCount: number;
+      mustChangePassword: boolean;
       tenantType?: "ORGANIZATION" | "INSTITUTION";
+      organization?: {
+        id: string;
+        name: string;
+        slug: string;
+        primaryColor?: string | null;
+        secondaryColor?: string | null;
+        accentColor?: string | null;
+        backgroundColor?: string | null;
+        textColor?: string | null;
+      } | null;
     } & DefaultSession["user"];
   }
 
@@ -22,6 +33,16 @@ declare module "next-auth" {
     memberType: MemberType;
     status: UserStatus;
     tenantType?: "ORGANIZATION" | "INSTITUTION";
+    organization?: {
+      id: string;
+      name: string;
+      slug: string;
+      primaryColor?: string | null;
+      secondaryColor?: string | null;
+      accentColor?: string | null;
+      backgroundColor?: string | null;
+      textColor?: string | null;
+    } | null;
   }
 }
 
@@ -35,6 +56,17 @@ declare module "next-auth/jwt" {
     enrollmentCount: number;
     certificateCount: number;
     postCount: number;
+    mustChangePassword: boolean;
     tenantType?: "ORGANIZATION" | "INSTITUTION";
+    organization?: {
+      id: string;
+      name: string;
+      slug: string;
+      primaryColor?: string | null;
+      secondaryColor?: string | null;
+      accentColor?: string | null;
+      backgroundColor?: string | null;
+      textColor?: string | null;
+    } | null;
   }
 }

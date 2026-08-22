@@ -4,6 +4,8 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { createCourseAction } from "../actions";
+import { ThumbnailUpload } from "@/components/ui/ThumbnailUpload";
+import { CURRENCIES } from "@/lib/currency";
 
 export default function NewCoursePage() {
   const [isPending, startTransition] = useTransition();
@@ -35,11 +37,31 @@ export default function NewCoursePage() {
         <form action={handleSubmit} className="mt-6 space-y-4">
           <Field label="Title" name="title" required placeholder="e.g. Advanced TypeScript Fundamentals" />
           <Field label="Description" name="description" textarea placeholder="Overview of what students will learn..." />
-          <Field label="Thumbnail image URL" name="thumbnailUrl" placeholder="https://..." />
+
+          <div>
+            <label className="block text-[13px] font-medium text-text-secondary">Thumbnail image</label>
+            <ThumbnailUpload name="thumbnailUrl" />
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Price (cents)" name="priceCents" type="number" defaultValue="0" />
-            <Field label="Currency" name="currency" defaultValue="USD" />
+            <Field label="Price (₦)" name="priceNaira" type="number" step="0.01" min="0" defaultValue="0" />
+            <div>
+              <label htmlFor="currency" className="block text-[13px] font-medium text-text-secondary">
+                Currency
+              </label>
+              <select
+                id="currency"
+                name="currency"
+                defaultValue="NGN"
+                className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-blue transition-colors"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -86,6 +108,8 @@ function Field({
   placeholder,
   required,
   textarea,
+  step,
+  min,
 }: {
   label: string;
   name: string;
@@ -94,6 +118,8 @@ function Field({
   placeholder?: string;
   required?: boolean;
   textarea?: boolean;
+  step?: string;
+  min?: string;
 }) {
   return (
     <div>
@@ -117,6 +143,8 @@ function Field({
           defaultValue={defaultValue}
           placeholder={placeholder}
           required={required}
+          step={step}
+          min={min}
           className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary placeholder:text-text-secondary/40 outline-none focus:border-blue transition-colors"
         />
       )}

@@ -15,7 +15,6 @@ import {
 } from "./AdminWidgets";
 import {
   BarChart3,
-  Bell,
   BookOpen,
   Building2,
   FileText,
@@ -99,14 +98,6 @@ const certificates = [
   { id: "4", recipientName: "A. Ibrahim", trackName: "CEAP Advanced" },
 ];
 
-const platformTenants = [
-  { id: "1", name: "Dangote Group", type: "ORG" as const, plan: "Enterprise", users: 2450, compliance: 92, status: "ACTIVE" },
-  { id: "2", name: "Lagos State University", type: "INST" as const, plan: "Academic Pro", users: 8120, compliance: 78, status: "ACTIVE" },
-  { id: "3", name: "Airtel Nigeria", type: "ORG" as const, plan: "Enterprise Plus", users: 1890, compliance: 45, status: "ACTIVE" },
-  { id: "4", name: "University of Lagos", type: "INST" as const, plan: "Academic Pro", users: 6400, compliance: 85, status: "ACTIVE" },
-  { id: "5", name: "GTBank", type: "ORG" as const, plan: "Enterprise", users: 3200, compliance: 88, status: "ACTIVE" },
-];
-
 const recentActivity = [
   { id: "1", message: "Compliance Failure: Airtel Nigeria fell below threshold.", time: "10 mins ago", color: "bg-[#DC2626]" },
   { id: "2", message: "New Deployment: Dangote Group added 500 nodes.", time: "1 hour ago", color: "bg-[#683290]" },
@@ -166,9 +157,19 @@ function ComplianceBar({ value }: { value: number }) {
 function SuperAdminDashboard() {
   const { data: metrics } = useApi<OverviewMetrics>("/analytics/overview", emptyMetrics);
   const { data: usersData } = useApi<{ users: User[] }>("/users?pageSize=100", { users: [] });
+  const { data: orgsData } = useApi<{ id: string; name: string; slug: string; plan: string; _count: { users: number } }[]>("/organizations", []);
 
   const totalUsers = Object.values(metrics.membersByType).reduce((a, b) => a + b, 0);
   const revenue = formatCents(metrics.revenueCents.thisMonth);
+
+  const platformTenants = (orgsData ?? []).map((org) => ({
+    id: org.id,
+    name: org.name,
+    type: "ORG" as const,
+    plan: org.plan,
+    users: org._count?.users ?? 0,
+    status: "ACTIVE" as const,
+  }));
 
   return (
     <div className="space-y-6">
@@ -187,12 +188,11 @@ function SuperAdminDashboard() {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB]">
+                <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB]">
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Tenant Name</th>
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Type</th>
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Plan</th>
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Active Users</th>
-                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Compliance</th>
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Status</th>
               </tr>
             </thead>
@@ -210,7 +210,6 @@ function SuperAdminDashboard() {
                   </td>
                   <td className="px-6 py-4 text-[14px] text-[#6B7280]">{t.plan}</td>
                   <td className="px-6 py-4 text-[14px] font-medium tabular-nums text-[#1A1A2E]">{t.users.toLocaleString()}</td>
-                  <td className="px-6 py-4"><ComplianceBar value={t.compliance} /></td>
                   <td className="px-6 py-4">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F0FDF4] px-2.5 py-1 text-[11px] font-semibold text-[#16A34A]">
                       <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />{t.status}
@@ -350,28 +349,62 @@ function CybernovrAdminDashboard() {
 /*  Org Admin Dashboard                                                        */
 /* -------------------------------------------------------------------------- */
 
-const orgCourses = [
-  { id: "1", name: "Security Basics", completions: 45, atRisk: 3, status: "Active" },
-  { id: "2", name: "Data Privacy Fundamentals", completions: 28, atRisk: 0, status: "Active" },
-  { id: "3", name: "Incident Response 101", completions: 12, atRisk: 8, status: "Active" },
-];
+interface ComplianceStats {
+  rate: number;
+  compliant: number;
+  partial: number;
+  nonCompliant: number;
+  total: number;
+}
 
-const atRiskEmployees = [
-  { id: "1", name: "Marcus Chen", department: "Sales", lastActive: "3 days ago", progress: 40 },
-  { id: "2", name: "Amina Yusuf", department: "Marketing", lastActive: "1 week ago", progress: 15 },
-  { id: "3", name: "Tunde Bakare", department: "Operations", lastActive: "2 weeks ago", progress: 0 },
-];
+function AtRiskEmployeesWidget() {
+  const { data: recordsData } = useApi<{ records: { userId: string; name: string | null; email: string; progressPct: number; status: string }[] }>("/compliance/records?status=NON_COMPLIANT&pageSize=5", { records: [] });
+  const records = recordsData?.records ?? [];
+
+  return (
+    <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
+      <h4 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">At-Risk Employees</h4>
+      <div className="mt-4 space-y-3">
+        {records.length === 0 ? (
+          <p className="text-[13px] text-[#9CA3AF]">No at-risk employees</p>
+        ) : (
+          records.map((e) => (
+            <div key={e.userId} className="rounded-[6px] border border-[#E5E7EB] p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] font-medium text-[#1A1A2E]">{e.name ?? e.email}</span>
+                <span className="text-[12px] text-[#DC2626] font-medium">{e.status}</span>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#F1F3F5]">
+                  <div className="h-full rounded-full bg-[#DC2626]" style={{ width: `${e.progressPct}%` }} />
+                </div>
+                <span className="text-[11px] tabular-nums text-[#DC2626]">{e.progressPct}%</span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
 
 function OrgAdminDashboard() {
+  const { data: complianceStats } = useApi<ComplianceStats>("/compliance/stats", { rate: 0, compliant: 0, partial: 0, nonCompliant: 0, total: 0 });
+  const { data: campaignsData } = useApi<{ _count?: { campaignResults: number }; results?: { clicked?: number; sent?: number } }[]>("/campaigns", []);
+  const campaigns = Array.isArray(campaignsData) ? campaignsData : [];
+  const totalClicked = campaigns.reduce((sum, c) => sum + (c.results?.clicked ?? 0), 0);
+  const totalSent = campaigns.reduce((sum, c) => sum + (c.results?.sent ?? 0), 0);
+  const clickRate = totalSent > 0 ? Math.round((totalClicked / totalSent) * 100) : 0;
+
   return (
     <div className="space-y-6">
       <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <div>
-            <h2 className="font-serif text-[28px] font-semibold text-[#1A1A2E]">Acme Corp Overview</h2>
+            <h2 className="font-serif text-[28px] font-semibold text-[#1A1A2E]">Organization Overview</h2>
             <p className="mt-2 text-[14px] text-[#6B7280]">Employee training and compliance summary.</p>
             <div className="mt-6">
-              <p className="text-[48px] font-bold text-[#683290]">87<span className="text-[24px] text-[#6B7280]">/100</span></p>
+              <p className="text-[48px] font-bold text-[#683290]">{complianceStats.rate}<span className="text-[24px] text-[#6B7280]">/100</span></p>
               <p className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Compliance Score</p>
             </div>
           </div>
@@ -379,10 +412,12 @@ function OrgAdminDashboard() {
             <div className="relative h-32 w-32">
               <svg className="h-full w-full" viewBox="0 0 120 120">
                 <circle cx="60" cy="60" r="50" fill="none" stroke="#F1F3F5" strokeWidth="10" />
-                <circle cx="60" cy="60" r="50" fill="none" stroke="#16A34A" strokeWidth="10" strokeDasharray="314" strokeDashoffset="40" strokeLinecap="round" transform="rotate(-90 60 60)" />
+                <circle cx="60" cy="60" r="50" fill="none" stroke={complianceStats.rate >= 80 ? "#16A34A" : complianceStats.rate >= 50 ? "#EA580C" : "#DC2626"} strokeWidth="10" strokeDasharray="314" strokeDashoffset={314 - (complianceStats.rate / 100) * 314} strokeLinecap="round" transform="rotate(-90 60 60)" />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[14px] font-semibold text-[#16A34A]">HEALTHY</span>
+                <span className={`text-[14px] font-semibold ${complianceStats.rate >= 80 ? "text-[#16A34A]" : complianceStats.rate >= 50 ? "text-[#EA580C]" : "text-[#DC2626]"}`}>
+                  {complianceStats.rate >= 80 ? "HEALTHY" : complianceStats.rate >= 50 ? "AT RISK" : "CRITICAL"}
+                </span>
               </div>
             </div>
           </div>
@@ -390,100 +425,26 @@ function OrgAdminDashboard() {
       </div>
 
       <StatsRow stats={[
-        { label: "Total Employees", value: "1,247" },
-        { label: "Active Courses", value: 12 },
-        { label: "Completion Rate", value: "76.4%" },
-        { label: "At-Risk", value: 23, color: "red" },
+        { label: "Total Employees", value: complianceStats.total.toLocaleString() || "0" },
+        { label: "Compliant", value: complianceStats.compliant, color: "purple" },
+        { label: "At-Risk", value: complianceStats.nonCompliant, color: "red" },
+        { label: "Phishing Click Rate", value: `${clickRate}%`, color: clickRate > 10 ? "red" : undefined },
       ]} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_320px]">
-        <div className="space-y-6">
-          <div className="rounded-[8px] border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
-            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-4">
-              <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Course Activity</h3>
-              <Link href="/admin/courses" className="text-[13px] font-semibold text-[#683290] hover:underline">View All</Link>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB]">
-                    <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Course</th>
-                    <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Completions</th>
-                    <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">At-Risk</th>
-                    <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orgCourses.map((c) => (
-                    <tr key={c.id} className="border-b border-[#E5E7EB] last:border-b-0 transition hover:bg-[#F8F9FB]">
-                      <td className="px-6 py-4 text-[14px] font-medium text-[#1A1A2E]">{c.name}</td>
-                      <td className="px-6 py-4 text-[14px] tabular-nums text-[#1A1A2E]">{c.completions}</td>
-                      <td className="px-6 py-4 text-[14px] tabular-nums text-[#DC2626]">{c.atRisk}</td>
-                      <td className="px-6 py-4">
-                        <span className="rounded-full bg-[#F0FDF4] px-2.5 py-1 text-[11px] font-semibold text-[#16A34A]">{c.status}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-[15px] font-semibold text-[#1A1A2E]">Quick Actions</h3>
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <ActionLink href="/admin/users" label="Invite Employee" icon={UserPlus} color="blue" />
-              <ActionLink href="/admin/courses/new" label="Create Course" icon={BookOpen} color="blue" />
-              <ActionLink href="/admin/compliance" label="View Compliance" icon={ShieldCheck} color="blue" />
-              <ActionLink href="/admin/notifications" label="Send Notification" icon={Bell} color="blue" />
-            </div>
+        <div>
+          <h3 className="text-[15px] font-semibold text-[#1A1A2E]">Quick Actions</h3>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <ActionLink href="/admin/users" label="Invite Employee" icon={UserPlus} color="blue" />
+            <ActionLink href="/admin/courses/assign" label="Assign Course" icon={BookOpen} color="blue" />
+            <ActionLink href="/admin/compliance" label="View Compliance" icon={ShieldCheck} color="blue" />
+            <ActionLink href="/admin/phishing" label="Phishing Campaigns" icon={ShieldCheck} color="blue" />
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
-            <h4 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">At-Risk Employees</h4>
-            <div className="mt-4 space-y-3">
-              {atRiskEmployees.map((e) => (
-                <div key={e.id} className="rounded-[6px] border border-[#E5E7EB] p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[13px] font-medium text-[#1A1A2E]">{e.name}</span>
-                    <span className="text-[12px] text-[#6B7280]">{e.department}</span>
-                  </div>
-                  <div className="mt-2 flex items-center gap-2">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#F1F3F5]">
-                      <div className="h-full rounded-full bg-[#DC2626]" style={{ width: `${e.progress}%` }} />
-                    </div>
-                    <span className="text-[11px] tabular-nums text-[#DC2626]">{e.progress}%</span>
-                  </div>
-                  <p className="mt-1 text-[11px] text-[#9CA3AF]">Last active: {e.lastActive}</p>
-                </div>
-              ))}
-            </div>
-            <Link href="/admin/users" className="mt-4 block text-center text-[13px] font-semibold text-[#683290] hover:underline">VIEW ALL EMPLOYEES</Link>
-          </div>
-
-          <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
-            <h4 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Completion by Department</h4>
-            <div className="mt-4 space-y-3">
-              {[
-                { dept: "Engineering", pct: 98 },
-                { dept: "Sales", pct: 64 },
-                { dept: "HR", pct: 82 },
-                { dept: "Marketing", pct: 71 },
-              ].map((d) => (
-                <div key={d.dept}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[13px] text-[#1A1A2E]">{d.dept}</span>
-                    <span className="text-[12px] font-medium" style={{ color: d.pct >= 80 ? "#16A34A" : "#DC2626" }}>{d.pct}%</span>
-                  </div>
-                  <div className="mt-1 h-2 overflow-hidden rounded-full bg-[#F1F3F5]">
-                    <div className="h-full rounded-full" style={{ width: `${d.pct}%`, backgroundColor: d.pct >= 80 ? "#16A34A" : "#DC2626" }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div>
+          <AtRiskEmployeesWidget />
+          <Link href="/admin/compliance" className="mt-4 block text-center text-[13px] font-semibold text-[#683290] hover:underline">VIEW ALL EMPLOYEES</Link>
         </div>
       </div>
     </div>

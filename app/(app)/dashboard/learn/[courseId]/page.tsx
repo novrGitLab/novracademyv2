@@ -1,6 +1,8 @@
 import { apiFetchSafe } from "@/lib/api";
 import { notFound } from "next/navigation";
 import { Badge, PageHeader } from "@/components/DesignSystem";
+import { formatPrice } from "@/lib/currency";
+import { EnrollButton } from "./EnrollButton";
 import { LessonList } from "./LessonList";
 
 interface Lesson {
@@ -17,6 +19,8 @@ interface Course {
   priceCents: number;
   currency: string;
   lessons: Lesson[];
+  enrolled?: boolean;
+  progressPct?: number;
 }
 
 export default async function CourseDetailPage({
@@ -48,9 +52,7 @@ export default async function CourseDetailPage({
                 {lessons.length} lesson{lessons.length !== 1 ? "s" : ""}
               </Badge>
               <Badge className="border-white/25 bg-white/15 text-white backdrop-blur">
-                {course.priceCents === 0
-                  ? "Free"
-                  : `${(course.priceCents / 100).toFixed(2)} ${course.currency}`}
+                {formatPrice(course.priceCents, course.currency)}
               </Badge>
             </div>
           }
@@ -64,8 +66,30 @@ export default async function CourseDetailPage({
         </div>
       </div>
 
-      {/* Client-side lesson list with progress tracking */}
-      <LessonList courseId={course.id} lessons={lessons} />
+      {/* Enrolled: lesson list with progress tracking. Not enrolled: enroll CTA. */}
+      {course.enrolled ? (
+        <>
+          {(course.progressPct ?? 0) > 0 && (
+            <div className="mt-5 flex items-center gap-3">
+              <span className="text-[13px] font-semibold text-[#683290]">{course.progressPct}% complete</span>
+              <div className="h-1.5 w-40 overflow-hidden rounded-full bg-[#E5E7EB]">
+                <div className="h-full rounded-full bg-[#683290]" style={{ width: `${course.progressPct}%` }} />
+              </div>
+            </div>
+          )}
+          <LessonList courseId={course.id} lessons={lessons} />
+        </>
+      ) : (
+        <div className="mt-5 rounded-card border border-border bg-background p-6 shadow-card">
+          <h2 className="font-serif text-xl font-semibold text-text-primary">Get started with this course</h2>
+          <p className="mt-1 max-w-xl text-sm leading-6 text-text-secondary">
+            Enroll to unlock the lessons, track your progress, and earn your certificate on completion.
+          </p>
+          <div className="mt-4">
+            <EnrollButton courseId={course.id} priceCents={course.priceCents} currency={course.currency} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
