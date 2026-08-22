@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
-import { BriefcaseBusiness, CalendarDays, Hash, MessageSquare, Users } from "lucide-react";
+import { BookOpen, BriefcaseBusiness, CalendarDays, GraduationCap, Hash, Mail, MessageSquare, Users, Zap, MessagesSquare } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { apiFetchSafe } from "@/lib/api";
 import { Badge, Button, Card, PageHeader } from "@/components/DesignSystem";
@@ -27,10 +27,15 @@ export default async function CommunityPage() {
 
   const navigation = [
     { label: "Community feed", href: "/dashboard/community", icon: MessageSquare, active: true },
+    { label: "Forum", href: "/dashboard/community/forum", icon: MessagesSquare },
     { label: "Messages", href: "/dashboard/community/messages", icon: MessageSquare },
     { label: "Mentors", href: "/dashboard/community/mentors", icon: Users },
     { label: "Job board", href: "/dashboard/community/jobs", icon: BriefcaseBusiness },
     { label: "Events", href: "/dashboard/community/events", icon: CalendarDays },
+    { label: "Blog", href: "/dashboard/community/blog", icon: BookOpen },
+    { label: "Scholarships", href: "/dashboard/community/scholarships", icon: GraduationCap },
+    { label: "Email", href: "/dashboard/community/email", icon: Mail },
+    { label: "Bootcamps", href: "/dashboard/community/bootcamps", icon: Zap },
   ];
 
   const groupTypeLabels: Record<GroupSummary["type"], string> = {
