@@ -46,13 +46,19 @@ export default function NewCampaignPage() {
   // Load sender config on mount
   useEffect(() => {
     if (orgId && !senderInitialized) {
-      apiMutate<{ senderName: string | null; senderEmail: string | null }>(`/organizations/${orgId}`, "GET").then((org) => {
-        if (org) {
-          setSenderName(org.senderName ?? "");
-          setSenderEmail(org.senderEmail ?? "");
-        }
-        setSenderInitialized(true);
-      }).catch(() => setSenderInitialized(true));
+      fetch(`/api/proxy/organizations/${orgId}`, { cache: "no-store" })
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Failed");
+          return res.json();
+        })
+        .then((org: { senderName: string | null; senderEmail: string | null }) => {
+          if (org) {
+            setSenderName(org.senderName ?? "");
+            setSenderEmail(org.senderEmail ?? "");
+          }
+          setSenderInitialized(true);
+        })
+        .catch(() => setSenderInitialized(true));
     }
   }, [orgId, senderInitialized]);
 

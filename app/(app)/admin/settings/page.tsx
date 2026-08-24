@@ -321,13 +321,19 @@ function PhishingSenderSection({ toast, setToast }: { toast: any; setToast: any 
 
   useEffect(() => {
     if (orgId && !initialized) {
-      apiMutate<{ senderName: string | null; senderEmail: string | null }>(`/organizations/${orgId}`, "GET").then((org) => {
-        if (org) {
-          setSenderName(org.senderName ?? "");
-          setSenderEmail(org.senderEmail ?? "");
-        }
-        setInitialized(true);
-      }).catch(() => setInitialized(true));
+      fetch(`/api/proxy/organizations/${orgId}`, { cache: "no-store" })
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Failed");
+          return res.json();
+        })
+        .then((org: { senderName: string | null; senderEmail: string | null }) => {
+          if (org) {
+            setSenderName(org.senderName ?? "");
+            setSenderEmail(org.senderEmail ?? "");
+          }
+          setInitialized(true);
+        })
+        .catch(() => setInitialized(true));
     }
   }, [orgId, initialized]);
 
