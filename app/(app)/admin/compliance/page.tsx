@@ -82,7 +82,7 @@ interface UserComplianceDetail {
 /* -------------------------------------------------------------------------- */
 
 function ExpandableRow({ userId, colSpan }: { userId: string; colSpan: number }) {
-  const { data: detail, loading } = useApi<UserComplianceDetail>(
+  const { data: detail, loading } = useApi<UserComplianceDetail | null>(
     userId ? `/compliance/records/${userId}` : "",
     null,
   );
