@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
@@ -624,6 +625,23 @@ function InstitutionAdminSettings() {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Quick links to standalone settings pages                                   */
+/* -------------------------------------------------------------------------- */
+
+function SettingsQuickLinks() {
+  return (
+    <div className="mt-3 flex gap-4">
+      <Link href="/admin/settings/branding" className="text-[13px] font-medium text-[#683290] hover:underline">
+        Tenant branding →
+      </Link>
+      <Link href="/admin/settings/certificates" className="text-[13px] font-medium text-[#683290] hover:underline">
+        Certificate template →
+      </Link>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Main Page                                                                  */
 /* -------------------------------------------------------------------------- */
 
@@ -636,6 +654,7 @@ export default function SettingsPage() {
       <div>
         <h1 className="font-serif text-[24px] font-semibold text-[#1A1A2E]">Platform Settings</h1>
         <p className="mt-1 text-[14px] text-[#6B7280]">Manage platform-wide configuration.</p>
+        <SettingsQuickLinks />
         <div className="mt-6">
           <SuperAdminSettings />
         </div>
@@ -648,6 +667,7 @@ export default function SettingsPage() {
       <div>
         <h1 className="font-serif text-[24px] font-semibold text-[#1A1A2E]">Content Settings</h1>
         <p className="mt-1 text-[14px] text-[#6B7280]">Manage courses, curriculum, and certificates.</p>
+        <SettingsQuickLinks />
         <div className="mt-6">
           <SuperAdminSettings />
         </div>
@@ -660,6 +680,7 @@ export default function SettingsPage() {
       <div>
         <h1 className="font-serif text-[24px] font-semibold text-[#1A1A2E]">Institution Settings</h1>
         <p className="mt-1 text-[14px] text-[#6B7280]">Manage institution configuration and integrations.</p>
+        <SettingsQuickLinks />
         <div className="mt-6">
           <InstitutionAdminSettings />
         </div>
@@ -671,6 +692,7 @@ export default function SettingsPage() {
     <div>
       <h1 className="font-serif text-[24px] font-semibold text-[#1A1A2E]">Organization Settings</h1>
       <p className="mt-1 text-[14px] text-[#6B7280]">Manage your organization configuration.</p>
+      <SettingsQuickLinks />
       <div className="mt-6">
         <OrgAdminSettings />
       </div>

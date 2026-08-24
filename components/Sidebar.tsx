@@ -11,10 +11,12 @@ import {
   GraduationCap,
   Home,
   LogOut,
+  Mail,
   Settings,
   ShieldCheck,
   ShieldAlert,
   Sparkles,
+  Ticket,
   Users,
   Users2,
   Bell,
@@ -44,6 +46,7 @@ interface NavSection {
 const baseNav: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
   { label: "Learn", href: "/dashboard/learn", icon: BookOpen },
+  { label: "Assessments", href: "/dashboard/assessments", icon: GraduationCap },
   { label: "Community", href: "/dashboard/community", icon: Users },
   { label: "Notifications", href: "/dashboard/notifications", icon: Bell },
   { label: "Profile", href: "/dashboard/profile", icon: UserRound },
@@ -70,6 +73,9 @@ const superAdminSections: NavSection[] = [
     items: [
       { label: "User Management", href: "/admin/users", icon: Users },
       { label: "Phishing Campaigns", href: "/admin/phishing", icon: ShieldAlert },
+      { label: "Marketing", href: "/admin/marketing", icon: Mail },
+      { label: "Assessments", href: "/admin/assessments", icon: GraduationCap },
+      { label: "Enrollment Codes", href: "/admin/enrollment-codes", icon: Ticket },
       { label: "Settings", href: "/admin/settings", icon: Settings },
     ],
   },
@@ -98,6 +104,7 @@ const orgAdminNav: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: Home },
   { label: "Employees", href: "/admin/users", icon: Users },
   { label: "Compliance", href: "/admin/compliance", icon: ShieldCheck },
+  { label: "Assessments", href: "/admin/assessments", icon: GraduationCap },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 

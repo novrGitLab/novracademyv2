@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { apiFetchSafe } from "@/lib/api";
 import { assignEnrollmentAction, cohortEnrollAction } from "../../actions";
-import { BulkEnrollForm } from "./BulkEnrollForm";
+import { EnrollmentTabs } from "./EnrollmentTabs";
 import { EnrollmentBulkTable } from "./EnrollmentBulkTable";
 
 interface EnrollmentRow {
   id: string;
-  source: "SELF_PAID" | "ADMIN_ASSIGNED" | "BULK" | "COHORT";
+  source: "SELF_PAID" | "ADMIN_ASSIGNED" | "BULK" | "COHORT" | "CODE";
   status: "ACTIVE" | "EXPIRED" | "PENDING" | "CANCELLED";
   enrolledAt: string;
   expiresAt: string | null;
@@ -23,10 +23,22 @@ interface Cohort {
   _count: { members: number };
 }
 
+interface EnrollmentCode {
+  id: string;
+  code: string;
+  discountType: "FREE" | "PERCENTAGE" | "FIXED_AMOUNT";
+  discountValue: number;
+  maxUses: number;
+  usedCount: number;
+  expiresAt: string | null;
+  isActive: boolean;
+}
+
 export default async function EnrollmentsPage({ params }: { params: { id: string } }) {
-  const [{ enrollments }, { cohorts }] = await Promise.all([
+  const [{ enrollments }, { cohorts }, codes] = await Promise.all([
     apiFetchSafe<{ enrollments: EnrollmentRow[] }>(`/courses/${params.id}/enroll`, { enrollments: [] }),
     apiFetchSafe<{ cohorts: Cohort[] }>("/cohorts", { cohorts: [] }),
+    apiFetchSafe<EnrollmentCode[]>(`/enrollment-codes?courseId=${params.id}`, []),
   ]);
 
   const boundAssign = assignEnrollmentAction.bind(null, params.id);
@@ -39,72 +51,14 @@ export default async function EnrollmentsPage({ params }: { params: { id: string
       </Link>
       <h1 className="mt-2 text-[24px] font-semibold text-text-primary">Enrollments</h1>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-card border border-border bg-background p-4">
-          <p className="text-[15px] font-medium text-text-primary">Assign a learner</p>
-          <form action={boundAssign} className="mt-3 space-y-3">
-            <input
-              name="email"
-              type="email"
-              required
-              placeholder="learner@example.com"
-              className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
-            />
-            <input
-              name="validityDays"
-              type="number"
-              placeholder="Validity (days)"
-              className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
-            />
-            <button
-              type="submit"
-              className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573]"
-            >
-              Assign
-            </button>
-          </form>
-        </div>
-
-        <div className="rounded-card border border-border bg-background p-4">
-          <p className="text-[15px] font-medium text-text-primary">Bulk enroll</p>
-          <div className="mt-3">
-            <BulkEnrollForm courseId={params.id} />
-          </div>
-        </div>
-
-        <div className="rounded-card border border-border bg-background p-4">
-          <p className="text-[15px] font-medium text-text-primary">Enroll a cohort</p>
-          <form action={boundCohort} className="mt-3 space-y-3">
-            <select
-              name="cohortId"
-              required
-              className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
-            >
-              <option value="">Select a cohort…</option>
-              {cohorts.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.year ? `(${c.year})` : ""} — {c._count.members} members
-                </option>
-              ))}
-            </select>
-            <input
-              name="validityDays"
-              type="number"
-              placeholder="Validity (days)"
-              className="w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary outline-none focus:border-[#683290]"
-            />
-            <button
-              type="submit"
-              disabled={cohorts.length === 0}
-              className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
-            >
-              Enroll cohort
-            </button>
-            {cohorts.length === 0 && (
-              <p className="text-[13px] text-text-secondary">No cohorts yet — cohort management lands in Phase 3.</p>
-            )}
-          </form>
-        </div>
+      <div className="mt-6">
+        <EnrollmentTabs
+          courseId={params.id}
+          cohorts={cohorts}
+          codes={codes}
+          assignAction={boundAssign}
+          cohortAction={boundCohort}
+        />
       </div>
 
       <div className="mt-8">

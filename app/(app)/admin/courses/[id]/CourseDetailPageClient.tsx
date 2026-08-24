@@ -23,6 +23,7 @@ import {
   createLessonAction,
   deleteLessonAction,
   reorderLessonAction,
+  regenerateCertificatesAction,
 } from "../actions";
 
 interface Lesson {
@@ -51,11 +52,21 @@ export default function CourseDetailPageClient({ course }: { course: CourseDetai
   const [isEditMode, setIsEditMode] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [showAddLessonModal, setShowAddLessonModal] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenerateMessage, setRegenerateMessage] = useState<string | null>(null);
 
   function handleStatusToggle(newStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED") {
     startTransition(async () => {
       await setCourseStatusAction(course.id, newStatus);
     });
+  }
+
+  async function handleRegenerateCertificates() {
+    setRegenerating(true);
+    setRegenerateMessage(null);
+    const outcome = await regenerateCertificatesAction(course.id);
+    setRegenerating(false);
+    setRegenerateMessage(outcome.ok ? `Regenerated ${outcome.count} certificate(s).` : outcome.error);
   }
 
   return (
@@ -102,8 +113,20 @@ export default function CourseDetailPageClient({ course }: { course: CourseDetai
               </>
             )}
           </button>
+
+          <button
+            onClick={handleRegenerateCertificates}
+            disabled={regenerating}
+            className="rounded-card border border-border bg-surface px-3 py-1.5 text-[13px] font-medium text-text-primary hover:bg-surface/70 disabled:opacity-50 transition-colors"
+          >
+            {regenerating ? "Regenerating…" : "Regenerate certificates"}
+          </button>
         </div>
       </div>
+
+      {regenerateMessage && (
+        <p className="rounded-pill bg-blue/10 px-3 py-2 text-[13px] text-blue">{regenerateMessage}</p>
+      )}
 
       {/* Course Hero / Metadata Section */}
       <div className="rounded-card border border-border bg-background p-6 shadow-card">

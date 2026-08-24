@@ -66,6 +66,16 @@ export async function deleteCourseAction(courseId: string) {
   redirect("/admin/courses");
 }
 
+/** Re-renders every issued certificate for this course — e.g. after the template or the tenant's branding changes. */
+export async function regenerateCertificatesAction(courseId: string): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  try {
+    const result = await apiFetch<{ count: number }>(`/courses/${courseId}/certificates/regenerate`, { method: "POST" });
+    return { ok: true, count: result.count };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Could not regenerate certificates" };
+  }
+}
+
 export async function createLessonAction(courseId: string, formData: FormData) {
   const type = String(formData.get("type"));
   await apiFetch(`/courses/${courseId}/lessons`, {
