@@ -23,25 +23,39 @@ export function EnrollButton({
   async function handleFree() {
     setLoading("FREE");
     setError(null);
-    const outcome = await enrollFreeAction(courseId);
-    setLoading(null);
-    if (!outcome.ok) {
-      setError(outcome.error);
-      return;
+    try {
+      const outcome = await enrollFreeAction(courseId);
+      if (!outcome) {
+        setError("Could not enroll — please try again");
+        return;
+      }
+      if (!outcome.ok) {
+        setError(outcome.error);
+        return;
+      }
+      router.refresh();
+    } finally {
+      setLoading(null);
     }
-    router.refresh();
   }
 
   async function handleCheckout(provider: "STRIPE" | "PAYSTACK") {
     setLoading(provider);
     setError(null);
-    const outcome = await startCheckoutAction(courseId, provider);
-    setLoading(null);
-    if (!outcome.ok) {
-      setError(outcome.error);
-      return;
+    try {
+      const outcome = await startCheckoutAction(courseId, provider);
+      if (!outcome) {
+        setError("Could not start checkout — please try again");
+        return;
+      }
+      if (!outcome.ok) {
+        setError(outcome.error);
+        return;
+      }
+      window.location.href = outcome.checkoutUrl;
+    } finally {
+      setLoading(null);
     }
-    window.location.href = outcome.checkoutUrl;
   }
 
   return (
