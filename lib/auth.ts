@@ -88,14 +88,95 @@ export const authOptions: AuthOptions = {
       : []),
   ],
   events: {
-    // Fires for the Prisma adapter's own user creation (OAuth first login).
-    // Credentials-based accounts are created by API routes (admin create,
-    // alumni claim) which call the equivalent join directly.
+    // Fires when an OAuth account is first created (first login via OAuth).
     async createUser({ user }) {
       await autoJoinGeneralChannel(user.id);
     },
+    // Automatically link OAuth accounts to existing users with the same email.
+    // This fixes the "OAuthAccountNotLinked" error when a user first signs up
+    // with email/password, then tries to sign in with Microsoft/Google.
+    async linkAccount({ user, account, profile }) {
+      // Check if an account with this provider already exists for this user
+      const existingAccount = await prisma.account.findFirst({
+        where: {
+          userId: user.id,
+          provider: account.provider,
+          providerAccountId: account.providerAccountId,
+        },
+      });
+
+      // Only link if no account exists for this provider
+      if (!existingAccount) {
+        await prisma.account.create({
+          data: {
+            userId: user.id,
+            type: account.type,
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+            refresh_token: account.refresh_token,
+            access_token: account.access_token,
+            expires_at: account.expires_at,
+            token_type: account.token_type,
+            scope: account.scope,
+            id_token: account.id_token,
+            session_state: account.session_state,
+          },
+        });
+      }
+    },
   },
   callbacks: {
+    // Automatically link OAuth account to existing user with same email
+    async signIn({ user, account, profile }) {
+      if (!account || !user.email) return true;
+
+      // Check if this OAuth account is already linked
+      const existingAccount = await prisma.account.findUnique({
+        where: {
+          provider_providerAccountId: {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+          },
+        },
+      });
+
+      // If already linked, allow sign in
+      if (existingAccount) return true;
+
+      // Check if a user with this email already exists (from another login method)
+      const existingUser = await prisma.user.findUnique({
+        where: { email: user.email },
+      });
+
+      // If user exists but OAuth account doesn't, link them
+      if (existingUser) {
+        await prisma.account.create({
+          data: {
+            userId: existingUser.id,
+            type: account.type,
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+            refresh_token: account.refresh_token,
+            access_token: account.access_token,
+            expires_at: account.expires_at,
+            token_type: account.token_type,
+            scope: account.scope,
+            id_token: account.id_token,
+            session_state: account.session_state,
+          },
+        });
+        // Update the user's name and avatar from OAuth if not set
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            name: existingUser.name || user.name || (profile as any)?.name,
+            avatarUrl: existingUser.avatarUrl || user.image || (profile as any)?.picture,
+          },
+        });
+      }
+
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
