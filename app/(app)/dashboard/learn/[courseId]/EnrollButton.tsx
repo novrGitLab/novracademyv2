@@ -52,7 +52,7 @@ export function EnrollButton({
         setError(outcome.error);
         return;
       }
-      window.location.href = outcome.checkoutUrl;
+      window.open(outcome.checkoutUrl, "_blank", "noopener,noreferrer");
     } finally {
       setLoading(null);
     }
