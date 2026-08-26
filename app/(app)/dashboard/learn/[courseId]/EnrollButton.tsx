@@ -105,8 +105,8 @@ export function EnrollButton({
         key: publicKey,
         access_code: accessCode,
         callback: (response) => {
-          // Stay on the same page — refresh enrollment state from the server
-          window.location.href = `/dashboard/learn/${courseId}?checkout=success&ref=${response.reference}`;
+          // Stay on the same page — refresh server data, show success alert via URL param
+          router.push(`/dashboard/learn/${courseId}?checkout=success&ref=${response.reference}`);
           resolve();
         },
         onClose: () => {
