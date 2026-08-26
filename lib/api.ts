@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 
 // Calls the backend API rather than accessing database services directly.
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
-const DEFAULT_TIMEOUT_MS = 5000;
+const DEFAULT_TIMEOUT_MS = 15000;
 
 export class ApiError extends Error {
   constructor(
