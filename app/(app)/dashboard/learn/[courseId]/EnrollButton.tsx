@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/currency";
+import { isPaystackConfigured } from "@/lib/payment-config";
 import { enrollFreeAction, startCheckoutAction } from "./actions";
 
 export function EnrollButton({
@@ -17,6 +18,7 @@ export function EnrollButton({
   const router = useRouter();
   const [loading, setLoading] = useState<"FREE" | "STRIPE" | "PAYSTACK" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const paystackReady = isPaystackConfigured();
 
   async function handleFree() {
     setLoading("FREE");
@@ -58,7 +60,7 @@ export function EnrollButton({
           <p className="text-[15px] font-medium text-text-primary">
             {formatPrice(priceCents, currency)}
           </p>
-          <div className="mt-3 flex gap-3">
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
               onClick={() => handleCheckout("STRIPE")}
@@ -70,15 +72,25 @@ export function EnrollButton({
             <button
               type="button"
               onClick={() => handleCheckout("PAYSTACK")}
-              disabled={loading !== null}
-              className="rounded-card border border-[#4451A2] px-4 py-2 text-[15px] font-medium text-[#4451A2] hover:bg-[#4451A2]/10 disabled:opacity-50"
+              disabled={loading !== null || !paystackReady}
+              title={!paystackReady ? "Paystack is not configured" : ""}
+              className="rounded-card border border-[#4451A2] px-4 py-2 text-[15px] font-medium text-[#4451A2] hover:bg-[#4451A2]/10 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading === "PAYSTACK" ? "Redirecting…" : "Pay with Paystack"}
             </button>
           </div>
+          {!paystackReady && (
+            <p className="mt-2 text-[12px] text-text-secondary">
+              💡 Paystack payment is not configured. Please contact support.
+            </p>
+          )}
         </div>
       )}
-      {error && <p className="mt-3 rounded-pill bg-[#E82027]/15 px-3 py-2 text-[13px] font-semibold text-[#E82027]">{error}</p>}
+      {error && (
+        <p className="mt-3 rounded-pill bg-[#E82027]/15 px-3 py-2 text-[13px] font-semibold text-[#E82027]">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

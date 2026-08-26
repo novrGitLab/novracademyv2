@@ -4,12 +4,23 @@ import { Badge, PageHeader } from "@/components/DesignSystem";
 import { formatPrice } from "@/lib/currency";
 import { EnrollButton } from "./EnrollButton";
 import { LessonList } from "./LessonList";
+import { PaymentStatusAlert } from "./PaymentStatusAlert";
+import { PaymentHistory } from "./PaymentHistory";
 
 interface Lesson {
   id: string;
   title: string;
   type: string;
   order: number;
+}
+
+interface Payment {
+  id: string;
+  status: "PENDING" | "SUCCEEDED" | "FAILED" | "REFUNDED";
+  amountCents: number;
+  currency: string;
+  provider: "STRIPE" | "PAYSTACK";
+  createdAt: string;
 }
 
 interface Course {
@@ -21,6 +32,7 @@ interface Course {
   lessons: Lesson[];
   enrolled?: boolean;
   progressPct?: number;
+  payments?: Payment[];
 }
 
 export default async function CourseDetailPage({
@@ -36,9 +48,13 @@ export default async function CourseDetailPage({
   if (!course) notFound();
 
   const lessons = course.lessons ?? [];
+  const payments = course.payments ?? [];
 
   return (
     <div className="mx-auto max-w-4xl px-4 pb-10 sm:px-6">
+      {/* Payment status alert */}
+      <PaymentStatusAlert />
+
       {/* Course header */}
       <div className="rounded-card bg-gradient-brand p-5 text-white shadow-premium sm:p-8">
         <PageHeader
@@ -78,6 +94,7 @@ export default async function CourseDetailPage({
             </div>
           )}
           <LessonList courseId={course.id} lessons={lessons} />
+          <PaymentHistory payments={payments} />
         </>
       ) : (
         <div className="mt-5 rounded-card border border-border bg-background p-6 shadow-card">
@@ -88,6 +105,7 @@ export default async function CourseDetailPage({
           <div className="mt-4">
             <EnrollButton courseId={course.id} priceCents={course.priceCents} currency={course.currency} />
           </div>
+          <PaymentHistory payments={payments} />
         </div>
       )}
     </div>

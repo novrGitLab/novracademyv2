@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
-const TIMEOUT_MS = 8000;
+const TIMEOUT_MS = 30000;
 
 const SESSION_COOKIE_NAMES = [
   "__Secure-next-auth.session-token",
