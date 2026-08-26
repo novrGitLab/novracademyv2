@@ -27,7 +27,7 @@ export async function startCheckoutAction(
     const { checkoutUrl } = await apiFetch<{ checkoutUrl: string }>(`/courses/${courseId}/enroll/checkout`, {
       method: "POST",
       body: JSON.stringify({ provider }),
-    });
+    }, 45000);
     return { ok: true, checkoutUrl };
   } catch (err) {
     if (err instanceof ApiError) {
