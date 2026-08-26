@@ -9,6 +9,7 @@ import {
   BarChart3,
   BookOpen,
   Building2,
+  FileText,
   FlaskConical,
   GraduationCap,
   Home,
@@ -74,6 +75,7 @@ const superAdminSections: NavSection[] = [
       { label: "User Management", href: "/admin/users", icon: Users },
       { label: "Phishing Campaigns", href: "/admin/phishing", icon: ShieldAlert },
       { label: "Labs", href: "/admin/labs", icon: FlaskConical },
+      { label: "ITF Export", href: "/admin/itf", icon: FileText },
       { label: "Settings", href: "/admin/settings", icon: Settings },
     ],
   },
@@ -104,6 +106,7 @@ const orgAdminNav: NavItem[] = [
   { label: "Assign Course", href: "/admin/courses/assign", icon: BookOpen },
   { label: "Phishing Campaigns", href: "/admin/phishing", icon: ShieldAlert },
   { label: "Labs", href: "/admin/labs", icon: FlaskConical },
+  { label: "ITF Export", href: "/admin/itf", icon: FileText },
   { label: "Compliance", href: "/admin/compliance", icon: ShieldCheck },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
@@ -115,6 +118,7 @@ const institutionAdminNav: NavItem[] = [
   { label: "Certificates", href: "/admin/certificates", icon: ShieldCheck },
   { label: "Phishing Campaigns", href: "/admin/phishing", icon: ShieldAlert },
   { label: "Labs", href: "/admin/labs", icon: FlaskConical },
+  { label: "ITF Export", href: "/admin/itf", icon: FileText },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
