@@ -14,7 +14,7 @@ interface Course {
 }
 
 export default async function LearnPage() {
-  const { courses } = await apiFetchSafe<{ courses: Course[] }>("/courses", { courses: [] });
+  const { courses } = await apiFetchSafe<{ courses: Course[] }>("/courses", { courses: [] }, {}, 15000);
 
   return (
     <div className="mx-auto max-w-6xl">
