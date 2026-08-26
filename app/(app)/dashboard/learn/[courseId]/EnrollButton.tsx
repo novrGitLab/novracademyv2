@@ -52,10 +52,68 @@ export function EnrollButton({
         setError(outcome.error);
         return;
       }
-      window.open(outcome.checkoutUrl, "_blank", "noopener,noreferrer");
+
+      // Paystack Inline: opens an overlay on the page instead of redirecting.
+      if (
+        provider === "PAYSTACK" &&
+        outcome.accessCode &&
+        outcome.publicKey
+      ) {
+        await openPaystackInline(outcome.publicKey, outcome.accessCode, outcome.checkoutUrl);
+      } else {
+        // Stripe (or fallback): open hosted checkout in a new tab
+        window.open(outcome.checkoutUrl, "_blank", "noopener,noreferrer");
+      }
     } finally {
       setLoading(null);
     }
+  }
+
+  function openPaystackInline(
+    publicKey: string,
+    accessCode: string,
+    fallbackUrl: string
+  ): Promise<void> {
+    return new Promise((resolve) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const PaystackPop = (window as any).PaystackPop as
+        | undefined
+        | {
+            setup: (opts: {
+              key: string;
+              access_code: string;
+              callback: (response: { reference: string }) => void;
+              onClose: () => void;
+            }) => { openIframe: () => void };
+          };
+
+      if (!PaystackPop) {
+        // Inline script not loaded yet — fall back to a centered popup window
+        const popup = window.open(
+          fallbackUrl,
+          "paystack_payment",
+          "width=600,height=700,left=200,top=100,noopener,noreferrer"
+        );
+        if (!popup) {
+          window.location.href = fallbackUrl;
+        }
+        resolve();
+        return;
+      }
+
+      const handler = PaystackPop.setup({
+        key: publicKey,
+        access_code: accessCode,
+        callback: (response) => {
+          window.location.href = `/dashboard/learn/${courseId}?payment=success&ref=${response.reference}`;
+          resolve();
+        },
+        onClose: () => {
+          resolve();
+        },
+      });
+      handler.openIframe();
+    });
   }
 
   return (

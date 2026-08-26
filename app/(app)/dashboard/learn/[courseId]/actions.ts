@@ -22,13 +22,20 @@ export async function enrollFreeAction(
 export async function startCheckoutAction(
   courseId: string,
   provider: "STRIPE" | "PAYSTACK"
-): Promise<{ ok: true; checkoutUrl: string } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; checkoutUrl: string; accessCode?: string; publicKey?: string }
+  | { ok: false; error: string }
+> {
   try {
-    const { checkoutUrl } = await apiFetch<{ checkoutUrl: string }>(`/courses/${courseId}/enroll/checkout`, {
+    const { checkoutUrl, accessCode, publicKey } = await apiFetch<{
+      checkoutUrl: string;
+      accessCode?: string;
+      publicKey?: string;
+    }>(`/courses/${courseId}/enroll/checkout`, {
       method: "POST",
       body: JSON.stringify({ provider }),
     }, 45000);
-    return { ok: true, checkoutUrl };
+    return { ok: true, checkoutUrl, accessCode, publicKey };
   } catch (err) {
     if (err instanceof ApiError) {
       const body = err.body as { error?: string } | null;
