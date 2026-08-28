@@ -121,7 +121,7 @@ export default function SignUpPage() {
       {/* Left — brand panel with image */}
       <aside className="relative hidden h-screen overflow-hidden bg-[#F4ECF8] lg:flex">
         <img
-          src="/Signin_Image.svg"
+          src="/signin/signup.jpeg"
           alt="Novr Academy security training"
           className="h-full w-full object-cover"
         />
@@ -144,65 +144,150 @@ export default function SignUpPage() {
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">
             <div>
-              <label htmlFor="fullName" className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
+              <label
+                htmlFor="fullName"
+                className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]"
+              >
                 FULL NAME
               </label>
-              <input id="fullName" type="text" required value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Jane Doe" className={`${fieldClassName} mt-2`} />
+              <input
+                id="fullName"
+                type="text"
+                required
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                placeholder="Jane Doe"
+                className={`${fieldClassName} mt-2`}
+              />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
+              <label
+                htmlFor="email"
+                className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]"
+              >
                 WORK EMAIL
               </label>
-              <input id="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className={`${fieldClassName} mt-2`} />
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
+                className={`${fieldClassName} mt-2`}
+              />
             </div>
 
             <div>
               <div className="flex items-baseline justify-between gap-3">
-                <label htmlFor="organizationCode" className="text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
+                <label
+                  htmlFor="organizationCode"
+                  className="text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]"
+                >
                   ORGANIZATION CODE
                 </label>
-                <span className="text-right text-[12px] font-medium text-[#767782]">Provided by your administrator</span>
+                <span className="text-right text-[12px] font-medium text-[#767782]">
+                  Provided by your administrator
+                </span>
               </div>
-              <input id="organizationCode" type="text" value={organizationCode} onChange={(event) => setOrganizationCode(event.target.value)} placeholder="e.g. NOVR-2024" className={`${fieldClassName} mt-2`} />
+              <input
+                id="organizationCode"
+                type="text"
+                value={organizationCode}
+                onChange={(event) => setOrganizationCode(event.target.value)}
+                placeholder="e.g. NOVR-2024"
+                className={`${fieldClassName} mt-2`}
+              />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
+              <label
+                htmlFor="password"
+                className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]"
+              >
                 PASSWORD
               </label>
               <div className="mt-2">
-                <PasswordField id="password" value={password} onChange={setPassword} visible={showPassword} onToggle={() => setShowPassword((visible) => !visible)} />
+                <PasswordField
+                  id="password"
+                  value={password}
+                  onChange={setPassword}
+                  visible={showPassword}
+                  onToggle={() => setShowPassword((visible) => !visible)}
+                />
               </div>
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]"
+              >
                 CONFIRM PASSWORD
               </label>
               <div className="mt-2">
-                <PasswordField id="confirmPassword" value={confirmPassword} onChange={setConfirmPassword} visible={showConfirmPassword} onToggle={() => setShowConfirmPassword((visible) => !visible)} />
+                <PasswordField
+                  id="confirmPassword"
+                  value={confirmPassword}
+                  onChange={setConfirmPassword}
+                  visible={showConfirmPassword}
+                  onToggle={() => setShowConfirmPassword((visible) => !visible)}
+                />
               </div>
             </div>
 
             <div className="pt-0">
               <label className="flex items-start gap-3 text-[12px] font-medium leading-5 text-[#767782]">
-                <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 rounded-[2px] border border-[#C6C5D3] accent-[#4451A2]" />
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(event) => setTermsAccepted(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded-[2px] border border-[#C6C5D3] accent-[#4451A2]"
+                />
                 <span>
-                  I agree to the <Link href="/terms" className="text-[#4451A2] hover:underline">Terms of Service</Link> and <Link href="/privacy" className="text-[#4451A2] hover:underline">Privacy Policy</Link>.
+                  I agree to the{" "}
+                  <Link
+                    href="/terms"
+                    className="text-[#4451A2] hover:underline"
+                  >
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    href="/privacy"
+                    className="text-[#4451A2] hover:underline"
+                  >
+                    Privacy Policy
+                  </Link>
+                  .
                 </span>
               </label>
             </div>
 
-            {error && <p className="bg-red-50 px-3 py-2 text-[13px] text-red-700">{error}</p>}
+            {error && (
+              <p className="bg-red-50 px-3 py-2 text-[13px] text-red-700">
+                {error}
+              </p>
+            )}
 
-            <button type="submit" disabled={loading} className="h-[42px] w-full rounded-none bg-[#4451A2] px-4 text-[12px] font-bold tracking-[0.6px] text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-[#39458f] disabled:cursor-not-allowed disabled:opacity-60">
+            <button
+              type="submit"
+              disabled={loading}
+              className="h-[42px] w-full rounded-none bg-[#4451A2] px-4 text-[12px] font-bold tracking-[0.6px] text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-[#39458f] disabled:cursor-not-allowed disabled:opacity-60"
+            >
               {loading ? "CREATING ACCOUNT…" : "CREATE ACCOUNT"}
             </button>
           </form>
 
           <footer className="mt-8 border-t border-[#C6C5D3] pt-4 text-center text-[14px] text-[#454651]">
-            Already have an account? <Link href="/login" className="font-medium text-[#4451A2] hover:underline">Sign in</Link>
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              className="font-medium text-[#4451A2] hover:underline"
+            >
+              Sign in
+            </Link>
           </footer>
         </div>
       </section>

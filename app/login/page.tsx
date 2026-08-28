@@ -69,7 +69,7 @@ function LoginForm() {
       {/* Left — brand panel with image */}
       <aside className="relative hidden h-screen overflow-hidden bg-[#F4ECF8] lg:flex">
         <img
-          src="/Signin_Image.svg"
+          src="/signin/signup.jpeg"
           alt="Novr Academy security training"
           className="h-full w-full object-cover"
         />
@@ -92,8 +92,12 @@ function LoginForm() {
               alt="Novr Academy"
               className="mx-auto mb-8 h-16 w-auto object-contain"
             />
-            <h1 className="font-serif text-[34px] leading-[51px] text-auth-ink">Welcome back</h1>
-            <p className="text-[15px] leading-[22.5px] text-auth-secondary">Sign in to your security portal.</p>
+            <h1 className="font-serif text-[34px] leading-[51px] text-auth-ink">
+              Welcome back
+            </h1>
+            <p className="text-[15px] leading-[22.5px] text-auth-secondary">
+              Sign in to your security portal.
+            </p>
           </div>
 
           {searchParams.get("success") === "1" && (
@@ -108,17 +112,20 @@ function LoginForm() {
                 EMAIL ADDRESS
               </label>
               <input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
-                  className="mt-2 h-12 w-full rounded-auth border border-auth-border bg-white px-4 text-base text-auth-ink outline-none transition placeholder:text-auth-placeholder focus:border-auth-primary focus:ring-2 focus:ring-auth-primary/10"
-                />
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@company.com"
+                className="mt-2 h-12 w-full rounded-auth border border-auth-border bg-white px-4 text-base text-auth-ink outline-none transition placeholder:text-auth-placeholder focus:border-auth-primary focus:ring-2 focus:ring-auth-primary/10"
+              />
             </div>
             <div>
-              <label htmlFor="password" className="block text-base text-auth-ink">
+              <label
+                htmlFor="password"
+                className="block text-base text-auth-ink"
+              >
                 PASSWORD
               </label>
               <div className="relative mt-2">
@@ -131,14 +138,25 @@ function LoginForm() {
                   placeholder="••••••••"
                   className="h-12 w-full rounded-auth border border-auth-border bg-white py-[13.5px] pl-4 pr-12 text-base text-auth-ink outline-none transition placeholder:text-auth-placeholder focus:border-auth-primary focus:ring-2 focus:ring-auth-primary/10"
                 />
-                <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-0 top-0 flex h-12 w-12 items-center justify-center text-auth-muted transition hover:text-auth-ink">
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-0 top-0 flex h-12 w-12 items-center justify-center text-auth-muted transition hover:text-auth-ink"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
 
             {error && (
-              <p className="rounded-auth bg-red-50 px-3 py-2 text-[13px] text-auth-red">{error}</p>
+              <p className="rounded-auth bg-red-50 px-3 py-2 text-[13px] text-auth-red">
+                {error}
+              </p>
             )}
 
             <button
@@ -181,7 +199,10 @@ function LoginForm() {
           </p>
           <p className="mt-3 text-center text-[13px] text-auth-secondary">
             Have a claim link instead?{" "}
-              <Link href="/" className="font-medium text-auth-primary hover:underline">
+            <Link
+              href="/"
+              className="font-medium text-auth-primary hover:underline"
+            >
               Go to homepage
             </Link>
           </p>

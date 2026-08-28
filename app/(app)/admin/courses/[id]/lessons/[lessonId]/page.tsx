@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { VideoUploader } from "./VideoUploader";
-import { PdfUploader } from "./PdfUploader";
+import { LessonDetailClient } from "./LessonDetailClient";
 import { QuizBuilder, type QuizQuestion } from "./QuizBuilder";
 import { LiveClassScheduler } from "./LiveClassScheduler";
 import { getLiveAttendanceAction } from "../../../actions";
@@ -11,7 +11,7 @@ interface LessonDetail {
   id: string;
   courseId: string;
   title: string;
-  type: "VIDEO" | "PDF" | "QUIZ" | "LIVE";
+  type: "VIDEO" | "PDF" | "QUIZ" | "LIVE" | "SLIDES";
   minWatchPct: number;
   durationSeconds: number | null;
   videoStatus: "PREPARING" | "READY" | "ERRORED" | null;
@@ -27,6 +27,7 @@ interface LessonDetail {
     maxAttempts: number;
     questions: QuizQuestion[];
   } | null;
+  slidesManifest: Record<string, unknown> | null;
 }
 
 export default async function LessonDetailPage({
@@ -59,7 +60,7 @@ export default async function LessonDetailPage({
 
       {lesson.type === "PDF" && (
         <div className="mt-6">
-          <PdfUploader
+          <LessonDetailClient
             courseId={params.id}
             lessonId={lesson.id}
             hasFile={Boolean(lesson.contentUrl)}
@@ -84,6 +85,22 @@ export default async function LessonDetailPage({
             hasRecording={Boolean(lesson.dailyRecordingId)}
             attendance={attendance}
           />
+        </div>
+      )}
+
+      {lesson.type === "SLIDES" && (
+        <div className="mt-6 rounded-card border border-border bg-surface p-5">
+          <p className="text-sm font-medium text-text-primary">Slides Lesson</p>
+          <p className="mt-1 text-sm text-text-secondary">
+            This lesson was auto-generated. Edit the source PDF lesson to regenerate slides.
+          </p>
+          {lesson.slidesManifest && (
+            <div className="mt-3 text-sm text-text-secondary">
+              {Array.isArray((lesson.slidesManifest as { slideImages?: unknown[] })?.slideImages)
+                ? `${((lesson.slidesManifest as { slideImages: unknown[] }).slideImages).length} slides`
+                : "View available"}
+            </div>
+          )}
         </div>
       )}
     </div>

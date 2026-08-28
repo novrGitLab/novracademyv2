@@ -31,6 +31,17 @@ interface MyEnrollment {
   course: { id: string; title: string; slug: string; thumbnailUrl: string | null };
 }
 
+interface BadgeData {
+  slug: string;
+  name: string;
+  description: string | null;
+  xpValue: number;
+  iconUrl: string | null;
+  triggerType: string;
+  earned: boolean;
+  awardedAt: string | null;
+}
+
 const roleLabels: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
   ORG_ADMIN: "Org Admin",
@@ -104,6 +115,10 @@ export default async function DashboardPage() {
   // Real enrollments with live progress, driving the "My Courses" section
   const enrollments = await apiFetchSafe<MyEnrollment[]>("/me/enrollments", []);
 
+  // Real badges from gamification API
+  const badgesResponse = await apiFetchSafe<{ badges: BadgeData[] }>("/gamification/badges", { badges: [] });
+  const badges = badgesResponse.badges;
+
   return (
     <div className="mx-auto max-w-[1200px] space-y-8 pb-8">
       <section className="flex flex-col justify-between gap-8 overflow-hidden rounded-card bg-gradient-brand p-6 text-white shadow-premium sm:flex-row sm:items-center sm:p-8">
@@ -152,7 +167,24 @@ export default async function DashboardPage() {
       <section>
         <SectionHeader title="Achievements" eyebrow="Achievements" />
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <AchievementBadge unlocked label="First steps" /><AchievementBadge label="On a roll" /><AchievementBadge label="Knowledge seeker" /><AchievementBadge label="Goal getter" />
+          {badges.length > 0 ? (
+            badges.map((badge) => (
+              <AchievementBadge
+                key={badge.slug}
+                name={badge.name}
+                description={badge.description}
+                xpValue={badge.xpValue}
+                earned={badge.earned}
+              />
+            ))
+          ) : (
+            <>
+              <AchievementBadge name="First steps" unlocked />
+              <AchievementBadge name="On a roll" />
+              <AchievementBadge name="Knowledge seeker" />
+              <AchievementBadge name="Goal getter" />
+            </>
+          )}
         </div>
         <p className="mt-3 text-center text-xs text-text-secondary">More achievements are coming soon. Keep learning to unlock them.</p>
       </section>

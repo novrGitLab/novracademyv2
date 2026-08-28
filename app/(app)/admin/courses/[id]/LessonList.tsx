@@ -14,7 +14,7 @@ interface Quiz {
 interface Lesson {
   id: string;
   title: string;
-  type: "VIDEO" | "PDF" | "QUIZ" | "LIVE";
+  type: "VIDEO" | "PDF" | "QUIZ" | "LIVE" | "SLIDES";
   order: number;
   minWatchPct: number;
   contentUrl: string | null;
@@ -26,6 +26,7 @@ const typeLabels: Record<Lesson["type"], string> = {
   PDF: "PDF",
   QUIZ: "Quiz",
   LIVE: "Live class",
+  SLIDES: "Slides",
 };
   
 export function LessonList({
@@ -120,6 +121,7 @@ export function LessonList({
             <option value="PDF">PDF</option>
             <option value="QUIZ">Quiz</option>
             <option value="LIVE">Live class</option>
+            <option value="SLIDES">Slides</option>
           </select>
         </div>
 

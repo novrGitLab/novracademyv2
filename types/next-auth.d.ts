@@ -1,4 +1,4 @@
-import type { MemberType, UserRole, UserStatus } from "@novr/types";
+import type { MemberType, ReputationLevel, UserRole, UserStatus } from "@novr/types";
 import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
@@ -9,6 +9,7 @@ declare module "next-auth" {
       memberType: MemberType;
       status: UserStatus;
       xp: number;
+      reputationLevel: ReputationLevel;
       enrollmentCount: number;
       certificateCount: number;
       postCount: number;
@@ -53,6 +54,7 @@ declare module "next-auth/jwt" {
     memberType: MemberType;
     status: UserStatus;
     xp: number;
+    reputationLevel: ReputationLevel;
     enrollmentCount: number;
     certificateCount: number;
     postCount: number;

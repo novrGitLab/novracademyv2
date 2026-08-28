@@ -96,13 +96,30 @@ export function FeatureCard({ icon: Icon, title, description }: { icon: LucideIc
   );
 }
 
-export function AchievementBadge({ unlocked = false, label }: { unlocked?: boolean; label: string }) {
+export interface AchievementBadgeProps {
+  name: string;
+  description?: string | null;
+  xpValue?: number;
+  earned?: boolean;
+  label?: string;
+  unlocked?: boolean;
+}
+
+export function AchievementBadge({ name, description, xpValue, earned, label, unlocked }: AchievementBadgeProps) {
+  const isUnlocked = earned ?? unlocked ?? false;
+  const displayName = (name || label) ?? "";
   return (
-    <div className={`flex min-h-[112px] flex-col items-center justify-center rounded-card border p-3 text-center ${unlocked ? "border-[#683290]/30 bg-[#683290]/10" : "border-dashed border-border bg-surface/50"}`}>
-      <div className={`flex h-11 w-11 items-center justify-center rounded-full ${unlocked ? "bg-[#683290] text-white" : "bg-white text-text-secondary"}`}>
-        {unlocked ? <Check className="h-5 w-5" /> : <LockKeyhole className="h-4 w-4" />}
+    <div
+      className={`flex min-h-[112px] flex-col items-center justify-center rounded-card border p-3 text-center ${isUnlocked ? "border-[#683290]/30 bg-[#683290]/10" : "border-dashed border-border bg-surface/50"}`}
+      title={description ?? undefined}
+    >
+      <div className={`flex h-11 w-11 items-center justify-center rounded-full ${isUnlocked ? "bg-[#683290] text-white" : "bg-white text-text-secondary"}`}>
+        {isUnlocked ? <Check className="h-5 w-5" /> : <LockKeyhole className="h-4 w-4" />}
       </div>
-      <span className="mt-2 text-[10px] font-bold uppercase tracking-wide text-text-secondary">{label}</span>
+      <span className="mt-2 text-[10px] font-bold uppercase tracking-wide text-text-secondary">{displayName}</span>
+      {xpValue != null && xpValue > 0 && (
+        <span className="mt-0.5 text-[9px] text-text-secondary">{xpValue} XP</span>
+      )}
     </div>
   );
 }

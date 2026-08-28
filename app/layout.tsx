@@ -16,6 +16,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <script src="https://js.paystack.co/v2/inline.js" async />
+      </head>
       <body className={`${inter.variable} ${jetbrainsMono.variable} ${montserrat.variable} ${playfairDisplay.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
       </body>

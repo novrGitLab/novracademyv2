@@ -168,6 +168,32 @@ export type Status = "REQUESTED" | "ACCEPTED" | "DECLINED" | "PENDING" | "APPROV
 
 export function StatusBadge({ status, className }: { status: Status; className?: string }) {
   const normalized = status.toUpperCase();
-  const variants: Record<string, BadgeVariant> = { ACCEPTED: "success", APPROVED: "success", COMPLETED: "success", ACTIVE: "success", PUBLISHED: "success", DECLINED: "red", REJECTED: "red", CANCELLED: "red", CLOSED: "red", REQUESTED: "blue", PENDING: "blue", OPEN: "blue", DRAFT: "purple", INACTIVE: "default" };
+  const variants: Record<string, BadgeVariant> = { ACCEPTED: "success", APPROVED: "success", COMPLETED: "success", ACTIVE: "success", PUBLISHED: "success", DECLINED: "red", REJECTED: "red", CANCELLED: "red", REQUESTED: "blue", PENDING: "blue", OPEN: "blue", DRAFT: "purple", INACTIVE: "default" };
   return <Badge variant={variants[normalized] ?? "default"} className={className}>{status.replace(/_/g, " ")}</Badge>;
+}
+
+export interface SlidesManifest {
+  slideImages: string[];
+  slideCount: number;
+  audioUrl: string | null;
+  voiceoverEnabled: boolean;
+  pptxUrl: string;
+  sourceLessonId: string;
+  generatedAt: string;
+}
+
+export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
+  return (
+    <div className="flex flex-col items-center gap-4">
+      {manifest.slideImages.map((url, i) => (
+        <img key={i} src={url} alt={`Slide ${i + 1}`} className="max-w-full rounded-lg shadow-md" />
+      ))}
+      {manifest.audioUrl && (
+        <audio controls className="mt-4 w-full max-w-md">
+          <source src={manifest.audioUrl} type="audio/mpeg" />
+          Your browser does not support the audio element.
+        </audio>
+      )}
+    </div>
+  );
 }
