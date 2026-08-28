@@ -21,11 +21,17 @@ export async function enrollFreeAction(
 
 export async function startCheckoutAction(
   courseId: string,
+<<<<<<< HEAD
   provider: "STRIPE" | "PAYSTACK"
 ): Promise<
   | { ok: true; checkoutUrl: string; accessCode?: string; publicKey?: string }
   | { ok: false; error: string }
 > {
+=======
+  provider: "STRIPE" | "PAYSTACK",
+  enrollmentCodeId?: string
+): Promise<{ ok: true; checkoutUrl: string } | { ok: false; error: string }> {
+>>>>>>> origin/main
   try {
     const { checkoutUrl, accessCode, publicKey } = await apiFetch<{
       checkoutUrl: string;
@@ -33,15 +39,51 @@ export async function startCheckoutAction(
       publicKey?: string;
     }>(`/courses/${courseId}/enroll/checkout`, {
       method: "POST",
+<<<<<<< HEAD
       body: JSON.stringify({ provider }),
     }, 45000);
     return { ok: true, checkoutUrl, accessCode, publicKey };
+=======
+      body: JSON.stringify({ provider, enrollmentCodeId }),
+    });
+    return { ok: true, checkoutUrl };
+>>>>>>> origin/main
   } catch (err) {
     if (err instanceof ApiError) {
       const body = err.body as { error?: string } | null;
       return { ok: false, error: body?.error ?? err.message };
     }
     return { ok: false, error: "Could not start checkout" };
+  }
+}
+
+type RedeemCodeResult =
+  | { enrolled: true; courseId: string }
+  | {
+      enrolled: false;
+      courseId: string;
+      codeId: string;
+      discountType: "FREE" | "PERCENTAGE" | "FIXED_AMOUNT";
+      discountValue: number;
+      originalPriceCents: number;
+      finalPriceCents: number;
+    };
+
+/** Redeems an enrollment code — FREE codes enroll immediately; discounted codes return a discounted price for checkout. */
+export async function redeemCodeAction(code: string): Promise<{ ok: true; result: RedeemCodeResult } | { ok: false; error: string }> {
+  try {
+    const result = await apiFetch<RedeemCodeResult>("/enrollments/code", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    });
+    if (result.enrolled) revalidatePath(`/dashboard/learn/${result.courseId}`);
+    return { ok: true, result };
+  } catch (err) {
+    if (err instanceof ApiError) {
+      const body = err.body as { error?: string } | null;
+      return { ok: false, error: body?.error ?? err.message };
+    }
+    return { ok: false, error: "Could not redeem code" };
   }
 }
 

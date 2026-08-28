@@ -14,11 +14,16 @@ import {
   GraduationCap,
   Home,
   LogOut,
+  Mail,
   Settings,
   ShieldCheck,
   ShieldAlert,
   Sparkles,
+<<<<<<< HEAD
   Trophy,
+=======
+  Ticket,
+>>>>>>> origin/main
   Users,
   Users2,
   Bell,
@@ -49,7 +54,11 @@ const baseNav: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
   { label: "Learn", href: "/dashboard/learn", icon: BookOpen },
   { label: "Labs", href: "/dashboard/labs", icon: FlaskConical },
+<<<<<<< HEAD
   { label: "Leaderboard", href: "/dashboard/leaderboard", icon: Trophy },
+=======
+  { label: "Assessments", href: "/dashboard/assessments", icon: GraduationCap },
+>>>>>>> origin/main
   { label: "Community", href: "/dashboard/community", icon: Users },
   { label: "Notifications", href: "/dashboard/notifications", icon: Bell },
   { label: "Profile", href: "/dashboard/profile", icon: UserRound },
@@ -77,7 +86,13 @@ const superAdminSections: NavSection[] = [
       { label: "User Management", href: "/admin/users", icon: Users },
       { label: "Phishing Campaigns", href: "/admin/phishing", icon: ShieldAlert },
       { label: "Labs", href: "/admin/labs", icon: FlaskConical },
+<<<<<<< HEAD
       { label: "ITF Export", href: "/admin/itf", icon: FileText },
+=======
+      { label: "Marketing", href: "/admin/marketing", icon: Mail },
+      { label: "Assessments", href: "/admin/assessments", icon: GraduationCap },
+      { label: "Enrollment Codes", href: "/admin/enrollment-codes", icon: Ticket },
+>>>>>>> origin/main
       { label: "Settings", href: "/admin/settings", icon: Settings },
     ],
   },
@@ -110,6 +125,7 @@ const orgAdminNav: NavItem[] = [
   { label: "Labs", href: "/admin/labs", icon: FlaskConical },
   { label: "ITF Export", href: "/admin/itf", icon: FileText },
   { label: "Compliance", href: "/admin/compliance", icon: ShieldCheck },
+  { label: "Assessments", href: "/admin/assessments", icon: GraduationCap },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 

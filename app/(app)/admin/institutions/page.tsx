@@ -4,56 +4,19 @@ import Link from "next/link";
 import { GraduationCap, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { useApi } from "@/lib/useApi";
-
-/* -------------------------------------------------------------------------- */
-/*  NOTE: This page requires a dedicated Tenant Management API that does not    */
-/*  exist yet. Currently using placeholder data. When the API is built,        */
-/*  replace the institutions array with: useApi("/tenants?type=INST", ...)     */
-/* -------------------------------------------------------------------------- */
-
-interface Institution {
-  id: string;
-  name: string;
-  program: string;
-  students: number;
-  compliance: number;
-  status: "ACTIVE" | "ONBOARDING" | "SUSPENDED";
-}
-
-// TODO: Replace with API call when tenant management endpoints are built
-// const { data, loading } = useApi<{ tenants: Institution[] }>("/tenants?type=INST", { tenants: [] });
-
-const institutions: Institution[] = [
-  { id: "1", name: "Lagos State University", program: "Academic Pro", students: 8120, compliance: 78, status: "ACTIVE" },
-  { id: "2", name: "University of Lagos", program: "Academic Pro", students: 6400, compliance: 85, status: "ACTIVE" },
-  { id: "3", name: "Obafemi Awolowo University", program: "Standard", students: 4200, compliance: 62, status: "ACTIVE" },
-  { id: "4", name: "Covenant University", program: "Academic Pro", students: 3800, compliance: 91, status: "ACTIVE" },
-  { id: "5", name: "Federal University of Technology", program: "Starter", students: 1200, compliance: 40, status: "ONBOARDING" },
-];
+import type { Tenant } from "@/types/tenants";
 
 const statusStyles: Record<string, { bg: string; text: string; dot: string }> = {
   ACTIVE: { bg: "bg-[#F0FDF4]", text: "text-[#16A34A]", dot: "bg-[#16A34A]" },
-  ONBOARDING: { bg: "bg-[#EFF6FF]", text: "text-[#2563EB]", dot: "bg-[#2563EB]" },
-  SUSPENDED: { bg: "bg-[#FEF2F2]", text: "text-[#DC2626]", dot: "bg-[#DC2626]" },
+  INACTIVE: { bg: "bg-[#FEF2F2]", text: "text-[#DC2626]", dot: "bg-[#DC2626]" },
 };
 
-function ComplianceBar({ value }: { value: number }) {
-  const color = value >= 80 ? "#16A34A" : value >= 50 ? "#EA580C" : "#DC2626";
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-2 w-24 overflow-hidden rounded-full bg-[#F1F3F5]">
-        <div className="h-full rounded-full" style={{ width: `${value}%`, backgroundColor: color }} />
-      </div>
-      <span className="text-[13px] font-medium tabular-nums" style={{ color }}>{value}%</span>
-    </div>
-  );
-}
-
 export default function InstitutionsPage() {
+  const { data: tenants, loading } = useApi<Tenant[]>("/tenants", []);
   const [search, setSearch] = useState("");
 
-  const filtered = institutions.filter((i) =>
-    i.name.toLowerCase().includes(search.toLowerCase())
+  const filtered = tenants.filter((t) =>
+    t.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -95,43 +58,63 @@ export default function InstitutionsPage() {
             <thead>
               <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB]">
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Tenant Name</th>
-                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Type</th>
+                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Slug</th>
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Plan</th>
-                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Students</th>
-                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Compliance</th>
+                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Members</th>
+                <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Courses</th>
                 <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Status</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((inst) => {
-                const s = statusStyles[inst.status];
-                return (
-                  <tr key={inst.id} className="border-b border-[#E5E7EB] last:border-b-0 transition hover:bg-[#F8F9FB]">
-                    <td className="px-6 py-4">
-                      <Link href={`/admin/institutions/${inst.id}`} className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[#F4ECF8]">
-                          <GraduationCap className="h-4 w-4 text-[#683290]" strokeWidth={2} />
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-[14px] text-[#9CA3AF]">
+                    Loading institutions...
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <GraduationCap className="mx-auto h-10 w-10 text-[#E5E7EB]" />
+                    <p className="mt-3 text-[14px] font-medium text-[#6B7280]">No institutions found</p>
+                    <p className="mt-1 text-[13px] text-[#9CA3AF]">
+                      {tenants.length === 0
+                        ? "Create your first institutional tenant to get started."
+                        : "Try adjusting your search."}
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((inst) => {
+                  const s = statusStyles[inst.isActive ? "ACTIVE" : "INACTIVE"];
+                  return (
+                    <tr key={inst.id} className="border-b border-[#E5E7EB] last:border-b-0 transition hover:bg-[#F8F9FB]">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[#F4ECF8]">
+                            <GraduationCap className="h-4 w-4 text-[#683290]" strokeWidth={2} />
+                          </div>
+                          <span className="text-[14px] font-medium text-[#1A1A2E]">{inst.name}</span>
                         </div>
-                        <span className="text-[14px] font-medium text-[#1A1A2E] hover:text-[#683290]">{inst.name}</span>
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-semibold text-[#2563EB]">
-                        INST
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-[14px] text-[#6B7280]">{inst.program}</td>
-                    <td className="px-6 py-4 text-[14px] font-medium tabular-nums text-[#1A1A2E]">{inst.students.toLocaleString()}</td>
-                    <td className="px-6 py-4"><ComplianceBar value={inst.compliance} /></td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-                        {inst.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      <td className="px-6 py-4 text-[14px] text-[#6B7280]">{inst.slug}</td>
+                      <td className="px-6 py-4 text-[14px] text-[#6B7280]">{inst.plan}</td>
+                      <td className="px-6 py-4 text-[14px] font-medium tabular-nums text-[#1A1A2E]">
+                        {(inst._count?.users ?? 0).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 text-[14px] font-medium tabular-nums text-[#1A1A2E]">
+                        {(inst._count?.courses ?? 0).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+                          {inst.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

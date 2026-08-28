@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
-import { Bell, Search, Settings } from "lucide-react";
+import { AlertTriangle, Bell, Search, Settings } from "lucide-react";
+import { ADMIN_ROLES } from "@novr/types";
 import { authOptions } from "@/lib/auth";
 import { apiFetchSafe } from "@/lib/api";
 import { Breadcrumbs } from "./Breadcrumbs";
@@ -10,8 +11,18 @@ export async function TopNav() {
   const session = await getServerSession(authOptions);
   const { count } = await apiFetchSafe<{ count: number }>("/notifications/unread-count", { count: 0 });
 
+  const isAdmin = Boolean(session?.user?.role && ADMIN_ROLES.includes(session.user.role));
+  const { demoMode } = isAdmin
+    ? await apiFetchSafe<{ demoMode: boolean }>("/health", { demoMode: false })
+    : { demoMode: false };
+
   return (
-    <header className="flex h-16 shrink-0 items-center gap-4 border-b-2 border-[#683290]/20 bg-gradient-to-b from-white to-[#F4ECF8]/40 px-4 backdrop-blur sm:px-6">
+    <header className="relative flex h-16 shrink-0 items-center gap-4 border-b-2 border-[#683290]/20 bg-gradient-to-b from-white to-[#F4ECF8]/40 px-4 backdrop-blur sm:px-6">
+      {demoMode && (
+        <span className="absolute left-1/2 top-0 -translate-x-1/2 rounded-b-pill bg-yellow-400 px-3 py-0.5 text-[11px] font-semibold text-yellow-950 shadow-sm">
+          <AlertTriangle className="mr-1 inline h-3 w-3" /> Demo mode — payments disabled
+        </span>
+      )}
       <Breadcrumbs />
 
       <div className="relative min-w-0 w-full max-w-sm">
