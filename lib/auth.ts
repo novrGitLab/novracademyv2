@@ -184,6 +184,7 @@ export const authOptions: AuthOptions = {
         token.memberType = (user as any).memberType;
         token.status = (user as any).status;
         token.xp = (user as any).xp ?? 0;
+        token.reputationLevel = (user as any).reputationLevel ?? "NEWCOMER";
         token.enrollmentCount = (user as any).enrollmentCount ?? 0;
         token.certificateCount = (user as any).certificateCount ?? 0;
         token.postCount = (user as any).postCount ?? 0;
@@ -201,6 +202,7 @@ export const authOptions: AuthOptions = {
             memberType: true,
             status: true,
             xp: true,
+            reputationLevel: true,
             organizationId: true,
             mustChangePassword: true,
             _count: { select: { enrollmentsAsAssignee: true, certificates: true, posts: true } },
@@ -211,6 +213,7 @@ export const authOptions: AuthOptions = {
           token.memberType = dbUser.memberType;
           token.status = dbUser.status;
           token.xp = dbUser.xp;
+          token.reputationLevel = dbUser.reputationLevel;
           token.mustChangePassword = dbUser.mustChangePassword;
           token.enrollmentCount = dbUser._count.enrollmentsAsAssignee;
           token.certificateCount = dbUser._count.certificates;
@@ -256,6 +259,7 @@ export const authOptions: AuthOptions = {
         session.user.memberType = token.memberType as any;
         session.user.status = token.status as any;
         session.user.xp = token.xp ?? 0;
+        session.user.reputationLevel = token.reputationLevel ?? "NEWCOMER";
         session.user.enrollmentCount = token.enrollmentCount ?? 0;
         session.user.certificateCount = token.certificateCount ?? 0;
         session.user.postCount = token.postCount ?? 0;

@@ -121,7 +121,7 @@ export default function SignUpPage() {
       {/* Left — brand panel with image */}
       <aside className="relative hidden h-screen overflow-hidden bg-[#F4ECF8] lg:flex">
         <img
-          src="/IMG_20251030_114400.jpg"
+          src="/signin/signup.jpeg"
           alt="Novr Academy security training"
           className="h-full w-full object-cover"
         />

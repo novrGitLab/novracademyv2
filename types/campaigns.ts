@@ -43,7 +43,19 @@ export interface CampaignResult {
 
 export interface LaunchCampaignPayload {
   name: string;
+  sendingProfileId?: string;
   employeeEmails: Array<{ email: string; firstName?: string; lastName?: string }>;
   templateHtml: string;
   landingPageHtml: string;
+}
+
+export interface SendingProfile {
+  id: string;
+  organizationId: string | null;
+  name: string;
+  senderName: string;
+  senderEmail: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
