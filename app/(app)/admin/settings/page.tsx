@@ -637,6 +637,9 @@ function SettingsQuickLinks() {
       <Link href="/admin/settings/certificates" className="text-[13px] font-medium text-[#683290] hover:underline">
         Certificate template →
       </Link>
+      <Link href="/admin/settings/storage" className="text-[13px] font-medium text-[#683290] hover:underline">
+        File storage (R2) →
+      </Link>
     </div>
   );
 }

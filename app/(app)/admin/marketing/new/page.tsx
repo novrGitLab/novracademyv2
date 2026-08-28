@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Users } from "lucide-react";
 import { HtmlEditor } from "@/components/ui/HtmlEditor";
+import { useApi } from "@/lib/useApi";
 import { createCampaignAction } from "../actions";
 
 export default function NewCampaignPage() {
@@ -12,6 +13,9 @@ export default function NewCampaignPage() {
     "<h1>Hello from Novr Academy</h1>\n<p>Write your newsletter content here.</p>"
   );
   const [sendNow, setSendNow] = useState(false);
+  const { data: activeCount, loading: countLoading } = useApi<{ count: number }>("/newsletter/active-count", {
+    count: 0,
+  });
 
   function handleSubmit(formData: FormData) {
     formData.set("bodyHtml", bodyHtml);
@@ -81,6 +85,18 @@ export default function NewCampaignPage() {
               />
               Send immediately on save
             </label>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-card bg-surface px-4 py-3 text-[13px] text-text-secondary">
+            <Users className="h-4 w-4" />
+            {countLoading ? (
+              "Checking subscriber count…"
+            ) : (
+              <>
+                This will reach <span className="font-medium text-text-primary">{activeCount.count}</span> active
+                subscriber{activeCount.count === 1 ? "" : "s"}.
+              </>
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">

@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Eye } from "lucide-react";
 import { apiFetch, apiFetchSafe } from "@/lib/api";
 import { releaseClosingAction } from "../actions";
+import { CsvQuestionImport } from "./CsvQuestionImport";
 import { QuestionBuilder, type AssessmentQuestion } from "./QuestionBuilder";
 import { ResultsTable } from "./ResultsTable";
 
@@ -34,14 +35,39 @@ export default async function AssessmentDetailPage({ params }: { params: { id: s
         <ArrowLeft className="h-4 w-4" /> Back to assessments
       </Link>
 
-      <h1 className="text-[24px] font-semibold text-text-primary">{assessment.title}</h1>
-      <p className="mt-1 text-[14px] text-text-secondary">
-        {assessment.type} · {assessment.scope}
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[24px] font-semibold text-text-primary">{assessment.title}</h1>
+          <p className="mt-1 text-[14px] text-text-secondary">
+            {assessment.type} · {assessment.scope}
+          </p>
+        </div>
+        <Link
+          href={`/admin/assessments/${assessment.id}/preview`}
+          className="inline-flex shrink-0 items-center gap-2 rounded-card border border-border px-3 py-1.5 text-[13px] font-medium text-text-primary hover:bg-surface transition-colors"
+        >
+          <Eye className="h-3.5 w-3.5" /> Preview as learner
+        </Link>
+      </div>
+
+      {assessment.type === "BASELINE" && (
+        <div className="mt-4 flex items-start gap-2 rounded-card border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#D97706]" />
+          <p className="text-[13px] text-[#92400E]">
+            Changing baseline questions affects the closing assessment too, since they share the same question set —
+            edits here apply to both passes.
+          </p>
+        </div>
+      )}
 
       <section className="mt-6">
-        <h2 className="mb-2 text-[15px] font-medium text-text-primary">Questions</h2>
-        <QuestionBuilder assessmentId={assessment.id} questions={assessment.questions} />
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-[15px] font-medium text-text-primary">Questions</h2>
+        </div>
+        <CsvQuestionImport assessmentId={assessment.id} />
+        <div className="mt-4">
+          <QuestionBuilder assessmentId={assessment.id} questions={assessment.questions} />
+        </div>
       </section>
 
       {assessment.type === "BASELINE" && (

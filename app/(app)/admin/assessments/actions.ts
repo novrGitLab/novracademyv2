@@ -71,6 +71,39 @@ export async function reorderQuestionAction(
   revalidatePath(`/admin/assessments/${assessmentId}`);
 }
 
+export interface CsvQuestionRow {
+  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER";
+  prompt: string;
+  options?: string[];
+  correctAnswer: number | boolean | string;
+  points: number;
+}
+
+/** Imports a batch of questions parsed client-side from a CSV. Best-effort — one bad row doesn't stop the rest. */
+export async function importQuestionsAction(assessmentId: string, rows: CsvQuestionRow[]) {
+  let imported = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    try {
+      await apiFetch(`/assessments/${assessmentId}/questions`, {
+        method: "POST",
+        body: JSON.stringify({
+          type: row.type,
+          prompt: row.prompt,
+          options: row.options,
+          correctAnswer: row.correctAnswer,
+          points: row.points,
+        }),
+      });
+      imported++;
+    } catch {
+      skipped++;
+    }
+  }
+  revalidatePath(`/admin/assessments/${assessmentId}`);
+  return { imported, skipped };
+}
+
 export async function releaseClosingAction(assessmentId: string, formData: FormData) {
   const userId = String(formData.get("userId") ?? "") || undefined;
   const cohortId = String(formData.get("cohortId") ?? "") || undefined;

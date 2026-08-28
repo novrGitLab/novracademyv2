@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Mail, Plus } from "lucide-react";
 import { apiFetchSafe } from "@/lib/api";
 import { EmptyState } from "@/components/EmptyState";
-import { deleteCampaignAction, sendCampaignAction } from "./actions";
+import { deleteCampaignAction } from "./actions";
+import { SendCampaignButton } from "./SendCampaignButton";
 
 interface CampaignRow {
   id: string;
@@ -29,20 +30,22 @@ export default async function MarketingPage() {
           <h1 className="text-[24px] font-semibold text-text-primary">Marketing campaigns</h1>
           <p className="mt-1 text-[15px] text-text-secondary">Newsletter blasts sent to your subscriber list.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/admin/marketing/subscribers"
-            className="rounded-card border border-border px-4 py-2 text-[14px] font-medium text-text-primary hover:bg-surface transition-colors"
-          >
-            Subscribers
-          </Link>
-          <Link
-            href="/admin/marketing/new"
-            className="inline-flex items-center gap-2 rounded-card bg-blue px-4 py-2 text-[14px] font-medium text-white hover:bg-blue/90 transition-colors"
-          >
-            <Plus className="h-4 w-4" /> New campaign
-          </Link>
-        </div>
+        <Link
+          href="/admin/marketing/new"
+          className="inline-flex items-center gap-2 rounded-card bg-blue px-4 py-2 text-[14px] font-medium text-white hover:bg-blue/90 transition-colors"
+        >
+          <Plus className="h-4 w-4" /> New campaign
+        </Link>
+      </div>
+
+      <div className="mt-6 flex gap-1 border-b border-border">
+        <span className="border-b-2 border-blue px-4 py-2 text-[14px] font-medium text-blue">Campaigns</span>
+        <Link
+          href="/admin/marketing/subscribers"
+          className="px-4 py-2 text-[14px] font-medium text-text-secondary hover:text-text-primary transition-colors"
+        >
+          Subscribers
+        </Link>
       </div>
 
       {campaigns.length === 0 ? (
@@ -78,13 +81,7 @@ export default async function MarketingPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
-                      {c.status !== "SENT" && (
-                        <form action={sendCampaignAction.bind(null, c.id)}>
-                          <button type="submit" className="text-[13px] font-medium text-blue hover:underline">
-                            Send now
-                          </button>
-                        </form>
-                      )}
+                      {c.status !== "SENT" && <SendCampaignButton campaignId={c.id} />}
                       {c.status !== "SENT" && (
                         <form action={deleteCampaignAction.bind(null, c.id)}>
                           <button type="submit" className="text-[13px] font-medium text-red hover:underline">
