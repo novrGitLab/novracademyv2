@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatPrice } from "@/lib/currency";
 import { enrollFreeAction, redeemCodeAction, startCheckoutAction } from "./actions";
 
 interface AppliedDiscount {
@@ -73,7 +74,7 @@ export function EnrollButton({
     setCodeMessage(
       outcome.result.finalPriceCents === 0
         ? "Code applied — this course is now free for you."
-        : `Code applied — new price: ${(outcome.result.finalPriceCents / 100).toFixed(2)} ${currency}`
+        : `Code applied — new price: ${formatPrice(outcome.result.finalPriceCents, currency)}`
     );
   }
 
@@ -91,10 +92,10 @@ export function EnrollButton({
       ) : (
         <div>
           <p className="text-[15px] font-medium text-text-primary">
-            {(effectivePriceCents / 100).toFixed(2)} {currency}
+            {formatPrice(effectivePriceCents, currency)}
             {applied && (
               <span className="ml-2 text-[13px] font-normal text-text-secondary line-through">
-                {(priceCents / 100).toFixed(2)} {currency}
+                {formatPrice(priceCents, currency)}
               </span>
             )}
           </p>
