@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackLink } from "@/components/DesignSystem";
+import { apiMutate } from "@/lib/useApi";
+import type { Tenant } from "@/types/tenants";
 
 const fieldClassName =
   "h-[42px] w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A1A2E] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#683290] focus:ring-2 focus:ring-[#683290]/10";
@@ -36,11 +38,14 @@ export default function NewInstitutionPage() {
 
     setLoading(true);
     try {
-      // TODO: Replace with actual API call
-      console.log("Creating institution:", { name, slug, program, adminEmail, adminName });
+      // Creates the tenant itself. Provisioning the admin account
+      // (adminName/adminEmail) for this tenant is a separate, not-yet-built
+      // flow — the fields are kept here for the intended onboarding shape,
+      // but nothing is done with them yet.
+      await apiMutate<Tenant>("/tenants", "POST", { name, slug, plan: program });
       router.push("/admin/institutions");
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      setError((err as Error).message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

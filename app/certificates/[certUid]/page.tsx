@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { apiFetch } from "@/lib/api";
 
 interface CertificateVerification {
@@ -11,9 +11,44 @@ interface CertificateVerification {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
+async function getCertificate(certUid: string) {
+  return apiFetch<CertificateVerification>(`/certificates/${certUid}`).catch(() => null);
+}
+
+export async function generateMetadata({ params }: { params: { certUid: string } }): Promise<Metadata> {
+  const certificate = await getCertificate(params.certUid);
+  if (!certificate) {
+    return { title: "Certificate not found — Novr Academy" };
+  }
+  const title = `${certificate.learnerName} — ${certificate.courseTitle ?? "Certificate"} | Novr Academy`;
+  const description = `Verified certificate of completion issued by Novr Academy.`;
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: "website" },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
+
 export default async function CertificateVerificationPage({ params }: { params: { certUid: string } }) {
-  const certificate = await apiFetch<CertificateVerification>(`/certificates/${params.certUid}`).catch(() => null);
-  if (!certificate) notFound();
+  const certificate = await getCertificate(params.certUid);
+
+  if (!certificate) {
+    return (
+      <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-6 py-12">
+        <div className="w-full rounded-card border border-border bg-background p-8 text-center shadow-card">
+          <p className="text-[13px] font-medium uppercase tracking-widest text-text-secondary">Novr Academy</p>
+          <div className="mt-4 rounded-pill bg-red-light px-3 py-1 text-[13px] font-medium text-red">
+            ✕ Invalid certificate
+          </div>
+          <p className="mt-4 text-[15px] text-text-secondary">
+            We couldn&apos;t find a certificate matching this ID. It may have been revoked or the link may be incorrect.
+          </p>
+          <p className="mt-4 font-mono text-[13px] text-text-secondary">ID {params.certUid}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-6 py-12">

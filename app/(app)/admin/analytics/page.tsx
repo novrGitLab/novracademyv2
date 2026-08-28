@@ -30,6 +30,13 @@ interface CohortPerformance {
   certificatesEarned: number;
 }
 
+interface AssessmentAnalytics {
+  monthlyTrend: { month: number; year: number; avgScore: number }[];
+  topPerformers: { userId: string; name: string; avgScore: number }[];
+  bottomPerformers: { userId: string; name: string; avgScore: number }[];
+  growthLeaderboard: { userId: string; name: string; baselineScore: number; closingScore: number; growthRate: number }[];
+}
+
 const healthDot: Record<CourseHealth["health"], string> = {
   green: "bg-success",
   amber: "bg-yellow-500",
@@ -129,6 +136,8 @@ function PlatformAnalytics() {
           </div>
         </div>
       </div>
+
+      <AssessmentAnalyticsSection />
     </div>
   );
 }
@@ -261,6 +270,104 @@ function LmsAnalytics() {
           </table>
         </div>
       )}
+
+      <AssessmentAnalyticsSection />
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Assessment Analytics (shared)                                              */
+/* -------------------------------------------------------------------------- */
+
+function AssessmentAnalyticsSection() {
+  const { data, loading } = useApi<AssessmentAnalytics>("/analytics/assessments", {
+    monthlyTrend: [],
+    topPerformers: [],
+    bottomPerformers: [],
+    growthLeaderboard: [],
+  });
+
+  if (loading) {
+    return <div className="mt-8"><TableSkeleton /></div>;
+  }
+
+  const maxScore = Math.max(1, ...data.monthlyTrend.map((m) => m.avgScore));
+
+  return (
+    <div className="mt-10">
+      <h2 className="text-[15px] font-medium text-text-secondary">Assessment analytics</h2>
+
+      <div className="mt-3 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-card border border-border bg-background p-5">
+          <h3 className="text-[13px] font-semibold uppercase tracking-wider text-text-secondary">
+            Monthly avg score trend
+          </h3>
+          {data.monthlyTrend.length === 0 ? (
+            <p className="mt-4 text-[13px] text-text-secondary">No monthly assessment data yet.</p>
+          ) : (
+            <div className="mt-4 flex items-end gap-2">
+              {data.monthlyTrend.map((m) => (
+                <div key={`${m.year}-${m.month}`} className="flex flex-1 flex-col items-center gap-1">
+                  <div className="w-full rounded-t bg-blue" style={{ height: `${(m.avgScore / maxScore) * 100}px` }} />
+                  <span className="text-[11px] text-text-secondary">
+                    {m.month}/{String(m.year).slice(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-card border border-border bg-background p-5">
+          <h3 className="text-[13px] font-semibold uppercase tracking-wider text-text-secondary">Growth leaderboard</h3>
+          {data.growthLeaderboard.length === 0 ? (
+            <p className="mt-4 text-[13px] text-text-secondary">No closing assessments completed yet.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {data.growthLeaderboard.slice(0, 8).map((g) => (
+                <li key={g.userId} className="flex items-center justify-between text-[14px]">
+                  <span className="text-text-primary">{g.name}</span>
+                  <span className={g.growthRate >= 0 ? "font-medium text-success" : "font-medium text-red"}>
+                    {g.growthRate >= 0 ? "+" : ""}
+                    {g.growthRate} pts
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-6 overflow-hidden rounded-card border border-border">
+        <table className="w-full text-left text-[15px]">
+          <thead className="bg-surface text-[13px] text-text-secondary">
+            <tr>
+              <th className="px-4 py-3 font-medium">Top performers</th>
+              <th className="px-4 py-3 font-medium">Avg score</th>
+              <th className="px-4 py-3 font-medium">Bottom performers</th>
+              <th className="px-4 py-3 font-medium">Avg score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: Math.max(data.topPerformers.length, data.bottomPerformers.length) }).map((_, i) => (
+              <tr key={i} className="border-t border-border">
+                <td className="px-4 py-3 text-text-primary">{data.topPerformers[i]?.name ?? "—"}</td>
+                <td className="px-4 py-3 text-text-secondary">{data.topPerformers[i] ? `${data.topPerformers[i].avgScore}%` : ""}</td>
+                <td className="px-4 py-3 text-text-primary">{data.bottomPerformers[i]?.name ?? "—"}</td>
+                <td className="px-4 py-3 text-text-secondary">{data.bottomPerformers[i] ? `${data.bottomPerformers[i].avgScore}%` : ""}</td>
+              </tr>
+            ))}
+            {data.topPerformers.length === 0 && data.bottomPerformers.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-8 text-center text-text-secondary">
+                  No monthly assessment attempts yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,13 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { Award, BookOpen, LockKeyhole, MessageSquare, Pencil, TrendingUp } from "lucide-react";
+import { Award, BookOpen, LockKeyhole, MessageSquare, Pencil, Target, TrendingUp } from "lucide-react";
+import { apiFetchSafe } from "@/lib/api";
 import { Badge, Button, Card, PageHeader, StatCard } from "@/components/DesignSystem";
+
+interface GrowthResponse {
+  growthRecord: { baselineScore: number; closingScore: number; growthRate: number } | null;
+  latestMonthlyScore: number | null;
+}
 
 const roleLabels: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
@@ -36,6 +42,11 @@ export default async function ProfilePage() {
   const role = formatLabel(user?.role, roleLabels);
   const memberType = formatLabel(user?.memberType, memberTypeLabels);
 
+  const growth = user?.id
+    ? await apiFetchSafe<GrowthResponse>(`/users/${user.id}/growth`, { growthRecord: null, latestMonthlyScore: null })
+    : { growthRecord: null, latestMonthlyScore: null };
+  const hasAssessmentData = growth.growthRecord || growth.latestMonthlyScore !== null;
+
   return (
     <div className="mx-auto max-w-4xl space-y-8 px-1 pb-8 sm:px-2">
       <PageHeader title="Profile" description="Manage your account and view your progress." />
@@ -68,6 +79,32 @@ export default async function ProfilePage() {
           <StatCard icon={MessageSquare} label="Community posts" value={user?.postCount ?? 0} color="purple" />
         </div>
       </section>
+
+      {hasAssessmentData && (
+        <section aria-labelledby="growth-heading">
+          <div className="mb-4">
+            <h2 id="growth-heading" className="font-serif text-2xl text-[#1A1A2E]">Assessment growth</h2>
+            <p className="mt-1 text-sm text-[#666666]">Your baseline, latest monthly, and closing scores.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {growth.growthRecord && (
+              <>
+                <StatCard icon={Target} label="Baseline score" value={`${growth.growthRecord.baselineScore}%`} color="blue" />
+                <StatCard icon={Award} label="Closing score" value={`${growth.growthRecord.closingScore}%`} color="success" />
+                <StatCard
+                  icon={TrendingUp}
+                  label="Growth rate"
+                  value={`${growth.growthRecord.growthRate >= 0 ? "+" : ""}${growth.growthRecord.growthRate} pts`}
+                  color={growth.growthRecord.growthRate >= 0 ? "success" : "red"}
+                />
+              </>
+            )}
+            {growth.latestMonthlyScore !== null && (
+              <StatCard icon={TrendingUp} label="Latest monthly score" value={`${growth.latestMonthlyScore}%`} color="purple" />
+            )}
+          </div>
+        </section>
+      )}
 
       <Card padding="lg">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

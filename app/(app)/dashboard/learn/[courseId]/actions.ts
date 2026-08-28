@@ -21,12 +21,13 @@ export async function enrollFreeAction(
 
 export async function startCheckoutAction(
   courseId: string,
-  provider: "STRIPE" | "PAYSTACK"
+  provider: "STRIPE" | "PAYSTACK",
+  enrollmentCodeId?: string
 ): Promise<{ ok: true; checkoutUrl: string } | { ok: false; error: string }> {
   try {
     const { checkoutUrl } = await apiFetch<{ checkoutUrl: string }>(`/courses/${courseId}/enroll/checkout`, {
       method: "POST",
-      body: JSON.stringify({ provider }),
+      body: JSON.stringify({ provider, enrollmentCodeId }),
     });
     return { ok: true, checkoutUrl };
   } catch (err) {
@@ -35,6 +36,36 @@ export async function startCheckoutAction(
       return { ok: false, error: body?.error ?? err.message };
     }
     return { ok: false, error: "Could not start checkout" };
+  }
+}
+
+type RedeemCodeResult =
+  | { enrolled: true; courseId: string }
+  | {
+      enrolled: false;
+      courseId: string;
+      codeId: string;
+      discountType: "FREE" | "PERCENTAGE" | "FIXED_AMOUNT";
+      discountValue: number;
+      originalPriceCents: number;
+      finalPriceCents: number;
+    };
+
+/** Redeems an enrollment code — FREE codes enroll immediately; discounted codes return a discounted price for checkout. */
+export async function redeemCodeAction(code: string): Promise<{ ok: true; result: RedeemCodeResult } | { ok: false; error: string }> {
+  try {
+    const result = await apiFetch<RedeemCodeResult>("/enrollments/code", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    });
+    if (result.enrolled) revalidatePath(`/dashboard/learn/${result.courseId}`);
+    return { ok: true, result };
+  } catch (err) {
+    if (err instanceof ApiError) {
+      const body = err.body as { error?: string } | null;
+      return { ok: false, error: body?.error ?? err.message };
+    }
+    return { ok: false, error: "Could not redeem code" };
   }
 }
 
