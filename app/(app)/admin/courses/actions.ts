@@ -254,3 +254,28 @@ export async function getLiveAttendanceAction(courseId: string, lessonId: string
     }[];
   }>(`/courses/${courseId}/lessons/${lessonId}/live/attendance`);
 }
+
+export async function generateSlidesAction(
+  courseId: string,
+  lessonId: string,
+  slideCount: number,
+  voiceover: boolean
+) {
+  return apiFetch<{ generationId: string; status: string }>(
+    `/courses/${courseId}/lessons/${lessonId}/slides/generate`,
+    {
+      method: "POST",
+      body: JSON.stringify({ slideCount, voiceover }),
+    }
+  );
+}
+
+export async function getSlidesGenerationStatusAction(courseId: string, lessonId: string) {
+  return apiFetch<{
+    generationId: string;
+    status: string;
+    errorMessage: string | null;
+    generatedLessonIds: string[];
+    progress: string;
+  }>(`/courses/${courseId}/lessons/${lessonId}/slides/status`);
+}

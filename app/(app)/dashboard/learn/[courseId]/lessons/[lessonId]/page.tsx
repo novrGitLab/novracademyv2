@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getHardcodedLesson } from "@/lib/courses-data";
-import { FileText, HelpCircle, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
-import { BackLink, Badge, Button, Card, PageHeader } from "@/components/DesignSystem";
+import { FileText, HelpCircle, CheckCircle, ChevronLeft, ChevronRight, Presentation } from "lucide-react";
+import { BackLink, Badge, Button, Card, PageHeader, SlidesLessonViewer } from "@/components/DesignSystem";
 import { LessonContent } from "./LessonContent";
 import { QuizContent } from "./QuizContent";
+import type { SlidesManifest } from "@/components/DesignSystem";
 
 export default async function LessonPlayerPage({
   params,
@@ -44,17 +45,19 @@ export default async function LessonPlayerPage({
       />
       <div className="mb-6 flex flex-col gap-5 rounded-[8px] border border-[#E5E5E5] bg-[#F8F9FB] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="flex items-center gap-3">
-          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white ${lesson.type === "PDF" ? "bg-[#4451A2]" : "bg-[#683290]"}`}>
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white ${lesson.type === "PDF" ? "bg-[#4451A2]" : lesson.type === "SLIDES" ? "bg-[#683290]" : "bg-[#683290]"}`}>
             {lesson.type === "PDF" ? (
               <FileText aria-hidden="true" className="h-5 w-5" />
+            ) : lesson.type === "SLIDES" ? (
+              <Presentation aria-hidden="true" className="h-5 w-5" />
             ) : (
               <HelpCircle aria-hidden="true" className="h-5 w-5" />
             )}
           </div>
           <div>
             <p className="text-sm text-[#666666]">Lesson {lesson.order} of {sortedLessons.length}</p>
-            <Badge variant={lesson.type === "PDF" ? "blue" : "purple"} className="mt-1">
-              {lesson.type === "PDF" ? "Reading" : "Quiz"}
+            <Badge variant={lesson.type === "PDF" ? "blue" : lesson.type === "SLIDES" ? "purple" : "purple"} className="mt-1">
+              {lesson.type === "PDF" ? "Reading" : lesson.type === "SLIDES" ? "Slides" : "Quiz"}
             </Badge>
           </div>
         </div>
@@ -84,6 +87,9 @@ export default async function LessonPlayerPage({
             lessonOrder={lesson.order}
             allLessonIds={sortedLessons.map((l) => l.lessonId)}
           />
+        )}
+        {lesson.type === "SLIDES" && lesson.slidesManifest && (
+          <SlidesLessonViewer manifest={lesson.slidesManifest as SlidesManifest} />
         )}
       </Card>
 
