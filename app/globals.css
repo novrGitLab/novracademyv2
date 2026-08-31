@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 @import "./animations.css";
+@import "../components/loader/loader.css";
 
 :root {
   --tenant-primary: #683290;

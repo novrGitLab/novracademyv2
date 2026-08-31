@@ -1,0 +1,325 @@
+/* ═══════════════════════════════════════════════════════════
+   THE BLUEPRINT — NovrAcademy preloader
+   Pure white background. Compact ring, logo-true arc slots:
+     blue   left 9→12 o'clock   (90°)
+     red    top  12→3 o'clock   (90°)
+     violet bottom 3→9 o'clock  (180° — half the ring)
+   Loop: 2400ms. Exit: 800ms — completed O, stamp of the full
+   mark, dock & fade. No scaffolding lines.
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --novr-blue: #5A65AD;
+  --novr-red: #EB2027;
+  --novr-violet: #8356A3;
+
+  --loader-exit-duration: 800ms;
+  --loader-min-display: 1200ms;
+  --loader-loop: 2400ms;
+
+  --ease-premium: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-reveal: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Overlay shell: pure white, blocks interaction ─────── */
+.novr-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  overflow: hidden;
+  background: #ffffff;
+  pointer-events: auto;
+}
+
+.novr-loader--exiting {
+  pointer-events: none;
+}
+
+/* During exit, unlock scroll but hide the (possibly transient)
+   scrollbars so the reveal is clean. */
+body:has(.novr-loader--exiting) {
+  overflow-y: scroll;
+  scrollbar-width: none;
+}
+
+body:has(.novr-loader--exiting)::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Stage: compact centered ring ──────────────────────── */
+.novr-loader__stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(20vmin, 150px);
+  height: min(20vmin, 150px);
+  transform: translate(-50%, -50%);
+}
+
+.novr-loader__ring {
+  position: absolute;
+  inset: 0;
+}
+
+/* ── The segmented O — logo-true arcs with separators ────
+   pathLength=100. Each arc is inset 1 unit from its slot
+   boundary, creating a 2-unit white gap at every seam
+   (like the original logo):
+     blue:   76→99   (9→12 o'clock, gap to red at 0/100)
+     red:     1→24   (12→3 o'clock)
+     violet: 26→74   (bottom half, 48 units — the wide arc) */
+.novr-loader__arc-svg {
+  fill: none;
+  stroke-width: 13;
+  stroke-linecap: butt;
+}
+
+.novr-loader__arc-svg--blue   { stroke: var(--novr-blue);   stroke-dashoffset: -76; animation: novr-arc-blue-cycle var(--loader-loop) linear infinite; }
+.novr-loader__arc-svg--red    { stroke: var(--novr-red);    stroke-dashoffset: -1;  animation: novr-arc-red-cycle var(--loader-loop) linear infinite; }
+.novr-loader__arc-svg--violet { stroke: var(--novr-violet); stroke-dashoffset: -26; animation: novr-arc-violet-cycle var(--loader-loop) linear infinite; }
+
+/* Seam covers: paint the ring's background (white, or the overlay
+   color of the surface the ring sits on) over each gap so the gap
+   edges are parallel and straight instead of radial wedges. */
+.novr-loader__seam {
+  fill: #ffffff;
+  pointer-events: none;
+}
+
+/* Timeline (2400ms):
+   blue draws 0–20% · red 25–45% · violet 50–75%
+   full ring holds 75–85% (sheen orbits here)
+   release cascades in reverse: violet 85–90%, red 88–94%, blue 91–97%
+   IMPORTANT: dash+gap always sum to 100 in every keyframe —
+   otherwise the SVG dash pattern repeats and paints ghost
+   segments elsewhere on the ring (clipping bug). */
+@keyframes novr-arc-blue-cycle {
+  0%, 2% { stroke-dasharray: 0 100; animation-timing-function: var(--ease-premium); }
+  20% { stroke-dasharray: 23 77; animation-timing-function: linear; }
+  91% { stroke-dasharray: 23 77; animation-timing-function: var(--ease-premium); }
+  97%, 100% { stroke-dasharray: 0 100; }
+}
+
+@keyframes novr-arc-red-cycle {
+  0%, 25% { stroke-dasharray: 0 100; animation-timing-function: var(--ease-premium); }
+  45% { stroke-dasharray: 23 77; animation-timing-function: linear; }
+  88% { stroke-dasharray: 23 77; animation-timing-function: var(--ease-premium); }
+  94%, 100% { stroke-dasharray: 0 100; }
+}
+
+@keyframes novr-arc-violet-cycle {
+  0%, 50% { stroke-dasharray: 0 100; animation-timing-function: var(--ease-premium); }
+  75% { stroke-dasharray: 48 52; animation-timing-function: linear; }
+  85% { stroke-dasharray: 48 52; animation-timing-function: var(--ease-premium); }
+  90%, 100% { stroke-dasharray: 0 100; }
+}
+
+/* ── Sheen orbit on the completed ring (1800–2100ms) ───── */
+.novr-loader__sheen {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(90, 101, 173, 0.35) 12deg, transparent 24deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 11px), black calc(100% - 10px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 11px), black calc(100% - 10px));
+  animation: novr-sheen-cycle var(--loader-loop) linear infinite;
+  opacity: 0;
+}
+
+@keyframes novr-sheen-cycle {
+  0%, 74% { transform: rotate(0deg); opacity: 0; }
+  78% { opacity: 1; }
+  84% { opacity: 1; }
+  88%, 100% { transform: rotate(360deg); opacity: 0; }
+}
+
+/* ── Wordmark ──────────────────────────────────────────── */
+.novr-loader__wordmark {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + min(15vmin, 112px));
+  transform: translateX(-50%);
+  color: var(--novr-blue);
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: novr-wordmark-cycle var(--loader-loop) linear infinite;
+}
+
+@keyframes novr-wordmark-cycle {
+  0%, 25% { opacity: 0; transform: translateX(-50%) translateY(8px); animation-timing-function: var(--ease-reveal); }
+  45% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  83.33% { opacity: 1; transform: translateX(-50%) translateY(0); animation-timing-function: var(--ease-premium); }
+  95.83%, 100% { opacity: 0; transform: translateX(-50%) translateY(0); }
+}
+
+/* ═══════════════ EXIT ═══════════════
+   Arcs fast-forward to the completed logo state and HOLD —
+   the full tri-color O is what the user sees last. A soft
+   #5A65AD halo breathes behind the mark, then the whole
+   overlay fades while the ring docks slightly. No red flash. */
+
+.novr-loader--exiting .novr-loader__arc-svg {
+  animation: none;
+}
+
+.novr-loader--exiting .novr-loader__arc-svg--blue   { stroke-dasharray: 23 77; stroke-dashoffset: -76; }
+.novr-loader--exiting .novr-loader__arc-svg--red    { stroke-dasharray: 23 77; stroke-dashoffset: -1; }
+.novr-loader--exiting .novr-loader__arc-svg--violet { stroke-dasharray: 48 52; stroke-dashoffset: -26; }
+
+.novr-loader--exiting .novr-loader__sheen {
+  animation: none;
+  opacity: 0;
+}
+
+.novr-loader--exiting .novr-loader__wordmark {
+  animation: novr-exit-hold var(--loader-exit-duration) var(--ease-premium) forwards;
+}
+
+@keyframes novr-exit-hold {
+  0%, 55% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(0); }
+}
+
+/* Soft halo: brand-blue glow — a "seal" of light, not red */
+.novr-loader__halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(min(20vmin, 150px) + 56px);
+  height: calc(min(20vmin, 150px) + 56px);
+  transform: translate(-50%, -50%) scale(0.85);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(90, 101, 173, 0.16) 0%, rgba(131, 86, 163, 0.08) 55%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.novr-loader--exiting .novr-loader__halo {
+  animation: novr-halo var(--loader-exit-duration) var(--ease-reveal) forwards;
+}
+
+@keyframes novr-halo {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+  25% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.15); }
+}
+
+.novr-loader--exiting .novr-loader__ring {
+  animation: novr-dock var(--loader-exit-duration) var(--ease-premium) forwards;
+}
+
+@keyframes novr-dock {
+  0%, 45% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.92); opacity: 0; }
+}
+
+.novr-loader--exiting {
+  animation: novr-exit-fade var(--loader-exit-duration) var(--ease-premium) forwards;
+}
+
+@keyframes novr-exit-fade {
+  0%, 45% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ── Page settle beneath the loader ────────────────────── */
+/* Body is locked (overflow hidden) while loading; scale is kept
+   ≤ 1 so the settle never exceeds the viewport and never spawns
+   transient scrollbars.                                        */
+.novr-page-enter {
+  animation: novr-page-settle 400ms var(--ease-reveal) 200ms both;
+}
+
+@keyframes novr-page-settle {
+  from { transform: scale(0.98); opacity: 0.85; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Lock scrolling while the boot loader covers the page. */
+body:has(.novr-loader:not(.novr-loader--exiting)) {
+  overflow: hidden;
+}
+
+/* ═══════════════ CONTENT-AREA LOADER (LMS navigation) ═══════════════
+   Compact Blueprint ring inside a white panel. Position it inside a
+   relatively-positioned container (e.g. the <main> content area); it
+   covers only that area, not the viewport.                            */
+.novr-content-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+}
+
+.novr-content-loader__ring {
+  width: 72px;
+  height: 72px;
+  position: relative;
+}
+
+/* Host wrapper: stretches over the scrolled content area. Placed
+   inside <main> which scrolls — absolute inset targets the full
+   scrollable content, not just the visible pane. */
+.novr-content-loader-host {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+}
+
+/* The ring inside the content loader loops faster — navigation is
+   expected to be brief, so the cycle compresses to 1600ms. */
+.novr-content-loader .novr-loader__arc-svg--blue   { animation-duration: 1600ms; }
+.novr-content-loader .novr-loader__arc-svg--red    { animation-duration: 1600ms; }
+.novr-content-loader .novr-loader__arc-svg--violet { animation-duration: 1600ms; }
+.novr-content-loader .novr-loader__sheen           { animation-duration: 1600ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .novr-content-loader .novr-loader__arc-svg {
+    animation: none !important;
+  }
+  .novr-content-loader .novr-loader__arc-svg--blue   { stroke-dasharray: 23 77; stroke-dashoffset: -76; }
+  .novr-content-loader .novr-loader__arc-svg--red    { stroke-dasharray: 23 77; stroke-dashoffset: -1; }
+  .novr-content-loader .novr-loader__arc-svg--violet { stroke-dasharray: 48 52; stroke-dashoffset: -26; }
+  .novr-content-loader .novr-loader__sheen { animation: none !important; opacity: 0; }
+}
+
+/* ═══════════════ REDUCED MOTION ═══════════════
+   Static completed tri-color O, then a simple opacity fade. */
+@media (prefers-reduced-motion: reduce) {
+  .novr-loader__arc-svg,
+  .novr-loader__sheen,
+  .novr-loader__wordmark,
+  .novr-loader__ring,
+  .novr-loader__halo,
+  .novr-page-enter {
+    animation: none !important;
+  }
+
+  .novr-loader__arc-svg--blue   { stroke-dasharray: 23 77; stroke-dashoffset: -76; }
+  .novr-loader__arc-svg--red    { stroke-dasharray: 23 77; stroke-dashoffset: -1; }
+  .novr-loader__arc-svg--violet { stroke-dasharray: 48 52; stroke-dashoffset: -26; }
+  .novr-loader__sheen { opacity: 0; }
+  .novr-loader__wordmark { opacity: 1; transform: translateX(-50%); }
+
+  .novr-loader--exiting .novr-loader__ring,
+  .novr-loader--exiting .novr-loader__halo,
+  .novr-loader--exiting .novr-loader__wordmark {
+    animation: none !important;
+  }
+
+  .novr-loader--exiting {
+    animation: novr-rm-fade var(--loader-exit-duration) ease-out forwards;
+  }
+}
+
+@keyframes novr-rm-fade {
+  to { opacity: 0; visibility: hidden; }
+}
