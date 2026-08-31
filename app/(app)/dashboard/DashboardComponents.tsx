@@ -4,12 +4,7 @@ import {
   ArrowRight,
   BookOpen,
   Check,
-  Download,
-  FileText,
-  FlaskConical,
-  Headphones,
   LockKeyhole,
-  Radio,
 } from "lucide-react";
 
 export function ProgressRing({ value }: { value: number }) {
@@ -85,10 +80,10 @@ export function CourseCard({
 
 export function FeatureCard({ icon: Icon, title, description }: { icon: LucideIcon; title: string; description: string }) {
   return (
-    <div className="rounded-card border border-border bg-background p-5 shadow-card">
+    <div className="group h-full rounded-card border border-border bg-background p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-card-hover">
       <div className="flex items-start justify-between">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-auth-tint text-auth-primary"><Icon className="h-5 w-5" /></div>
-        <span className="rounded-full bg-[#E82027]/12 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#E82027]">Coming soon</span>
+        <ArrowRight className="h-4 w-4 text-text-secondary transition group-hover:text-auth-primary" />
       </div>
       <h3 className="mt-5 font-serif text-lg text-text-primary">{title}</h3>
       <p className="mt-1 text-xs leading-5 text-text-secondary">{description}</p>
@@ -123,21 +118,3 @@ export function AchievementBadge({ name, description, xpValue, earned, label, un
     </div>
   );
 }
-
-export function CertificateItem({ title, index }: { title: string; index: number }) {
-  return (
-    <div className="flex items-center gap-3 rounded-card border border-border bg-background p-4">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-auth-tint text-auth-primary"><FileText className="h-5 w-5" /></div>
-      <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-text-primary">{title}</p><p className="mt-0.5 text-xs text-text-secondary">Certificate #{index + 1} · Novr Academy</p></div>
-      <Link href="/dashboard/profile" className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-auth-primary hover:underline"><Download className="h-3.5 w-3.5" /> Download</Link>
-    </div>
-  );
-}
-
-export const featureCards = [
-  { title: "Practice Labs", description: "Build confidence with hands-on challenges and realistic scenarios.", icon: FlaskConical },
-  { title: "Live Sessions", description: "Learn directly from experts in interactive classes and workshops.", icon: Radio },
-  { title: "Support Center", description: "Get help, guidance, and answers whenever you need them.", icon: Headphones },
-];
-
-export const placeholderCertificates = ["Foundations of Cybersecurity", "Security Operations Essentials"];

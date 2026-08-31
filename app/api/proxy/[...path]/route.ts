@@ -61,8 +61,27 @@ async function proxy(req: NextRequest, { params }: { params: { path: string[] } 
       headers,
       body: body && body.byteLength > 0 ? body : undefined,
       cache: "no-store",
+      redirect: "manual", // don't follow; let us pass through R2 signed redirects
       signal: controller.signal,
     });
+
+    // Pass through redirects (e.g. /certificates/:uid/pdf → signed R2 URL)
+    // so binary PDFs load correctly in iframes/links.
+    if (res.type === "opaqueredirect" || (res.status >= 300 && res.status < 400)) {
+      const location = res.headers.get("location");
+      if (location) {
+        return NextResponse.redirect(location, res.status);
+      }
+    }
+
+    const contentType = res.headers.get("content-type") ?? "";
+    if (contentType.includes("application/pdf") || contentType.includes("audio/") || contentType.includes("image/") || contentType.includes("application/vnd")) {
+      const arrayBuf = await res.arrayBuffer();
+      return new NextResponse(arrayBuf, {
+        status: res.status,
+        headers: { "Content-Type": contentType },
+      });
+    }
 
     const responseBody = res.status === 204 ? null : await res.json().catch(() => null);
     return NextResponse.json(responseBody, { status: res.status });

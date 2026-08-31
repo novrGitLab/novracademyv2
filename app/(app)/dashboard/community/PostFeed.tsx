@@ -11,6 +11,7 @@ import {
   type Comment,
   type Post,
 } from "./actions";
+import { Loader2 } from "lucide-react";
 
 export function PostFeed({
   initialPosts,
@@ -95,9 +96,10 @@ export function PostFeed({
           <button
             type="submit"
             disabled={posting || !content.trim()}
-          className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
+          className="flex items-center gap-2 rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
           >
-            Post
+            {posting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {posting ? "Posting…" : "Post"}
           </button>
         </div>
       </form>

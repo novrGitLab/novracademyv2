@@ -1,5 +1,6 @@
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import bcrypt from "bcryptjs";
+import type { Adapter, AdapterUser } from "next-auth/adapters";
 import type { AuthOptions } from "next-auth";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -7,6 +8,26 @@ import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@novr/db";
 import { GroupType, UserStatus } from "@novr/types";
 import { TEST_CREDENTIALS } from "./test-credentials";
+
+/**
+ * PrismaAdapter passes the OAuth profile's `image` field straight into
+ * `prisma.user.create`, but our User model stores it as `avatarUrl`. Wrap the
+ * adapter and remap that one field so Google/Microsoft sign-up works.
+ */
+function buildAdapter(): Adapter {
+  const base = PrismaAdapter(prisma);
+  return {
+    ...base,
+    async createUser(user: AdapterUser) {
+      const { image, ...rest } = user;
+      const created = await base.createUser!({ ...rest } as AdapterUser);
+      if (image) {
+        await prisma.user.update({ where: { id: created.id }, data: { avatarUrl: image } });
+      }
+      return created;
+    },
+  } as Adapter;
+}
 
 async function autoJoinGeneralChannel(userId: string) {
   const general = await prisma.communityGroup.upsert({
@@ -22,7 +43,7 @@ async function autoJoinGeneralChannel(userId: string) {
 }
 
 export const authOptions: AuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: buildAdapter(),
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
@@ -38,12 +59,43 @@ export const authOptions: AuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
 
         // Development-only test users bypass the database for quick UI testing.
+        // If a real user row exists for the test email, enrich the fake user
+        // with live counts (xp, enrollments, certificates, posts) so the
+        // dashboard reflects actual data instead of hardcoded demo numbers.
         if (process.env.NODE_ENV === "development") {
           const testUser = Object.values(TEST_CREDENTIALS).find(
             ({ email, password }) =>
               email === credentials.email && password === credentials.password,
           );
-          if (testUser) return testUser.user as any;
+          if (testUser) {
+            const realUser = await prisma.user.findUnique({
+              where: { email: testUser.email },
+              select: {
+                id: true,
+                name: true,
+                role: true,
+                status: true,
+                xp: true,
+                reputationLevel: true,
+                _count: { select: { enrollmentsAsAssignee: true, certificates: true, posts: true } },
+              },
+            });
+            if (realUser) {
+              return {
+                ...testUser.user,
+                id: realUser.id,
+                name: realUser.name ?? testUser.user.name,
+                role: realUser.role,
+                status: realUser.status,
+                xp: realUser.xp,
+                reputationLevel: realUser.reputationLevel,
+                enrollmentCount: realUser._count.enrollmentsAsAssignee,
+                certificateCount: realUser._count.certificates,
+                postCount: realUser._count.posts,
+              } as any;
+            }
+            return testUser.user as any;
+          }
         }
 
         const user = await prisma.user.findUnique({

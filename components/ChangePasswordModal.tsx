@@ -5,11 +5,12 @@ import { useSession } from "next-auth/react";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { apiMutate } from "@/lib/useApi";
-import { Eye, EyeOff, Lock } from "lucide-react";
+import { Eye, EyeOff, Lock, Loader2 } from "lucide-react";
 
-export function ChangePasswordModal() {
+export function ChangePasswordModal({ trigger }: { trigger?: React.ReactNode }) {
   const { data: session, update } = useSession();
   const mustChange = session?.user?.mustChangePassword ?? false;
+  const [open, setOpen] = useState(false);
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -18,6 +19,16 @@ export function ChangePasswordModal() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const isOpen = mustChange || open;
+
+  function close() {
+    if (mustChange) return; // cannot dismiss forced change
+    setOpen(false);
+    setNewPassword("");
+    setConfirmPassword("");
+    setError(null);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,6 +51,9 @@ export function ChangePasswordModal() {
       await apiMutate(`/users/${userId}/password`, "PATCH", { password: newPassword });
       await update();
       setToast({ message: "Password updated successfully", type: "success" });
+      setNewPassword("");
+      setConfirmPassword("");
+      setOpen(false);
     } catch (err) {
       setError((err as Error).message || "Failed to update password");
     } finally {
@@ -49,7 +63,12 @@ export function ChangePasswordModal() {
 
   return (
     <>
-      <Modal open={mustChange} onClose={() => {}} title="Change Your Password" description="You&apos;re using a temporary password. Please set a new one to continue." size="md">
+      {trigger && (
+        <span onClick={() => setOpen(true)}>
+          {trigger}
+        </span>
+      )}
+      <Modal open={isOpen} onClose={close} title="Change Your Password" description="Set a new password for your account." size="md">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">
@@ -97,9 +116,15 @@ export function ChangePasswordModal() {
           <button
             type="submit"
             disabled={loading || !newPassword || !confirmPassword}
-            className="h-10 w-full rounded-[8px] bg-[#683290] text-[13px] font-semibold text-white transition hover:bg-[#542573] disabled:opacity-60"
+            className="flex h-10 w-full items-center justify-center gap-2 rounded-[8px] bg-[#683290] text-[13px] font-semibold text-white transition hover:bg-[#542573] disabled:opacity-60"
           >
-            {loading ? "Updating..." : "Set New Password"}
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Updating...
+              </>
+            ) : (
+              "Set New Password"
+            )}
           </button>
         </form>
       </Modal>

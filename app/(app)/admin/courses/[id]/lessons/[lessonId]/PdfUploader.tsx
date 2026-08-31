@@ -22,13 +22,11 @@ export function PdfUploader({
   lessonId,
   hasFile,
   allowDownload,
-  onGenerateSlides,
 }: {
   courseId: string;
   lessonId: string;
   hasFile: boolean;
   allowDownload: boolean;
-  onGenerateSlides: () => void;
 }) {
   const [uploaded, setUploaded] = useState(hasFile);
   const [uploading, setUploading] = useState(false);
@@ -89,17 +87,6 @@ export function PdfUploader({
         <input type="checkbox" checked={downloadEnabled} onChange={handleToggleDownload} className="h-4 w-4 rounded border-border" />
         Allow learners to download this PDF
       </label>
-
-      {uploaded && (
-        <div className="mt-4 border-t border-border pt-4">
-          <button
-            onClick={onGenerateSlides}
-            className="rounded-card bg-[#542573] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#442063]"
-          >
-            Generate Slides
-          </button>
-        </div>
-      )}
     </div>
   );
 }

@@ -85,7 +85,7 @@ export async function regenerateCertificatesAction(courseId: string): Promise<{ 
 
 export async function createLessonAction(courseId: string, formData: FormData) {
   const type = String(formData.get("type"));
-  await apiFetch(`/courses/${courseId}/lessons`, {
+  const lesson = await apiFetch<{ id: string }>(`/courses/${courseId}/lessons`, {
     method: "POST",
     body: JSON.stringify({
       title: String(formData.get("title")),
@@ -97,6 +97,7 @@ export async function createLessonAction(courseId: string, formData: FormData) {
     }),
   });
   revalidatePath(`/admin/courses/${courseId}`);
+  redirect(`/admin/courses/${courseId}/lessons/${lesson.id}`);
 }
 
 export async function deleteLessonAction(courseId: string, lessonId: string) {

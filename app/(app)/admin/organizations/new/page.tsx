@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiMutate } from "@/lib/useApi";
 import { BackLink } from "@/components/DesignSystem";
-import { CheckCircle2 } from "lucide-react";
+import { useToast } from "@/components/ui/toast-context";
+import { CheckCircle2, Loader2 } from "lucide-react";
 
 const fieldClassName =
   "h-[42px] w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A1A2E] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#683290] focus:ring-2 focus:ring-[#683290]/10";
@@ -21,6 +22,7 @@ export default function NewOrganizationPage() {
   const [adminName, setAdminName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast: showToast } = useToast();
   const [created, setCreated] = useState<{
     orgName: string;
     adminEmail: string;
@@ -54,8 +56,10 @@ export default function NewOrganizationPage() {
         adminEmail: res.admin.email,
         tempPassword: res.tempPassword,
       });
+      showToast("Organization created");
     } catch (err) {
       setError((err as Error).message || "Something went wrong. Please try again.");
+      showToast((err as Error).message || "Failed to create organization", "error");
     } finally {
       setLoading(false);
     }
@@ -201,8 +205,9 @@ export default function NewOrganizationPage() {
           <button
             type="submit"
             disabled={loading}
-            className="h-[42px] rounded-[8px] bg-[#683290] px-6 text-[13px] font-semibold text-white transition hover:bg-[#542573] disabled:opacity-60"
+            className="flex h-[42px] items-center gap-2 rounded-[8px] bg-[#683290] px-6 text-[13px] font-semibold text-white transition hover:bg-[#542573] disabled:opacity-60"
           >
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
             {loading ? "CREATING…" : "CREATE ORGANIZATION"}
           </button>
           <button

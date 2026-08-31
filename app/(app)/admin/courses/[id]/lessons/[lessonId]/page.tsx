@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { VideoUploader } from "./VideoUploader";
 import { LessonDetailClient } from "./LessonDetailClient";
+import { SlidesLessonEditor } from "./SlidesLessonEditor";
 import { QuizBuilder, type QuizQuestion } from "./QuizBuilder";
 import { LiveClassScheduler } from "./LiveClassScheduler";
 import { getLiveAttendanceAction } from "../../../actions";
@@ -89,18 +90,22 @@ export default async function LessonDetailPage({
       )}
 
       {lesson.type === "SLIDES" && (
-        <div className="mt-6 rounded-card border border-border bg-surface p-5">
-          <p className="text-sm font-medium text-text-primary">Slides Lesson</p>
-          <p className="mt-1 text-sm text-text-secondary">
-            This lesson was auto-generated. Edit the source PDF lesson to regenerate slides.
-          </p>
-          {lesson.slidesManifest && (
-            <div className="mt-3 text-sm text-text-secondary">
-              {Array.isArray((lesson.slidesManifest as { slideImages?: unknown[] })?.slideImages)
-                ? `${((lesson.slidesManifest as { slideImages: unknown[] }).slideImages).length} slides`
-                : "View available"}
-            </div>
-          )}
+        <div className="mt-6">
+          <SlidesLessonEditor
+            courseId={params.id}
+            lessonId={lesson.id}
+            hasFile={Boolean(lesson.contentUrl)}
+            allowDownload={lesson.pdfAllowDownload}
+            hasGeneratedSlides={Boolean(
+              lesson.slidesManifest &&
+              (
+                (Array.isArray((lesson.slidesManifest as { slideImages?: unknown[] })?.slideImages) &&
+                  ((lesson.slidesManifest as { slideImages: unknown[] }).slideImages).length > 0) ||
+                (Array.isArray((lesson.slidesManifest as { slidesData?: unknown[] })?.slidesData) &&
+                  ((lesson.slidesManifest as { slidesData: unknown[] }).slidesData).length > 0)
+              )
+            )}
+          />
         </div>
       )}
     </div>

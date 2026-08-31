@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 
 // Calls the backend API rather than accessing database services directly.
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
-const DEFAULT_TIMEOUT_MS = 15000;
+const DEFAULT_TIMEOUT_MS = 30000;
 
 export class ApiError extends Error {
   constructor(
@@ -18,7 +18,7 @@ export class ApiError extends Error {
  * Server Components/Actions. Forwards the incoming request's cookies
  * so the API can verify the caller's NextAuth session.
  *
- * Aborts after `timeoutMs` (default 5s) so a slow/unreachable API can't hang
+ * Aborts after `timeoutMs` (default 30s) so a slow/unreachable API can't hang
  * a page render forever — this throws an ApiError(504) same as any other
  * failed request, so callers that need to survive a down API should use
  * `apiFetchSafe` instead of handling the timeout specially.

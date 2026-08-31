@@ -25,7 +25,7 @@ export default async function LearnPage() {
 
       {courses.length === 0 ? (
         <EmptyState
-          icon={BookOpen}
+          icon={<BookOpen aria-hidden="true" className="h-6 w-6" />}
           title="No courses available yet"
           description="Check back soon — new content is on the way."
           className="mt-8"

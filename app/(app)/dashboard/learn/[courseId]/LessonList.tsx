@@ -10,6 +10,7 @@ import {
   FileText,
   HelpCircle,
   Lock,
+  Presentation,
 } from "lucide-react";
 import { Badge, Button, Card } from "@/components/DesignSystem";
 import {
@@ -34,6 +35,7 @@ const typeLabels: Record<string, string> = {
   PDF: "PDF",
   QUIZ: "Quiz",
   LIVE: "Live",
+  SLIDES: "Slides",
 };
 
 const typeIcons: Record<string, typeof BookOpen> = {
@@ -41,6 +43,7 @@ const typeIcons: Record<string, typeof BookOpen> = {
   PDF: FileText,
   QUIZ: HelpCircle,
   LIVE: BookOpen,
+  SLIDES: Presentation,
 };
 
 /* -------------------------------------------------------------------------- */
@@ -176,7 +179,9 @@ export function LessonList({
               </div>
               <div className="shrink-0">
                 {completed ? (
-                  <Badge variant="success">Completed</Badge>
+                  <Button size="sm" variant="secondary" onClick={() => router.push(`/dashboard/learn/${courseId}/lessons/${lesson.id}`)}>
+                    View
+                  </Button>
                 ) : unlocked ? (
                   <Button size="sm" onClick={() => router.push(`/dashboard/learn/${courseId}/lessons/${lesson.id}`)}>
                     {completedIds.length > 0 ? "Continue" : "Start"}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useApi } from "@/lib/useApi";
 import { FlaskConical, Award, Tag, ArrowRight } from "lucide-react";
+import { DataState } from "@/components/DataState";
 
 interface Lab {
   id: string;
@@ -17,7 +18,7 @@ interface Lab {
 }
 
 export default function EmployeeLabsPage() {
-  const { data, loading } = useApi<{ labs: Lab[] }>("/labs", { labs: [] });
+  const { data, loading, error, refetch } = useApi<{ labs: Lab[] }>("/labs", { labs: [] });
   const labs = data.labs ?? [];
 
   return (
@@ -33,21 +34,17 @@ export default function EmployeeLabsPage() {
       </div>
 
       {/* Labs grid */}
-      {loading ? (
-        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-12 text-center text-[14px] text-[#6B7280]">
-          Loading labs...
-        </div>
-      ) : labs.length === 0 ? (
-        <div className="rounded-[8px] border border-dashed border-[#E5E7EB] bg-white p-12 text-center">
-          <FlaskConical className="mx-auto h-10 w-10 text-[#D1D5DB]" />
-          <p className="mt-3 text-[14px] font-medium text-[#6B7280]">
-            No labs available yet
-          </p>
-          <p className="mt-1 text-[13px] text-[#9CA3AF]">
-            Check back soon — new challenges are on the way.
-          </p>
-        </div>
-      ) : (
+      <DataState
+        loading={loading}
+        error={!!error}
+        errorMessage="Couldn't load labs right now."
+        onRetry={refetch}
+        empty={!loading && labs.length === 0}
+        emptyIcon={<FlaskConical className="h-10 w-10 text-[#D1D5DB]" />}
+        emptyTitle="No labs available yet"
+        emptyDescription="Check back soon — new challenges are on the way."
+        skeleton="grid"
+      >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {labs.map((lab) => (
             <div
@@ -99,7 +96,7 @@ export default function EmployeeLabsPage() {
             </div>
           ))}
         </div>
-      )}
+      </DataState>
     </div>
   );
 }
