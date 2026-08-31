@@ -12,6 +12,7 @@ import {
   FileText,
   HelpCircle,
   Radio,
+  Presentation,
   MoveUp,
   MoveDown,
   Loader2,
@@ -31,7 +32,7 @@ import { CURRENCIES, formatPrice } from "@/lib/currency";
 interface Lesson {
   id: string;
   title: string;
-  type: "VIDEO" | "PDF" | "QUIZ" | "LIVE";
+  type: "VIDEO" | "PDF" | "QUIZ" | "LIVE" | "SLIDES";
   durationSeconds?: number;
   minWatchPct?: number;
 }
@@ -392,6 +393,8 @@ function LessonTypeIcon({ type }: { type: Lesson["type"] }) {
       return <HelpCircle className="h-4 w-4 text-purple-500" />;
     case "LIVE":
       return <Radio className="h-4 w-4 text-red-500" />;
+    case "SLIDES":
+      return <Presentation className="h-4 w-4 text-[#683290]" />;
   }
 }
 
@@ -433,6 +436,7 @@ function AddLessonModal({ courseId, onClose }: { courseId: string; onClose: () =
               <option value="PDF">📄 PDF Document</option>
               <option value="QUIZ">❓ Quiz / Assessment</option>
               <option value="LIVE">🎙️ Live Session</option>
+              <option value="SLIDES">🖼️ Slides (PDF → AI slides)</option>
             </select>
           </div>
 

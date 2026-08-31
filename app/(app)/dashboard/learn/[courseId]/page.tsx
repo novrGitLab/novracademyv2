@@ -31,7 +31,6 @@ interface Course {
   currency: string;
   lessons: Lesson[];
   enrolled?: boolean;
-  progressPct?: number;
   payments?: Payment[];
 }
 
@@ -51,7 +50,7 @@ export default async function CourseDetailPage({
   const payments = course.payments ?? [];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 pb-10 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
       {/* Payment status alert */}
       <PaymentStatusAlert />
 
@@ -85,14 +84,6 @@ export default async function CourseDetailPage({
       {/* Enrolled: lesson list with progress tracking. Not enrolled: enroll CTA. */}
       {course.enrolled ? (
         <>
-          {(course.progressPct ?? 0) > 0 && (
-            <div className="mt-5 flex items-center gap-3">
-              <span className="text-[13px] font-semibold text-[#683290]">{course.progressPct}% complete</span>
-              <div className="h-1.5 w-40 overflow-hidden rounded-full bg-[#E5E7EB]">
-                <div className="h-full rounded-full bg-[#683290]" style={{ width: `${course.progressPct}%` }} />
-              </div>
-            </div>
-          )}
           <LessonList courseId={course.id} lessons={lessons} />
           <PaymentHistory payments={payments} />
         </>

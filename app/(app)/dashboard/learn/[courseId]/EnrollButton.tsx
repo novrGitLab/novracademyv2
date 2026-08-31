@@ -3,17 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/currency";
-<<<<<<< ours
 import { isPaystackConfigured } from "@/lib/payment-config";
-import { enrollFreeAction, startCheckoutAction } from "./actions";
-=======
 import { enrollFreeAction, redeemCodeAction, startCheckoutAction } from "./actions";
+import { Loader2 } from "lucide-react";
 
 interface AppliedDiscount {
   codeId: string;
   finalPriceCents: number;
 }
->>>>>>> theirs
 
 export function EnrollButton({
   courseId,
@@ -27,15 +24,12 @@ export function EnrollButton({
   const router = useRouter();
   const [loading, setLoading] = useState<"FREE" | "STRIPE" | "PAYSTACK" | "CODE" | null>(null);
   const [error, setError] = useState<string | null>(null);
-<<<<<<< ours
   const paystackReady = isPaystackConfigured();
-=======
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<AppliedDiscount | null>(null);
   const [codeMessage, setCodeMessage] = useState<string | null>(null);
 
   const effectivePriceCents = applied ? applied.finalPriceCents : priceCents;
->>>>>>> theirs
 
   async function handleFree() {
     setLoading("FREE");
@@ -59,9 +53,8 @@ export function EnrollButton({
   async function handleCheckout(provider: "STRIPE" | "PAYSTACK") {
     setLoading(provider);
     setError(null);
-<<<<<<< ours
     try {
-      const outcome = await startCheckoutAction(courseId, provider);
+      const outcome = await startCheckoutAction(courseId, provider, applied?.codeId);
       if (!outcome) {
         setError("Could not start checkout — please try again");
         return;
@@ -84,13 +77,6 @@ export function EnrollButton({
       }
     } finally {
       setLoading(null);
-=======
-    const outcome = await startCheckoutAction(courseId, provider, applied?.codeId);
-    setLoading(null);
-    if (!outcome.ok) {
-      setError(outcome.error);
-      return;
->>>>>>> theirs
     }
   }
 
@@ -175,8 +161,9 @@ export function EnrollButton({
           type="button"
           onClick={handleFree}
           disabled={loading !== null}
-          className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
+          className="flex items-center gap-2 rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
         >
+          {loading === "FREE" && <Loader2 className="h-4 w-4 animate-spin" />}
           {loading === "FREE" ? "Enrolling…" : "Enroll for free"}
         </button>
       ) : (
@@ -194,8 +181,9 @@ export function EnrollButton({
               type="button"
               onClick={() => handleCheckout("STRIPE")}
               disabled={loading !== null}
-              className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
             >
+              {loading === "STRIPE" && <Loader2 className="h-4 w-4 animate-spin" />}
               {loading === "STRIPE" ? "Redirecting…" : "Pay with card (Stripe)"}
             </button>
             <button
@@ -203,8 +191,9 @@ export function EnrollButton({
               onClick={() => handleCheckout("PAYSTACK")}
               disabled={loading !== null || !paystackReady}
               title={!paystackReady ? "Paystack is not configured" : ""}
-              className="rounded-card border border-[#4451A2] px-4 py-2 text-[15px] font-medium text-[#4451A2] hover:bg-[#4451A2]/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-2 rounded-card border border-[#4451A2] px-4 py-2 text-[15px] font-medium text-[#4451A2] hover:bg-[#4451A2]/10 disabled:opacity-50 disabled:cursor-not-allowed"
             >
+              {loading === "PAYSTACK" && <Loader2 className="h-4 w-4 animate-spin" />}
               {loading === "PAYSTACK" ? "Redirecting…" : "Pay with Paystack"}
             </button>
           </div>
@@ -215,14 +204,6 @@ export function EnrollButton({
           )}
         </div>
       )}
-<<<<<<< ours
-      {error && (
-        <p className="mt-3 rounded-pill bg-[#E82027]/15 px-3 py-2 text-[13px] font-semibold text-[#E82027]">
-          {error}
-        </p>
-      )}
-=======
-
       {error && <p className="mt-3 rounded-pill bg-[#E82027]/15 px-3 py-2 text-[13px] font-semibold text-[#E82027]">{error}</p>}
 
       <form onSubmit={handleRedeemCode} className="mt-4 flex items-center gap-2 border-t border-border pt-4">
@@ -236,13 +217,13 @@ export function EnrollButton({
         <button
           type="submit"
           disabled={Boolean(applied) || loading !== null || !code.trim()}
-          className="rounded-card border border-border px-3 py-1.5 text-[13px] font-medium text-text-primary hover:bg-background disabled:opacity-50"
+          className="flex items-center gap-2 rounded-card border border-border px-3 py-1.5 text-[13px] font-medium text-text-primary hover:bg-background disabled:opacity-50"
         >
+          {loading === "CODE" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           {loading === "CODE" ? "Checking…" : "Apply"}
         </button>
       </form>
       {codeMessage && <p className="mt-2 text-[13px] text-success">{codeMessage}</p>}
->>>>>>> theirs
     </div>
   );
 }

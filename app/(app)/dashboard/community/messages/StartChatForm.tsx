@@ -33,6 +33,7 @@ export function StartChatForm() {
         <Button
           type="submit"
           disabled={pending}
+          loading={pending}
           variant="primary"
           size="md"
         >

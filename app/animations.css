@@ -130,6 +130,13 @@
   }
 }
 
+/* Top progress bar sweep (route loading) */
+@keyframes slideX {
+  0%   { transform: translateX(-100%); }
+  50%  { transform: translateX(0%); }
+  100% { transform: translateX(100%); }
+}
+
 
 /* ════════════════════════════════════════════
  * ANIMATION BASE CLASSES

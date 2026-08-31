@@ -1,8 +1,9 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { apiFetchSafe } from "@/lib/api";
-import { Award, BookOpen, Check, LockKeyhole, MessageSquare, Pencil, Target, TrendingUp } from "lucide-react";
-import { Badge, Button, Card, PageHeader, StatCard } from "@/components/DesignSystem";
+import { Award, BookOpen, Check, MessageSquare, Target, TrendingUp } from "lucide-react";
+import { Badge, Card, PageHeader, StatCard } from "@/components/DesignSystem";
+import { ProfileActions } from "./ProfileActions";
 
 interface GamificationData {
   xp: number;
@@ -131,10 +132,10 @@ export default async function ProfilePage() {
           <p className="mt-1 text-sm text-[#666666]">A snapshot of your Novr Academy activity.</p>
         </div>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard icon={TrendingUp} label="XP points" value={(user?.xp ?? 0).toLocaleString()} color="red" />
-          <StatCard icon={BookOpen} label="Courses enrolled" value={user?.enrollmentCount ?? 0} color="blue" />
-          <StatCard icon={Award} label="Certificates earned" value={user?.certificateCount ?? 0} color="success" />
-          <StatCard icon={MessageSquare} label="Community posts" value={user?.postCount ?? 0} color="purple" />
+          <StatCard icon={<TrendingUp aria-hidden="true" className="h-5 w-5" />} label="XP points" value={(user?.xp ?? 0).toLocaleString()} color="red" />
+          <StatCard icon={<BookOpen aria-hidden="true" className="h-5 w-5" />} label="Courses enrolled" value={user?.enrollmentCount ?? 0} color="blue" />
+          <StatCard icon={<Award aria-hidden="true" className="h-5 w-5" />} label="Certificates earned" value={user?.certificateCount ?? 0} color="success" />
+          <StatCard icon={<MessageSquare aria-hidden="true" className="h-5 w-5" />} label="Community posts" value={user?.postCount ?? 0} color="purple" />
         </div>
       </section>
 
@@ -171,10 +172,10 @@ export default async function ProfilePage() {
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {growth.growthRecord && (
               <>
-                <StatCard icon={Target} label="Baseline score" value={`${growth.growthRecord.baselineScore}%`} color="blue" />
-                <StatCard icon={Award} label="Closing score" value={`${growth.growthRecord.closingScore}%`} color="success" />
+                <StatCard icon={<Target aria-hidden="true" className="h-5 w-5" />} label="Baseline score" value={`${growth.growthRecord.baselineScore}%`} color="blue" />
+                <StatCard icon={<Award aria-hidden="true" className="h-5 w-5" />} label="Closing score" value={`${growth.growthRecord.closingScore}%`} color="success" />
                 <StatCard
-                  icon={TrendingUp}
+                  icon={<TrendingUp aria-hidden="true" className="h-5 w-5" />}
                   label="Growth rate"
                   value={`${growth.growthRecord.growthRate >= 0 ? "+" : ""}${growth.growthRecord.growthRate} pts`}
                   color={growth.growthRecord.growthRate >= 0 ? "success" : "red"}
@@ -182,7 +183,7 @@ export default async function ProfilePage() {
               </>
             )}
             {growth.latestMonthlyScore !== null && (
-              <StatCard icon={TrendingUp} label="Latest monthly score" value={`${growth.latestMonthlyScore}%`} color="purple" />
+              <StatCard icon={<TrendingUp aria-hidden="true" className="h-5 w-5" />} label="Latest monthly score" value={`${growth.latestMonthlyScore}%`} color="purple" />
             )}
           </div>
         </section>
@@ -194,16 +195,13 @@ export default async function ProfilePage() {
             <h2 className="font-serif text-2xl text-[#1A1A2E]">Account details</h2>
             <p className="mt-1 text-sm text-[#666666]">Keep your account information up to date.</p>
           </div>
-          <Button variant="secondary" size="sm"><Pencil aria-hidden="true" className="h-4 w-4" />Edit profile</Button>
+          <ProfileActions />
         </div>
         <dl className="mt-6 divide-y divide-[#E5E5E5] border-y border-[#E5E5E5]">
           <div className="grid gap-1 py-4 sm:grid-cols-2 sm:gap-4"><dt className="text-sm text-[#666666]">Full name</dt><dd className="text-sm font-medium text-[#1A1A2E]">{name}</dd></div>
           <div className="grid gap-1 py-4 sm:grid-cols-2 sm:gap-4"><dt className="text-sm text-[#666666]">Email address</dt><dd className="break-all text-sm font-medium text-[#1A1A2E]">{email}</dd></div>
           <div className="grid gap-1 py-4 sm:grid-cols-2 sm:gap-4"><dt className="text-sm text-[#666666]">Account status</dt><dd><Badge variant={user?.status === "ACTIVE" ? "success" : "red"}>{formatLabel(user?.status, {})}</Badge></dd></div>
         </dl>
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <Button variant="secondary"><LockKeyhole aria-hidden="true" className="h-4 w-4" />Change password</Button>
-        </div>
       </Card>
     </div>
   );

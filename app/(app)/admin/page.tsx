@@ -3,14 +3,12 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useApi } from "@/lib/useApi";
-import { StatCardsSkeleton } from "@/components/Skeleton";
+import { StatCardsSkeleton, TableSkeleton } from "@/components/Skeleton";
 import {
   AnnouncementBanner,
   CurriculumWidget,
   ProgramOverview,
-  RecentCertificates,
   StatsRow,
-  StudentTable,
   UpcomingCohort,
 } from "./AdminWidgets";
 import {
@@ -64,59 +62,28 @@ interface User {
   status: string;
 }
 
+interface CohortPerformance {
+  cohortId: string;
+  name: string;
+  members: number;
+  avgProgressPct: number;
+  certificatesEarned: number;
+}
+
+interface CourseHealth {
+  courseId: string;
+  title: string;
+  enrollments: number;
+  certificatesIssued: number;
+  completionRatePct: number;
+  avgProgressPct: number;
+  avgQuizScorePct: number | null;
+  health: "green" | "amber" | "red";
+}
+
 function formatCents(cents: number) {
   return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
-
-/* -------------------------------------------------------------------------- */
-/*  Static data                                                                */
-/* -------------------------------------------------------------------------- */
-
-const tiers = [
-  { label: "Fundamental", count: 154, percentage: 45 },
-  { label: "Intermediate", count: 102, percentage: 30 },
-  { label: "Advanced", count: 62, percentage: 18 },
-  { label: "Expert", count: 24, percentage: 7 },
-];
-
-const students = [
-  { id: "1", name: "Oluwaseun Adeyemi", program: "CEAP 2026-B", level: "Advanced", status: "CERTIFIED" as const },
-  { id: "2", name: "Chidi Eze", program: "CEAP 2026-B", level: "Intermediate", status: "IN_PROGRESS" as const },
-  { id: "3", name: "Ngozi Okafor", program: "CEAP 2026-B", level: "Fundamental", status: "AT_RISK" as const },
-  { id: "4", name: "Tunde Balogun", program: "CEAP 2026-A", level: "Intermediate", status: "IN_PROGRESS" as const },
-  { id: "5", name: "Fatima Nwachukwu", program: "CEAP 2026-B", level: "Expert", status: "CERTIFIED" as const },
-];
-
-const curriculumTracks = [
-  { name: "Fundamental Track", status: "Active", percentage: 100 },
-  { name: "Intermediate Track", status: "Active", percentage: 65 },
-];
-
-const certificates = [
-  { id: "1", recipientName: "O. Adeyemi", trackName: "CEAP Advanced" },
-  { id: "2", recipientName: "T. Balogun", trackName: "CEAP Intermediate" },
-  { id: "3", recipientName: "F. Nwachukwu", trackName: "CEAP Fundamental" },
-  { id: "4", recipientName: "A. Ibrahim", trackName: "CEAP Advanced" },
-];
-
-const recentActivity = [
-  { id: "1", message: "Compliance Failure: Airtel Nigeria fell below threshold.", time: "10 mins ago", color: "bg-[#DC2626]" },
-  { id: "2", message: "New Deployment: Dangote Group added 500 nodes.", time: "1 hour ago", color: "bg-[#683290]" },
-  { id: "3", message: "Policy Update: Lagos State University modified access controls.", time: "3 hours ago", color: "bg-[#4451A2]" },
-];
-
-const orgEmployees = [
-  { id: "1", name: "Sarah Jenkins", department: "Engineering", phishing: "Passed (3/3)", courseProgress: 100, status: "Compliant" },
-  { id: "2", name: "Marcus Chen", department: "Sales", phishing: "Failed (1/3)", courseProgress: 40, status: "At Risk" },
-  { id: "3", name: "Elena Rostova", department: "HR", phishing: "Passed (2/3)", courseProgress: 75, status: "Remedial" },
-];
-
-const courseStats = [
-  { id: "1", title: "Security Basics", status: "PUBLISHED", enrollments: 1240, completionRate: 82, lessons: 8 },
-  { id: "2", title: "Data Privacy Fundamentals", status: "PUBLISHED", enrollments: 890, completionRate: 76, lessons: 6 },
-  { id: "3", title: "Incident Response 101", status: "PUBLISHED", enrollments: 650, completionRate: 71, lessons: 5 },
-  { id: "4", title: "Phishing Awareness", status: "DRAFT", enrollments: 0, completionRate: 0, lessons: 4 },
-];
 
 /* -------------------------------------------------------------------------- */
 /*  Shared components                                                          */
@@ -156,9 +123,11 @@ function ComplianceBar({ value }: { value: number }) {
 /* -------------------------------------------------------------------------- */
 
 function SuperAdminDashboard() {
-  const { data: metrics } = useApi<OverviewMetrics>("/analytics/overview", emptyMetrics);
-  const { data: usersData } = useApi<{ users: User[] }>("/users?pageSize=100", { users: [] });
-  const { data: orgsData } = useApi<{ id: string; name: string; slug: string; plan: string; _count: { users: number } }[]>("/organizations", []);
+  const { data: metrics, loading: metricsLoading } = useApi<OverviewMetrics>("/analytics/overview", emptyMetrics);
+  const { data: usersData, loading: usersLoading } = useApi<{ users: User[] }>("/users?pageSize=100", { users: [] });
+  const { data: orgsData, loading: orgsLoading } = useApi<{ id: string; name: string; slug: string; plan: string; _count: { users: number } }[]>("/organizations", []);
+
+  const loading = metricsLoading || usersLoading || orgsLoading;
 
   const totalUsers = Object.values(metrics.membersByType).reduce((a, b) => a + b, 0);
   const revenue = formatCents(metrics.revenueCents.thisMonth);
@@ -172,14 +141,26 @@ function SuperAdminDashboard() {
     status: "ACTIVE" as const,
   }));
 
+  // Real activity feed derived from live metrics.
+  const activityItems = [
+    { id: "enroll-today", message: `${metrics.enrollments.today} new enrollment${metrics.enrollments.today === 1 ? "" : "s"} today`, time: "today", color: "bg-[#16A34A]" },
+    { id: "expiring", message: `${metrics.expiringEnrollments30d} enrollment${metrics.expiringEnrollments30d === 1 ? "" : "s"} expiring in 30 days`, time: "window", color: "bg-[#DC2626]" },
+    { id: "posts-24h", message: `${metrics.communityPulse24h.posts} posts in the last 24 hours`, time: "24h", color: "bg-[#683290]" },
+    { id: "rsvps-24h", message: `${metrics.communityPulse24h.rsvps} event RSVPs in the last 24 hours`, time: "24h", color: "bg-[#4451A2]" },
+  ].filter((a) => a.message !== "0 enrollments expiring in 30 days");
+
   return (
     <div className="space-y-6">
-      <StatsRow stats={[
-        { label: "Total Active Users", value: totalUsers.toLocaleString() || "—" },
-        { label: "Monthly Revenue", value: revenue !== "$0" ? revenue : "—", color: "purple" },
-        { label: "Enrollments Today", value: metrics.enrollments.today || 0 },
-        { label: "Expiring in 30d", value: metrics.expiringEnrollments30d || 0, color: metrics.expiringEnrollments30d > 0 ? "red" : undefined },
-      ]} />
+      {loading ? (
+        <StatCardsSkeleton count={4} />
+      ) : (
+        <StatsRow stats={[
+          { label: "Total Active Users", value: totalUsers.toLocaleString() || "—" },
+          { label: "Monthly Revenue", value: revenue !== "$0" ? revenue : "—", color: "purple" },
+          { label: "Enrollments Today", value: metrics.enrollments.today || 0 },
+          { label: "Expiring in 30d", value: metrics.expiringEnrollments30d || 0, color: metrics.expiringEnrollments30d > 0 ? "red" : undefined },
+        ]} />
+      )}
 
       <div className="rounded-[8px] border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
         <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-4">
@@ -187,6 +168,9 @@ function SuperAdminDashboard() {
           <Link href="/admin/organizations" className="text-[13px] font-semibold text-[#683290] hover:underline">VIEW ALL →</Link>
         </div>
         <div className="overflow-x-auto">
+          {orgsLoading ? (
+            <TableSkeleton rows={3} />
+          ) : (
           <table className="w-full text-left">
             <thead>
                 <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB]">
@@ -220,6 +204,7 @@ function SuperAdminDashboard() {
               ))}
             </tbody>
           </table>
+          )}
         </div>
       </div>
 
@@ -237,15 +222,23 @@ function SuperAdminDashboard() {
         <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
           <h4 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Recent Activity</h4>
           <div className="mt-4 space-y-4">
-            {recentActivity.map((a) => (
-              <div key={a.id} className="flex gap-3">
-                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${a.color}`} />
-                <div>
-                  <p className="text-[13px] text-[#1A1A2E]">{a.message}</p>
-                  <p className="mt-0.5 text-[12px] text-[#9CA3AF]">{a.time}</p>
-                </div>
+            {loading ? (
+              <div className="space-y-3">
+                <div className="h-3 w-full animate-pulse rounded bg-[#E8E9F1]" />
+                <div className="h-3 w-3/4 animate-pulse rounded bg-[#E8E9F1]" />
+                <div className="h-3 w-2/3 animate-pulse rounded bg-[#E8E9F1]" />
               </div>
-            ))}
+            ) : (
+              activityItems.map((a) => (
+                <div key={a.id} className="flex gap-3">
+                  <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${a.color}`} />
+                  <div>
+                    <p className="text-[13px] text-[#1A1A2E]">{a.message}</p>
+                    <p className="mt-0.5 text-[12px] text-[#9CA3AF]">{a.time}</p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -258,18 +251,29 @@ function SuperAdminDashboard() {
 /* -------------------------------------------------------------------------- */
 
 function CybernovrAdminDashboard() {
-  const { data: coursesData } = useApi<{ courses: Course[] }>("/courses?pageSize=50", { courses: [] });
+  const { data: coursesData, loading: coursesLoading } = useApi<{ courses: Course[] }>("/courses?pageSize=50", { courses: [] });
+  const { data: metrics } = useApi<OverviewMetrics>("/analytics/overview", emptyMetrics);
   const courses = coursesData.courses;
   const published = courses.filter((c) => c.status === "PUBLISHED");
   const totalEnrollments = courses.reduce((sum, c) => sum + (c._count?.enrollments ?? 0), 0);
 
+  const activityItems = [
+    { id: "enroll-today", msg: `${metrics.enrollments.today} enrollment${metrics.enrollments.today === 1 ? "" : "s"} today`, time: "today", color: "bg-[#16A34A]" },
+    { id: "expiring", msg: `${metrics.expiringEnrollments30d} expiring in 30 days`, time: "window", color: "bg-[#EA580C]" },
+    { id: "posts-24h", msg: `${metrics.communityPulse24h.posts} community posts in 24h`, time: "24h", color: "bg-[#683290]" },
+  ];
+
   return (
     <div className="space-y-6">
-      <StatsRow stats={[
-        { label: "Total Courses", value: courses.length },
-        { label: "Published", value: published.length, color: "purple" },
-        { label: "Total Enrollments", value: totalEnrollments.toLocaleString() },
-      ]} />
+      {coursesLoading ? (
+        <StatCardsSkeleton count={3} />
+      ) : (
+        <StatsRow stats={[
+          { label: "Total Courses", value: courses.length },
+          { label: "Published", value: published.length, color: "purple" },
+          { label: "Total Enrollments", value: totalEnrollments.toLocaleString() },
+        ]} />
+      )}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_320px]">
         <div className="space-y-6">
@@ -281,13 +285,15 @@ function CybernovrAdminDashboard() {
               </Link>
             </div>
             <div className="overflow-x-auto">
+              {coursesLoading ? (
+                <TableSkeleton rows={4} />
+              ) : (
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB]">
                     <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Course</th>
                     <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Status</th>
                     <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Enrollments</th>
-                    <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Completion</th>
                     <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Lessons</th>
                   </tr>
                 </thead>
@@ -302,11 +308,12 @@ function CybernovrAdminDashboard() {
                       <td className="px-6 py-4 text-[14px] text-[#6B7280]">{c._count?.lessons ?? 0}</td>
                     </tr>
                   ))}
-                  {courses.length === 0 && (
+                  {courses.length === 0 && !coursesLoading && (
                     <tr><td colSpan={4} className="px-6 py-8 text-center text-[14px] text-[#9CA3AF]">No courses yet</td></tr>
                   )}
                 </tbody>
               </table>
+              )}
             </div>
           </div>
 
@@ -325,12 +332,8 @@ function CybernovrAdminDashboard() {
           <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
             <h4 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Recent Activity</h4>
             <div className="mt-4 space-y-3">
-              {[
-                { msg: "\"Security Basics\" published", time: "2 hours ago", color: "bg-[#16A34A]" },
-                { msg: "\"Data Privacy\" updated with new lesson", time: "1 day ago", color: "bg-[#683290]" },
-                { msg: "150 enrollments this week", time: "3 days ago", color: "bg-[#2563EB]" },
-              ].map((a, i) => (
-                <div key={i} className="flex gap-3">
+              {activityItems.map((a) => (
+                <div key={a.id} className="flex gap-3">
                   <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${a.color}`} />
                   <div>
                     <p className="text-[13px] text-[#1A1A2E]">{a.msg}</p>
@@ -457,37 +460,120 @@ function OrgAdminDashboard() {
 /* -------------------------------------------------------------------------- */
 
 function InstitutionAdminDashboard() {
+  const { data: overview, loading: overviewLoading } = useApi<OverviewMetrics>("/analytics/overview", emptyMetrics);
+  const { data: cohortData, loading: cohortLoading } = useApi<{ cohorts: CohortPerformance[] }>("/analytics/lms/cohort-performance", { cohorts: [] });
+  const { data: healthData, loading: healthLoading } = useApi<{ courses: CourseHealth[] }>("/analytics/lms/course-health", { courses: [] });
+
+  const loading = overviewLoading || cohortLoading || healthLoading;
+  const totalEnrolled = Object.values(overview.membersByType).reduce((a, b) => a + b, 0);
+  const certificatesEarned = cohortData.cohorts.reduce((sum, c) => sum + (c.certificatesEarned ?? 0), 0);
+  const completionRate = healthData.courses.length
+    ? Math.round(healthData.courses.reduce((sum, c) => sum + (c.completionRatePct ?? 0), 0) / healthData.courses.length)
+    : 0;
+
+  // Derive tier distribution from cohort progress.
+  const tiers = [
+    { label: "Advanced", count: cohortData.cohorts.filter((c) => (c.avgProgressPct ?? 0) >= 80).length, percentage: Math.min(100, Math.round((cohortData.cohorts.filter((c) => (c.avgProgressPct ?? 0) >= 80).length / Math.max(1, cohortData.cohorts.length)) * 100)) },
+    { label: "Intermediate", count: cohortData.cohorts.filter((c) => (c.avgProgressPct ?? 0) >= 50 && (c.avgProgressPct ?? 0) < 80).length, percentage: Math.min(100, Math.round((cohortData.cohorts.filter((c) => (c.avgProgressPct ?? 0) >= 50 && (c.avgProgressPct ?? 0) < 80).length / Math.max(1, cohortData.cohorts.length)) * 100)) },
+    { label: "Fundamental", count: cohortData.cohorts.filter((c) => (c.avgProgressPct ?? 0) > 0 && (c.avgProgressPct ?? 0) < 50).length, percentage: Math.min(100, Math.round((cohortData.cohorts.filter((c) => (c.avgProgressPct ?? 0) > 0 && (c.avgProgressPct ?? 0) < 50).length / Math.max(1, cohortData.cohorts.length)) * 100)) },
+  ].filter((t) => t.count > 0);
+
+  const nextCohort = [...cohortData.cohorts].sort((a, b) => (b.members ?? 0) - (a.members ?? 0))[0];
+
   return (
     <div className="space-y-6">
-      <ProgramOverview activeStudents={342} tiers={tiers} />
+      {loading ? (
+        <StatCardsSkeleton count={4} />
+      ) : (
+        <>
+          <ProgramOverview activeStudents={totalEnrolled} tiers={tiers} />
 
-      <StatsRow stats={[
-        { label: "Total Enrolled", value: 1156 },
-        { label: "Certificates Earned", value: 89 },
-        { label: "Completion Rate", value: "76.4%" },
-        { label: "At-Risk", value: 34, color: "red" },
-      ]} />
+          <StatsRow stats={[
+            { label: "Total Enrolled", value: totalEnrolled.toLocaleString() || "—" },
+            { label: "Certificates Earned", value: certificatesEarned || "—" },
+            { label: "Avg Completion Rate", value: `${completionRate}%` },
+            { label: "Cohorts", value: cohortData.cohorts.length, color: "purple" },
+          ]} />
+        </>
+      )}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_320px]">
         <div className="space-y-6">
-          <StudentTable students={students} />
+          {/* Real cohort performance table */}
+          <div className="rounded-[8px] border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-4">
+              <h3 className="text-[15px] font-semibold text-[#1A1A2E]">Cohort Performance</h3>
+              <Link href="/admin/cohorts" className="text-[13px] font-semibold text-[#683290] hover:underline">VIEW ALL →</Link>
+            </div>
+            {cohortLoading ? (
+              <TableSkeleton rows={4} />
+            ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB]">
+                    <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Cohort</th>
+                    <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Members</th>
+                    <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Avg Progress</th>
+                    <th className="px-6 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Certificates</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cohortData.cohorts.map((c) => (
+                    <tr key={c.cohortId} className="border-b border-[#E5E7EB] last:border-b-0 transition hover:bg-[#F8F9FB]">
+                      <td className="px-6 py-4 text-[14px] font-medium text-[#1A1A2E]">{c.name}</td>
+                      <td className="px-6 py-4 text-[14px] tabular-nums text-[#1A1A2E]">{c.members ?? 0}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-[#F1F3F5]">
+                            <div className="h-full rounded-full bg-[#683290]" style={{ width: `${c.avgProgressPct ?? 0}%` }} />
+                          </div>
+                          <span className="text-[13px] font-medium tabular-nums text-[#1A1A2E]">{c.avgProgressPct ?? 0}%</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-[14px] tabular-nums text-[#1A1A2E]">{c.certificatesEarned ?? 0}</td>
+                    </tr>
+                  ))}
+                  {cohortData.cohorts.length === 0 && (
+                    <tr><td colSpan={4} className="px-6 py-8 text-center text-[14px] text-[#9CA3AF]">No cohorts yet</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            )}
+          </div>
+
           <div>
             <h3 className="text-[15px] font-semibold text-[#1A1A2E]">Quick Actions</h3>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <ActionLink href="/admin/certifications" label="Issue Certificate" icon={GraduationCap} color="blue" />
               <ActionLink href="/admin/courses/new" label="Create Track" icon={BookOpen} color="blue" />
               <ActionLink href="/admin/cohorts" label="Manage Cohort" icon={Layers} color="blue" />
               <ActionLink href="/admin/notifications" label="Send Notification" icon={Bell} color="blue" />
+              <ActionLink href="/admin/analytics" label="View Analytics" icon={BarChart3} color="blue" />
             </div>
           </div>
         </div>
+
         <div className="space-y-6">
-          <CurriculumWidget tracks={curriculumTracks} />
-          <UpcomingCohort cohortName="Cohort 2027-A (Spring)" registrationOpensIn="14 days" seats={250} department="Computer Science" />
+          {/* Real course health as curriculum widget */}
+          <CurriculumWidget
+            tracks={(healthData.courses ?? []).map((c) => ({
+              name: c.title,
+              status: c.health === "green" ? "On track" : c.health === "amber" ? "Needs attention" : "At risk",
+              percentage: Math.round(c.completionRatePct ?? 0),
+            }))}
+            loading={healthLoading}
+          />
+          {nextCohort && (
+            <UpcomingCohort
+              cohortName={nextCohort.name}
+              registrationOpensIn={`${nextCohort.members ?? 0} members`}
+              seats={nextCohort.members ?? 0}
+              department="Across cohorts"
+            />
+          )}
         </div>
       </div>
-
-      <RecentCertificates certificates={certificates} />
     </div>
   );
 }

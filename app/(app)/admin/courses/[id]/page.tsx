@@ -19,7 +19,7 @@ interface Quiz {
 interface Lesson {
   id: string;
   title: string;
-  type: "VIDEO" | "PDF" | "QUIZ" | "LIVE";
+  type: "VIDEO" | "PDF" | "QUIZ" | "LIVE" | "SLIDES";
   order: number;
   minWatchPct: number;
   contentUrl: string | null;

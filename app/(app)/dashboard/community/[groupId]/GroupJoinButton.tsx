@@ -23,7 +23,7 @@ export function GroupJoinButton({ groupId, isMember }: { groupId: string; isMemb
   }
 
   return (
-    <Button type="button" onClick={toggle} disabled={pending} variant={joined ? "secondary" : "purple"} size="sm">
+    <Button type="button" onClick={toggle} disabled={pending} loading={pending} variant={joined ? "secondary" : "purple"} size="sm">
       {joined ? "Leave" : "Join"}
     </Button>
   );

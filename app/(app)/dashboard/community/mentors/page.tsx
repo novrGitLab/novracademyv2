@@ -94,7 +94,7 @@ export default async function MentorsPage() {
             </Card>
           ))}
           {mentors.length === 0 && (
-            <EmptyState icon={Users} title="No mentors listed yet" description="Be the first — set up your mentor profile above." />
+            <EmptyState icon={<Users aria-hidden="true" className="h-6 w-6" />} title="No mentors listed yet" description="Be the first — set up your mentor profile above." />
           )}
         </div>
       </section>

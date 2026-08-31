@@ -82,7 +82,7 @@ export default async function JobBoardPage() {
           </Card>
         ))}
         {listings.length === 0 && (
-          <EmptyState icon={Briefcase} title="No open opportunities right now" description="Check back soon, or post one above." />
+          <EmptyState icon={<Briefcase aria-hidden="true" className="h-6 w-6" />} title="No open opportunities right now" description="Check back soon, or post one above." />
         )}
       </div>
     </div>

@@ -194,6 +194,16 @@ export default function ItfExportPage() {
     setTimeout(() => setDownloading(false), 3000);
   }
 
+  // The backend returns an `estimate` object (estimatedAmountNgn, pctTrained,
+  // awardPct, perCategory). Defensive defaults keep the UI from crashing if a
+  // stale backend version is running without it.
+  const estimate = previewData?.estimate ?? {
+    estimatedAmountNgn: 0,
+    pctTrained: 0,
+    awardPct: 0,
+    perCategory: [] as CategoryEstimate[],
+  };
+
   async function openClaimForYear(year: number): Promise<ItfClaim | null> {
     try {
       const res = await fetch(`/api/proxy/itf/claims/${year}`, { cache: "no-store" });
@@ -340,16 +350,16 @@ export default function ItfExportPage() {
             <div className="rounded-[8px] border-2 border-[#683290] bg-[#F9F4FC] p-5 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
               <div className="text-[12px] font-bold tracking-[0.6px] text-[#683290]">ESTIMATED RECLAIM</div>
               <div className="mt-2 text-[20px] font-semibold text-[#1A1A2E]">
-                {fmtNaira(previewData.estimate.estimatedAmountNgn)}
+                {fmtNaira(estimate.estimatedAmountNgn)}
               </div>
               <div className="text-[11px] text-[#6B7280]">
-                {previewData.estimate.awardPct}% award · {previewData.estimate.pctTrained}% trained
+                {estimate.awardPct}% award · {estimate.pctTrained}% trained
               </div>
             </div>
           </div>
 
           {/* Category breakdown */}
-          {previewData.estimate.perCategory.length > 0 && (
+          {estimate.perCategory.length > 0 && (
             <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
               <h3 className="text-[14px] font-semibold text-[#1A1A2E]">Award Roll-up (TR-2A)</h3>
               <div className="mt-3 overflow-x-auto">
@@ -365,7 +375,7 @@ export default function ItfExportPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {previewData.estimate.perCategory.map((c) => (
+                    {estimate.perCategory.map((c) => (
                       <tr key={c.category} className="border-b border-[#F3F4F6]">
                         <td className="py-2 pr-4 font-medium text-[#1A1A2E]">{c.category}</td>
                         <td className="py-2 pr-4 text-right text-[#374151]">{c.trainees}</td>

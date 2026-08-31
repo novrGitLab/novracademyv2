@@ -52,7 +52,7 @@ export default async function MessagesInboxPage() {
           );
         })}
         {threads.length === 0 && (
-          <EmptyState icon={MessageSquare} title="No conversations yet" description="Start one above to message another member." />
+          <EmptyState icon={<MessageSquare aria-hidden="true" className="h-6 w-6" />} title="No conversations yet" description="Start one above to message another member." />
         )}
       </div>
     </div>

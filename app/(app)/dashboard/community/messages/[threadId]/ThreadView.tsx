@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getSocket } from "@/lib/socket";
 import { sendMessageAction, type Message } from "../actions";
+import { Loader2 } from "lucide-react";
 
 export function ThreadView({
   threadId,
@@ -77,9 +78,10 @@ export function ThreadView({
         <button
           type="submit"
           disabled={sending || !content.trim()}
-          className="rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
+          className="flex items-center gap-2 rounded-card bg-[#683290] px-4 py-2 text-[15px] font-medium text-white hover:bg-[#542573] disabled:opacity-50"
         >
-          Send
+          {sending && <Loader2 className="h-4 w-4 animate-spin" />}
+          {sending ? "Sending…" : "Send"}
         </button>
       </form>
     </div>

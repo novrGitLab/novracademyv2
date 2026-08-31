@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { apiMutate } from "@/lib/useApi";
 import { Toast } from "@/components/ui/Toast";
+import { useToast } from "@/components/ui/toast-context";
 import { Modal } from "@/components/ui/Modal";
 import { HtmlEditor } from "@/components/ui/HtmlEditor";
 import type { LaunchCampaignPayload, SendingProfile } from "@/types/campaigns";
 import {
   ArrowLeft,
+  Loader2,
   Mail,
   Plus,
   Save,
@@ -70,6 +72,7 @@ export default function NewCampaignPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const { toast: showToast } = useToast();
 
   // Employee picker
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -269,10 +272,12 @@ export default function NewCampaignPage() {
       };
       await apiMutate<{ campaignId: number; dbCampaignId: string }>("/campaigns", "POST", payload);
       setToast({ message: "Campaign launched successfully!", type: "success" });
+      showToast("Campaign launched successfully");
       setTimeout(() => router.push("/admin/phishing"), 1000);
     } catch (err) {
       const msg = (err as Error).message || "Failed to launch campaign";
       setError(msg);
+      showToast(msg, "error");
     } finally {
       setLoading(false);
     }
@@ -536,7 +541,7 @@ export default function NewCampaignPage() {
             disabled={loading}
             className="flex items-center gap-2 rounded-[8px] bg-[#683290] px-5 py-2.5 text-[13px] font-medium text-white transition hover:bg-[#542573] disabled:opacity-50"
           >
-            <Send className="h-3.5 w-3.5" />
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             {loading ? "Launching..." : "Launch Campaign"}
           </button>
         </div>

@@ -56,7 +56,7 @@ export default async function EventsPage() {
           />
         ))}
         {events.length === 0 && (
-          <EmptyState icon={Calendar} title="No events scheduled yet" description="Create one above to get the community together." />
+          <EmptyState icon={<Calendar aria-hidden="true" className="h-6 w-6" />} title="No events scheduled yet" description="Create one above to get the community together." />
         )}
       </section>
     </main>

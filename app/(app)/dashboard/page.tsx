@@ -7,7 +7,10 @@ import {
   Award,
   BookOpen,
   Briefcase,
+  Download,
+  FlaskConical,
   MessageSquare,
+  Radio,
   ShieldCheck,
   Sparkles,
   TrendingUp,
@@ -15,12 +18,9 @@ import {
 } from "lucide-react";
 import {
   AchievementBadge,
-  CertificateItem,
   CourseCard,
   FeatureCard,
   ProgressRing,
-  featureCards,
-  placeholderCertificates,
 } from "./DashboardComponents";
 
 interface MyEnrollment {
@@ -40,6 +40,15 @@ interface BadgeData {
   triggerType: string;
   earned: boolean;
   awardedAt: string | null;
+}
+
+interface MyCertificate {
+  id: string;
+  certUid: string;
+  courseTitle: string | null;
+  issuedAt: string;
+  isLegacy: boolean;
+  pdfUrl: string | null;
 }
 
 const roleLabels: Record<string, string> = {
@@ -119,6 +128,31 @@ export default async function DashboardPage() {
   const badgesResponse = await apiFetchSafe<{ badges: BadgeData[] }>("/gamification/badges", { badges: [] });
   const badges = badgesResponse.badges;
 
+  // Real certificates from the API
+  const certificates = await apiFetchSafe<MyCertificate[]>("/me/certificates", []);
+
+  // Real feature content — labs and live classes link through to their pages.
+  const features = [
+    {
+      title: "Practice Labs",
+      description: "Hands-on CTF challenges with live sandboxed desktops.",
+      icon: FlaskConical,
+      href: "/dashboard/labs",
+    },
+    {
+      title: "Live Sessions",
+      description: "Attend scheduled classes and workshops with experts.",
+      icon: Radio,
+      href: "/dashboard/learn",
+    },
+    {
+      title: "Community",
+      description: "Posts, events, mentors, and jobs from the network.",
+      icon: Users,
+      href: "/dashboard/community",
+    },
+  ];
+
   return (
     <div className="mx-auto max-w-[1200px] space-y-8 pb-8">
       <section className="flex flex-col justify-between gap-8 overflow-hidden rounded-card bg-gradient-brand p-6 text-white shadow-premium sm:flex-row sm:items-center sm:p-8">
@@ -161,7 +195,13 @@ export default async function DashboardPage() {
 
       <section>
         <SectionHeader title="Learning Features" />
-        <div className="mt-4 grid gap-4 md:grid-cols-3">{featureCards.map((feature) => <FeatureCard key={feature.title} {...feature} />)}</div>
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          {features.map((feature) => (
+            <Link key={feature.title} href={feature.href} className="group">
+              <FeatureCard icon={feature.icon} title={feature.title} description={feature.description} />
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section>
@@ -192,7 +232,41 @@ export default async function DashboardPage() {
       <section>
         <SectionHeader title="Your Certificates" />
         <div className="mt-4 space-y-3">
-          {user?.certificateCount ? Array.from({ length: user.certificateCount }, (_, index) => <CertificateItem key={index} title={placeholderCertificates[index] ?? `Novr Academy Certificate ${index + 1}`} index={index} />) : <div className="rounded-card border border-dashed border-border bg-background p-7 text-center"><Award className="mx-auto h-6 w-6 text-text-secondary" /><p className="mt-2 text-sm font-medium text-text-primary">Your certificates will appear here</p><p className="mt-1 text-xs text-text-secondary">Complete a course to earn your first certificate.</p></div>}
+          {certificates.length > 0 ? (
+            certificates.map((cert) => (
+              <div key={cert.id} className="flex items-center gap-3 rounded-card border border-border bg-background p-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-auth-tint text-auth-primary">
+                  <Award className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-text-primary">
+                    {cert.courseTitle ?? "Novr Academy Certificate"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-text-secondary">
+                    {new Date(cert.issuedAt).toLocaleDateString()}
+                  </p>
+                </div>
+                {cert.pdfUrl ? (
+                  <a
+                    href={`/api/proxy/certificates/${cert.certUid}/pdf`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-auth-primary hover:underline"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Download
+                  </a>
+                ) : (
+                  <span className="shrink-0 text-xs text-text-secondary">Generating…</span>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="rounded-card border border-dashed border-border bg-background p-7 text-center">
+              <Award className="mx-auto h-6 w-6 text-text-secondary" />
+              <p className="mt-2 text-sm font-medium text-text-primary">Your certificates will appear here</p>
+              <p className="mt-1 text-xs text-text-secondary">Complete a course to earn your first certificate.</p>
+            </div>
+          )}
         </div>
       </section>
 

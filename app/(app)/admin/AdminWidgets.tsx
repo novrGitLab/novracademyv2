@@ -306,9 +306,11 @@ interface CurriculumTrack {
 export function CurriculumWidget({
   tracks,
   onEdit,
+  loading,
 }: {
   tracks: CurriculumTrack[];
   onEdit?: () => void;
+  loading?: boolean;
 }) {
   return (
     <div className="rounded-[8px] border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
@@ -330,6 +332,13 @@ export function CurriculumWidget({
         )}
       </div>
       <div className="p-5">
+        {loading ? (
+          <div className="space-y-4">
+            <div className="h-3 w-full animate-pulse rounded bg-[#E8E9F1]" />
+            <div className="h-3 w-2/3 animate-pulse rounded bg-[#E8E9F1]" />
+            <div className="h-3 w-3/4 animate-pulse rounded bg-[#E8E9F1]" />
+          </div>
+        ) : (
         <div className="space-y-4">
           {tracks.map((track) => (
             <div key={track.name}>
@@ -349,11 +358,18 @@ export function CurriculumWidget({
               </div>
             </div>
           ))}
+          {tracks.length === 0 && (
+            <p className="text-[13px] text-[#9CA3AF]">No courses yet.</p>
+          )}
         </div>
-        <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-[6px] border border-dashed border-[#E5E7EB] py-2.5 text-[13px] font-medium text-[#6B7280] transition hover:border-[#683290] hover:bg-[#F4ECF8] hover:text-[#683290]">
+        )}
+        <Link
+          href="/admin/courses/new"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-[6px] border border-dashed border-[#E5E7EB] py-2.5 text-[13px] font-medium text-[#6B7280] transition hover:border-[#683290] hover:bg-[#F4ECF8] hover:text-[#683290]"
+        >
           <Plus className="h-3.5 w-3.5" strokeWidth={2} />
           Create New Track
-        </button>
+        </Link>
       </div>
     </div>
   );
