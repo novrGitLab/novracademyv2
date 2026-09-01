@@ -208,10 +208,17 @@ export interface SlidesManifest {
   remoteDeckId?: string;
 }
 
-export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
+export function SlidesLessonViewer({ manifest, className = "" }: { manifest: SlidesManifest; className?: string }) {
   const [current, setCurrent] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [presenting, setPresenting] = useState(false);
+  const [autoplay, setAutoplay] = useState(false);
+  const [showThumbs, setShowThumbs] = useState(false);
+  const [zoom, setZoom] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const touchStartX = useRef<number | null>(null);
+  const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasContent = manifest.slidesData && manifest.slidesData.length > 0;
   const mode = manifest.mode ?? (hasContent ? "composited" : "raster");
@@ -219,6 +226,7 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
   const slideH = manifest.slideH ?? 6858000;
   const timings = manifest.slideTimings ?? [];
   const total = manifest.slideCount || (mode === "composited" ? manifest.slidesData?.length ?? 0 : manifest.slideImages.length);
+  const hasAudio = Boolean(manifest.audioUrl);
 
   function goPrev() { setCurrent((c) => Math.max(0, c - 1)); }
   function goNext() { setCurrent((c) => Math.min(total - 1, c + 1)); }
@@ -229,6 +237,51 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
     else audio.pause();
   }
 
+  // Slideshow / fullscreen: request browser fullscreen on the stage. When
+  // active, the stage fills the screen on a black backdrop and the standard
+  // prev/next + keyboard controls keep working. Esc exits via the browser.
+  async function togglePresent() {
+    const stage = stageRef.current;
+    if (!stage) return;
+    try {
+      if (presenting) {
+        await (document.exitFullscreen?.() ?? Promise.resolve());
+      } else {
+        await stage.requestFullscreen?.();
+      }
+    } catch {
+      // Fullscreen API unsupported/denied — keep the inline player usable.
+    }
+  }
+
+  useEffect(() => {
+    const onFsChange = () => {
+      const fs = Boolean(document.fullscreenElement);
+      setPresenting(fs);
+      if (!fs) setZoom(false);
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
+  // Auto-advance: when enabled and there's no narration (or narration is
+  // paused), advance every 6s so the deck runs hands-free in fullscreen.
+  // Pauses when the user manually navigates to stay in sync with intent.
+  useEffect(() => {
+    if (autoTimer.current) { clearTimeout(autoTimer.current); autoTimer.current = null; }
+    if (!autoplay || hasAudio && playing) return;
+    autoTimer.current = setTimeout(() => {
+      setCurrent((c) => {
+        if (c >= total - 1) {
+          setAutoplay(false);
+          return c;
+        }
+        return c + 1;
+      });
+    }, 6000);
+    return () => { if (autoTimer.current) clearTimeout(autoTimer.current); };
+  }, [autoplay, playing, hasAudio, current, total]);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const t = e.target as HTMLElement;
@@ -236,15 +289,38 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
       if (e.code === "Space") { e.preventDefault(); togglePlay(); }
       else if (e.key === "ArrowLeft") { e.preventDefault(); goPrev(); }
       else if (e.key === "ArrowRight") { e.preventDefault(); goNext(); }
+      else if (e.key === "Escape") { setZoom(false); }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [total, timings]);
 
+  // Touch swipe (mobile): horizontal swipe navigates slides.
+  const touchHandlers = {
+    onTouchStart: (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; },
+    onTouchEnd: (e: React.TouchEvent) => {
+      if (touchStartX.current === null) return;
+      const dx = e.changedTouches[0].clientX - touchStartX.current;
+      touchStartX.current = null;
+      if (Math.abs(dx) < 48) return;
+      if (dx < 0) goNext(); else goPrev();
+    },
+  };
+
+  const progressPct = total > 0 ? ((current + 1) / total) * 100 : 0;
+
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className={`flex flex-col items-center gap-4 ${className}`}>
       {/* Full-bleed stage */}
-      <div className="relative w-full overflow-hidden rounded-card border border-border bg-black shadow-[0_4px_20px_rgba(26,26,46,0.15)]" style={{ aspectRatio: "16/9" }}>
+      <div
+        ref={stageRef}
+        {...touchHandlers}
+        className={`relative w-full overflow-hidden rounded-card border border-border bg-black shadow-[0_4px_20px_rgba(26,26,46,0.15)] ${
+          presenting ? "flex items-center justify-center !rounded-none !border-0" : ""
+        }`}
+        style={{ aspectRatio: "16/9" }}
+      >
         {/* Raster mode: pre-rendered slide PNGs */}
         {mode === "raster" && manifest.slideImages.map((url, i) => (
           <img
@@ -252,8 +328,14 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
             src={url}
             alt={`Slide ${i + 1}`}
             loading={i === 0 ? "eager" : "lazy"}
+            onClick={i === current ? () => setZoom((z) => !z) : undefined}
             className="absolute inset-0 h-full w-full object-contain transition-opacity duration-300"
-            style={{ opacity: i === current ? 1 : 0, pointerEvents: i === current ? "auto" : "none" }}
+            style={{
+              opacity: i === current ? 1 : 0,
+              pointerEvents: i === current ? "auto" : "none",
+              transform: i === current && zoom ? "scale(1.6)" : "scale(1)",
+              cursor: i === current ? "zoom-in" : "default",
+            }}
           />
         ))}
 
@@ -331,6 +413,17 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
           {current + 1} / {total}
         </div>
 
+        {/* Progress bar */}
+        <div className="absolute inset-x-0 bottom-0 z-10 h-1 bg-white/10">
+          <div className="h-full bg-[#683290] transition-all duration-300" style={{ width: `${progressPct}%` }} />
+        </div>
+
+        {zoom && (
+          <div className="absolute right-3 top-3 z-20 rounded-full bg-black/70 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+            Zoomed — click slide to reset
+          </div>
+        )}
+
         {/* Dots */}
         {total <= 10 && total > 1 && (
           <div className="absolute bottom-3 right-3 z-10 flex gap-1.5">
@@ -342,6 +435,30 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
           </div>
         )}
       </div>
+
+      {/* Thumbnail strip */}
+      {showThumbs && total > 1 && (
+        <div className="flex w-full max-w-3xl gap-2 overflow-x-auto pb-1">
+          {Array.from({ length: total }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              aria-label={`Go to slide ${i + 1}`}
+              className={`relative h-14 w-24 shrink-0 overflow-hidden rounded border transition ${
+                i === current ? "border-[#683290] ring-2 ring-[#683290]/40" : "border-border opacity-70 hover:opacity-100"
+              }`}
+            >
+              {mode === "raster" ? (
+                <img src={manifest.slideImages[i]} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-surface text-[10px] font-medium text-text-secondary">
+                  {i + 1}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Controls + audio */}
       <div className="flex w-full max-w-3xl flex-col items-center gap-3">
@@ -385,10 +502,46 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
           </div>
         )}
 
-        {manifest.pptxUrl && (
-          <a href={manifest.pptxUrl} target="_blank" rel="noopener noreferrer"
-            className="text-[13px] font-medium text-[#4451A2] hover:underline">Download PowerPoint</a>
-        )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={togglePresent}
+            className="inline-flex items-center gap-1.5 rounded-card border border-border px-3 py-1.5 text-[13px] font-medium text-text-primary transition hover:bg-surface"
+            aria-label={presenting ? "Exit fullscreen" : "Present slideshow (fullscreen)"}
+          >
+            {presenting ? "Exit fullscreen" : "Present"}
+          </button>
+          {total > 1 && (
+            <>
+              <button
+                onClick={() => setAutoplay((a) => !a)}
+                disabled={hasAudio && playing}
+                className={`inline-flex items-center gap-1.5 rounded-card border px-3 py-1.5 text-[13px] font-medium transition ${
+                  autoplay
+                    ? "border-[#683290] bg-[#683290] text-white"
+                    : "border-border text-text-primary hover:bg-surface"
+                }`}
+                aria-label="Toggle auto-advance"
+              >
+                {autoplay ? "Autoplay on" : "Autoplay"}
+              </button>
+              <button
+                onClick={() => setShowThumbs((s) => !s)}
+                className={`inline-flex items-center gap-1.5 rounded-card border px-3 py-1.5 text-[13px] font-medium transition ${
+                  showThumbs
+                    ? "border-[#683290] bg-[#683290] text-white"
+                    : "border-border text-text-primary hover:bg-surface"
+                }`}
+                aria-label="Toggle slide thumbnails"
+              >
+                Thumbnails
+              </button>
+            </>
+          )}
+          {manifest.pptxUrl && (
+            <a href={manifest.pptxUrl} target="_blank" rel="noopener noreferrer"
+              className="text-[13px] font-medium text-[#4451A2] hover:underline">Download PowerPoint</a>
+          )}
+        </div>
       </div>
     </div>
   );

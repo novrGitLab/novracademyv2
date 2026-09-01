@@ -154,7 +154,22 @@ export async function setPdfAllowDownloadAction(courseId: string, lessonId: stri
   revalidatePath(`/admin/courses/${courseId}/lessons/${lessonId}`);
 }
 
-export async function updateQuizSettingsAction(courseId: string, lessonId: string, formData: FormData) {
+/** Returns a presigned R2 PUT URL so the browser can upload a .pptx straight to R2. */
+export async function requestSlidesPptxUploadUrlAction(courseId: string, lessonId: string) {
+  return apiFetch<{ uploadUrl: string; key: string }>(
+    `/courses/${courseId}/lessons/${lessonId}/slides/upload-url`,
+    { method: "POST" }
+  );
+}
+
+/** Tells the backend the .pptx is uploaded; it parses + attaches the manifest. */
+export async function importSlidesPptxAction(courseId: string, lessonId: string, key: string) {
+  await apiFetch(`/courses/${courseId}/lessons/${lessonId}/slides/import`, {
+    method: "POST",
+    body: JSON.stringify({ key }),
+  });
+  revalidatePath(`/admin/courses/${courseId}/lessons/${lessonId}`);
+}export async function updateQuizSettingsAction(courseId: string, lessonId: string, formData: FormData) {
   await apiFetch(`/courses/${courseId}/lessons/${lessonId}/quiz`, {
     method: "PATCH",
     body: JSON.stringify({

@@ -94,7 +94,7 @@ export function SlidesGeneratorModal({ courseId, lessonId, onClose, onGenerated 
         {phase === "form" && (
           <>
             <p className="mt-2 text-sm text-text-secondary">
-              Convert this PDF into slide lessons. Each slide becomes a lesson in the course.
+              Convert this PDF into a slide deck for this lesson. The generated deck is saved onto this lesson.
             </p>
 
             <div className="mt-4 space-y-4">
@@ -168,13 +168,9 @@ export function SlidesGeneratorModal({ courseId, lessonId, onClose, onGenerated 
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
               <CheckCircle2 className="h-7 w-7" />
             </div>
-            <h3 className="mt-3 text-base font-semibold text-text-primary">
-              {generatedCount > 0 ? `${generatedCount} slide lessons created!` : "Slides generated!"}
-            </h3>
+            <h3 className="mt-3 text-base font-semibold text-text-primary">Slide deck ready!</h3>
             <p className="mt-1 text-sm text-text-secondary">
-              {generatedCount > 0
-                ? "The slides have been added to this course as separate lessons."
-                : "The slide deck was generated and saved."}
+              The slides were saved onto this lesson. Preview them below or open the lesson for learners.
             </p>
             <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
               <Link
