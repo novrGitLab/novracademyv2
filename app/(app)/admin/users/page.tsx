@@ -10,7 +10,7 @@ import { FileUploadModal } from "@/components/ui/FileUploadModal";
 import { Toast } from "@/components/ui/Toast";
 import { DropdownMenu } from "@/components/ui/DropdownMenu";
 import { Edit, Mail, MoreVertical, Search, ShieldCheck, Trash2, UserPlus, Upload } from "lucide-react";
-
+import { SuperAdminUsersView } from "./SuperAdminUsersView";
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                      */
 /* -------------------------------------------------------------------------- */
@@ -330,24 +330,7 @@ function OrgEmployeesPage() {
 /* -------------------------------------------------------------------------- */
 
 function SuperAdminUsersPage() {
-  const { data: usersData, loading: usersLoading } = useApi<{ users: UserRow[] }>("/users?pageSize=100", { users: [] });
-
-  return (
-    <div className="max-w-4xl">
-      <h1 className="text-[24px] font-semibold text-text-primary">Users</h1>
-      <p className="mt-1 text-[15px] text-text-secondary">Select users for bulk actions: suspend/reactivate, assign to a cohort, award XP or a badge, export.</p>
-      <div className="mt-6">
-        {usersLoading ? (
-          <div className="rounded-card border border-border bg-background p-12 text-center">
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#F1F3F5] border-t-[#683290]" />
-            <p className="mt-4 text-[14px] text-text-secondary">Loading users...</p>
-          </div>
-        ) : (
-          <p className="text-[14px] text-[#6B7280]">User table loads from API.</p>
-        )}
-      </div>
-    </div>
-  );
+  return <SuperAdminUsersView />;
 }
 
 /* -------------------------------------------------------------------------- */
