@@ -20,7 +20,7 @@ import type { ReactNode } from "react";
  * remounts on every navigation, including same-path query changes.
  */
 export function ContentArea({ children }: { children: ReactNode }) {
-  const [isNavigating, navCount] = useNavigationLoader(600);
+  const [isNavigating, navCount] = useNavigationLoader(900);
 
   return (
     <main className="relative flex-1 overflow-y-auto bg-gradient-to-b from-[#F4ECF8]/60 via-surface/40 to-white">

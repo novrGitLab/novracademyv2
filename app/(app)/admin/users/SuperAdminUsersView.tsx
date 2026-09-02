@@ -133,6 +133,14 @@ export function SuperAdminUsersView() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Add-user modal
+  const [addUserOpen, setAddUserOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newUserOrg, setNewUserOrg] = useState("");
+  const [newUserRole, setNewUserRole] = useState("LEARNER");
+  const [addLoading, setAddLoading] = useState(false);
+
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<null | "suspend" | "reactivate">(null);
@@ -296,6 +304,35 @@ export function SuperAdminUsersView() {
     }
   }
 
+  async function handleAddUser() {
+    if (!newEmail || !newUserOrg) return;
+    setAddLoading(true);
+    try {
+      const result = await apiMutate<{ tempPassword?: string }>("/users", "POST", {
+        email: newEmail,
+        name: newName || newEmail.split("@")[0],
+        role: newUserRole,
+        organizationId: newUserOrg,
+      });
+      setToast({
+        message: result?.tempPassword
+          ? `User created. Temp password: ${result.tempPassword}`
+          : `User created for ${orgOptions.find((o) => o.id === newUserOrg)?.name ?? "tenant"}`,
+        type: "success",
+      });
+      setNewName("");
+      setNewEmail("");
+      setNewUserOrg("");
+      setNewUserRole("LEARNER");
+      setAddUserOpen(false);
+      refetch();
+    } catch (err) {
+      setToast({ message: `Failed: ${(err as Error).message}`, type: "error" });
+    } finally {
+      setAddLoading(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -306,7 +343,16 @@ export function SuperAdminUsersView() {
             {data.total} user{data.total === 1 ? "" : "s"} across all tenants.
           </p>
         </div>
-        <button className="flex items-center gap-2 rounded-[8px] bg-[#683290] px-4 py-2 text-[13px] font-medium text-white transition hover:bg-[#542573]">
+        <button
+          onClick={() => {
+            setNewName("");
+            setNewEmail("");
+            setNewUserRole("LEARNER");
+            setNewUserOrg(orgId);
+            setAddUserOpen(true);
+          }}
+          className="flex items-center gap-2 rounded-[8px] bg-[#683290] px-4 py-2 text-[13px] font-medium text-white transition hover:bg-[#542573]"
+        >
           <UserPlus className="h-3.5 w-3.5" /> Add User
         </button>
       </div>
@@ -588,6 +634,43 @@ export function SuperAdminUsersView() {
         </Modal.Footer>
       </Modal>
 
+      {/* Add user modal */}
+      <Modal open={addUserOpen} onClose={() => setAddUserOpen(false)} title="Add user" description="Create a user under a tenant. A temp password is emailed to them.">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">FULL NAME</label>
+            <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Jane Doe" className="mt-1.5 h-10 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A1A2E] outline-none transition focus:border-[#683290]" />
+          </div>
+          <div>
+            <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">EMAIL</label>
+            <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="user@company.com" className="mt-1.5 h-10 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A1A2E] outline-none transition focus:border-[#683290]" />
+          </div>
+          <div>
+            <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">TENANT</label>
+            <select value={newUserOrg} onChange={(e) => setNewUserOrg(e.target.value)} className="mt-1.5 h-10 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A1A2E] outline-none transition focus:border-[#683290]">
+              <option value="">Select a tenant…</option>
+              {orgOptions.map((o) => (
+                <option key={o.id} value={o.id}>{o.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">ROLE</label>
+            <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value)} className="mt-1.5 h-10 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A1A2E] outline-none transition focus:border-[#683290]">
+              <option value="LEARNER">{ROLE_LABELS.LEARNER}</option>
+              <option value="MANAGER">{ROLE_LABELS.MANAGER}</option>
+              <option value="ORG_ADMIN">{ROLE_LABELS.ORG_ADMIN}</option>
+            </select>
+          </div>
+        </div>
+        <Modal.Footer>
+          <button onClick={() => setAddUserOpen(false)} className="rounded-[8px] border border-[#E5E7EB] px-4 py-2 text-[13px] font-medium text-[#6B7280] transition hover:bg-[#F8F9FB]">Cancel</button>
+          <button onClick={handleAddUser} disabled={!newEmail || !newUserOrg || addLoading} className="rounded-[8px] bg-[#683290] px-4 py-2 text-[13px] font-medium text-white transition hover:bg-[#542573] disabled:opacity-50">
+            {addLoading ? "Creating…" : "Create User"}
+          </button>
+        </Modal.Footer>
+      </Modal>
+
       {/* Confirm dialogs */}
       <ConfirmDialog
         open={action === "suspend"}
@@ -624,7 +707,7 @@ export function SuperAdminUsersView() {
         onClose={() => setAction(null)}
         onConfirm={runAction}
         title="Delete user"
-        message={`Permanently delete ${selected?.name ?? selected?.email}? This cannot be undone.`}
+        message={`Delete ${selected?.name ?? selected?.email}? Their account will be anonymized and disabled. Their past enrollments and certificates are kept for records.`}
         confirmLabel="Delete"
         variant="danger"
         loading={actionLoading}
