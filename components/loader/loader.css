@@ -246,17 +246,20 @@ body:has(.novr-loader:not(.novr-loader--exiting)) {
 }
 
 /* ═══════════════ CONTENT-AREA LOADER (LMS navigation) ═══════════════
-   Compact Blueprint ring inside a white panel. Position it inside a
-   relatively-positioned container (e.g. the <main> content area); it
-   covers only that area, not the viewport.                            */
+   Covers the full height of the scrollable content area (not just the
+   visible scrollport). The host is absolute over a `relative min-h-full`
+   wrapper that grows with the page content, and carries the white
+   background so the cover spans the entire page. The loader panel is
+   sticky + exactly viewport-tall and transparent, so the ring stays
+   centered in what the user currently sees at any scroll position.     */
 .novr-content-loader {
-  position: absolute;
-  inset: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
   z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
 }
 
 .novr-content-loader__ring {
@@ -265,13 +268,14 @@ body:has(.novr-loader:not(.novr-loader--exiting)) {
   position: relative;
 }
 
-/* Host wrapper: stretches over the scrolled content area. Placed
-   inside <main> which scrolls — absolute inset targets the full
-   scrollable content, not just the visible pane. */
+/* Host wrapper: absolute over the `relative min-h-full` content wrapper
+   in ContentArea, so it spans the full scrollable height. White panel
+   lives here so the whole page (not just the viewport) is covered. */
 .novr-content-loader-host {
   position: absolute;
   inset: 0;
   z-index: 50;
+  background: #ffffff;
 }
 
 /* The ring inside the content loader loops faster — navigation is
