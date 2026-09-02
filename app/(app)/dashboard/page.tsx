@@ -179,6 +179,7 @@ export default async function DashboardPage() {
                 title={enrollment.course.title}
                 progress={Math.round(enrollment.progressPct)}
                 tone={index % 2 === 0 ? "blue" : "purple"}
+                thumbnailUrl={enrollment.course.thumbnailUrl}
                 href={`/dashboard/learn/${enrollment.course.id}`}
               />
             ))

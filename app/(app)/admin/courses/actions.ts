@@ -16,22 +16,44 @@ function priceCentsFromForm(formData: FormData): number | undefined {
   return Math.round(major * 100);
 }
 
-export async function createCourseAction(formData: FormData) {
-  const course = await apiFetch<{ id: string }>("/courses", {
-    method: "POST",
-    body: JSON.stringify({
-      title: String(formData.get("title")),
-      description: String(formData.get("description") ?? "") || undefined,
-      thumbnailUrl: String(formData.get("thumbnailUrl") ?? "") || undefined,
-      priceCents: priceCentsFromForm(formData),
-      currency: String(formData.get("currency") ?? "NGN"),
-      passMarkPct: numberOrUndefined(formData.get("passMarkPct")),
-      allowForwardScrub: formData.get("allowForwardScrub") === "on",
-      defaultValidityDays: numberOrUndefined(formData.get("defaultValidityDays")),
-    }),
-  });
+export type CreateCourseResult = { ok: true; courseId: string } | { ok: false; error: string };
+
+export async function createCourseAction(formData: FormData): Promise<CreateCourseResult> {
+  const title = String(formData.get("title") ?? "").trim();
+  if (!title) {
+    return { ok: false, error: "A course title is required." };
+  }
+  if (title.length > 120) {
+    return { ok: false, error: "Keep the title under 120 characters." };
+  }
+
+  const thumbnail = String(formData.get("thumbnailUrl") ?? "") || undefined;
+  if (thumbnail && thumbnail.length > 1_500_000) {
+    return { ok: false, error: "Thumbnail is too large — choose a smaller image." };
+  }
+
+  let courseId: string;
+  try {
+    const course = await apiFetch<{ id: string }>("/courses", {
+      method: "POST",
+      body: JSON.stringify({
+        title,
+        description: String(formData.get("description") ?? "") || undefined,
+        thumbnailUrl: thumbnail,
+        priceCents: priceCentsFromForm(formData),
+        currency: String(formData.get("currency") ?? "NGN"),
+        passMarkPct: numberOrUndefined(formData.get("passMarkPct")),
+        allowForwardScrub: formData.get("allowForwardScrub") === "on",
+        defaultValidityDays: numberOrUndefined(formData.get("defaultValidityDays")),
+      }),
+    });
+    courseId = course.id;
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Could not create the course. Please try again." };
+  }
+
   revalidatePath("/admin/courses");
-  redirect(`/admin/courses/${course.id}`);
+  redirect(`/admin/courses/${courseId}`);
 }
 
 export async function updateCourseAction(courseId: string, formData: FormData) {

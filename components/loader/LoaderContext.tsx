@@ -7,6 +7,10 @@ type LoaderContextValue = LoaderController | null;
 
 export const LOADER_MIN_DISPLAY_MS = 1200;
 export const LOADER_EXIT_MS = 800;
+/** One full Blueprint cycle: draw blue → red → violet → hold → release. */
+export const LOADER_LOOP_MS = 2400;
+/** The cycle position (ms) where the completed ring is holding. */
+const HOLD_START_MS = 1800;
 
 type TimingState = {
   manual: boolean;
@@ -21,26 +25,46 @@ export function LoaderProvider({ children }: { children: React.ReactNode }) {
 
   const timingRef = useRef<TimingState>({ manual: false, ready: false, minElapsed: false });
   const minTimerRef = useRef<number | null>(null);
+  const loopSyncTimerRef = useRef<number | null>(null);
+  const cycleStartRef = useRef<number>(0);
 
-  const clearMinTimer = () => {
+  const clearTimers = () => {
     if (minTimerRef.current !== null) {
       window.clearTimeout(minTimerRef.current);
       minTimerRef.current = null;
     }
+    if (loopSyncTimerRef.current !== null) {
+      window.clearTimeout(loopSyncTimerRef.current);
+      loopSyncTimerRef.current = null;
+    }
   };
 
-  const tryBeginExit = useCallback(() => {
-    // Hybrid rule (Option C): exit only when BOTH the 1200ms minimum
-    // has elapsed AND the page reported ready — whichever comes later.
-    if (timingRef.current.ready && timingRef.current.minElapsed) {
-      setPhase("exiting");
-    }
+  const beginExit = useCallback(() => {
+    timingRef.current.ready = true;
+    setPhase("exiting");
   }, []);
+
+  const tryBeginExit = useCallback(() => {
+    // Exit only when BOTH the minimum display time has elapsed AND the page
+    // reported ready. Then — rather than cutting the animation mid-draw —
+    // wait for the ring to reach its natural "completed" hold so the user
+    // always sees the mark fully assembled before the reveal. The loop keeps
+    // running continuously until that point.
+    if (!(timingRef.current.ready && timingRef.current.minElapsed)) return;
+    if (loopSyncTimerRef.current !== null) return;
+
+    const elapsedInCycle = (Date.now() - cycleStartRef.current) % LOADER_LOOP_MS;
+    const wait = elapsedInCycle <= HOLD_START_MS
+      ? HOLD_START_MS - elapsedInCycle
+      : LOADER_LOOP_MS - elapsedInCycle + HOLD_START_MS;
+    loopSyncTimerRef.current = window.setTimeout(beginExit, wait);
+  }, [beginExit]);
 
   const show = useCallback(
     (options?: ShowLoaderOptions) => {
-      clearMinTimer();
+      clearTimers();
       timingRef.current = { manual: options?.manual ?? false, ready: false, minElapsed: false };
+      cycleStartRef.current = Date.now();
       setPhase("loading");
       minTimerRef.current = window.setTimeout(() => {
         timingRef.current.minElapsed = true;
@@ -62,12 +86,12 @@ export function LoaderProvider({ children }: { children: React.ReactNode }) {
     show();
     if (document.readyState === "complete") {
       hide();
-      return clearMinTimer;
+      return clearTimers;
     }
     window.addEventListener("load", hide, { once: true });
     return () => {
       window.removeEventListener("load", hide);
-      clearMinTimer();
+      clearTimers();
     };
   }, [show, hide]);
 

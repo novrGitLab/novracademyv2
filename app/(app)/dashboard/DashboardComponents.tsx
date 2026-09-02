@@ -41,20 +41,32 @@ export function CourseCard({
   title,
   progress,
   tone,
+  thumbnailUrl,
   href = "/dashboard/learn",
 }: {
   eyebrow: string;
   title: string;
   progress?: number;
   tone: "blue" | "purple";
+  thumbnailUrl?: string | null;
   href?: string;
 }) {
   const isEmpty = progress === undefined;
   return (
     <div className="flex min-h-[286px] flex-col overflow-hidden rounded-card border border-border bg-background shadow-card transition hover:-translate-y-0.5 hover:shadow-card-hover">
-      <div className={`flex h-28 items-center justify-center ${tone === "blue" ? "bg-gradient-blue" : "bg-gradient-purple"}`}>
-        {isEmpty ? <BookOpen className="h-9 w-9 text-white/80" /> : <span className="font-serif text-3xl text-white/90">N</span>}
-      </div>
+      {thumbnailUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={thumbnailUrl}
+          alt={`Thumbnail for ${title}`}
+          loading="lazy"
+          className="h-28 w-full object-cover"
+        />
+      ) : (
+        <div className={`flex h-28 items-center justify-center ${tone === "blue" ? "bg-gradient-blue" : "bg-gradient-purple"}`}>
+          {isEmpty ? <BookOpen className="h-9 w-9 text-white/80" /> : <span className="font-serif text-3xl text-white/90">N</span>}
+        </div>
+      )}
       <div className="flex flex-1 flex-col p-5">
         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-auth-primary">{eyebrow}</p>
         <h3 className="mt-2 font-serif text-lg leading-snug text-text-primary">{title}</h3>

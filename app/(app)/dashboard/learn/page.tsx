@@ -7,6 +7,7 @@ interface Course {
   id: string;
   title: string;
   description: string | null;
+  thumbnailUrl: string | null;
   priceCents: number;
   currency: string;
   status: string;
@@ -32,9 +33,8 @@ export default async function LearnPage() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {courses.map((course, index) => {
+          {courses.map((course) => {
             const isFree = course.priceCents === 0;
-            const accent = index % 2 === 0 ? "blue" : "purple";
 
             return (
               <Card
@@ -43,25 +43,39 @@ export default async function LearnPage() {
                 hover
                 className="group flex h-full flex-col overflow-hidden border-[#E5E5E5] transition-transform duration-200 hover:-translate-y-1 hover:border-[#683290]/50"
               >
-                <div
-                  aria-hidden="true"
-                  className={
-                    accent === "blue"
-                      ? "h-2 bg-gradient-to-r from-[#4451A2] to-[#6874c4]"
-                      : "h-2 bg-gradient-to-r from-[#683290] to-[#9863bc]"
-                  }
-                />
-                <div className="flex flex-1 flex-col p-5">
-                  <div className="flex items-start justify-between gap-3">
+                {/* Thumbnail — uploaded image, or a branded gradient fallback */}
+                <div className="relative aspect-[16/9] w-full overflow-hidden bg-surface">
+                  {course.thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={course.thumbnailUrl}
+                      alt={`Thumbnail for ${course.title}`}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div
+                      aria-hidden="true"
+                      className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#4451A2] via-[#5a4a9e] to-[#683290]"
+                    >
+                      <BookOpen aria-hidden="true" className="h-8 w-8 text-white/70" />
+                    </div>
+                  )}
+                  <span className="absolute left-3 top-3">
                     <Badge variant={isFree ? "blue" : "purple"}>
                       {isFree ? "Free" : "Premium"}
                     </Badge>
+                  </span>
+                </div>
+
+                <div className="flex flex-1 flex-col p-5">
+                  <div className="flex items-start justify-between gap-3">
                     <span className="text-xs font-medium text-[#767782]">
                       {course._count.lessons} {course._count.lessons === 1 ? "lesson" : "lessons"}
                     </span>
                   </div>
 
-                  <h2 className="mt-4 font-serif text-xl font-semibold leading-snug text-[#1A1A2E] transition-colors group-hover:text-[#4451A2]">
+                  <h2 className="mt-3 font-serif text-xl font-semibold leading-snug text-[#1A1A2E] transition-colors group-hover:text-[#4451A2]">
                     {course.title}
                   </h2>
                   <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-[#666666]">

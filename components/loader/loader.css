@@ -74,9 +74,12 @@ body:has(.novr-loader--exiting)::-webkit-scrollbar {
   stroke-linecap: butt;
 }
 
-.novr-loader__arc-svg--blue   { stroke: var(--novr-blue);   stroke-dashoffset: -76; animation: novr-arc-blue-cycle var(--loader-loop) linear infinite; }
-.novr-loader__arc-svg--red    { stroke: var(--novr-red);    stroke-dashoffset: -1;  animation: novr-arc-red-cycle var(--loader-loop) linear infinite; }
-.novr-loader__arc-svg--violet { stroke: var(--novr-violet); stroke-dashoffset: -26; animation: novr-arc-violet-cycle var(--loader-loop) linear infinite; }
+/* Base state: arcs hidden (dash 0) so the very first paint matches the
+   animation's 0% keyframe — otherwise the full circles flash for one
+   frame before the draw animation kicks in (the "red flash"). */
+.novr-loader__arc-svg--blue   { stroke: var(--novr-blue);   stroke-dashoffset: -76; stroke-dasharray: 0 100; animation: novr-arc-blue-cycle var(--loader-loop) linear infinite; }
+.novr-loader__arc-svg--red    { stroke: var(--novr-red);    stroke-dashoffset: -1;  stroke-dasharray: 0 100; animation: novr-arc-red-cycle var(--loader-loop) linear infinite; }
+.novr-loader__arc-svg--violet { stroke: var(--novr-violet); stroke-dashoffset: -26; stroke-dasharray: 0 100; animation: novr-arc-violet-cycle var(--loader-loop) linear infinite; }
 
 /* Seam covers: paint the ring's background (white, or the overlay
    color of the surface the ring sits on) over each gap so the gap
