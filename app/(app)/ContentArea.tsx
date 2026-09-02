@@ -1,6 +1,5 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useNavigationLoader } from "@/components/loader/useNavigationLoader";
 import { ContentLoader } from "@/components/loader/LoaderOverlay";
 import type { ReactNode } from "react";
@@ -16,17 +15,19 @@ import type { ReactNode } from "react";
  * `relative min-h-full` box that grows with the content; the loader is
  * `absolute inset-0` inside it, so it spans the entire scrollable height —
  * including on pages taller than the viewport.
+ *
+ * The loader is keyed by a navigation counter (not the pathname) so it
+ * remounts on every navigation, including same-path query changes.
  */
 export function ContentArea({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  const isNavigating = useNavigationLoader(600);
+  const [isNavigating, navCount] = useNavigationLoader(600);
 
   return (
     <main className="relative flex-1 overflow-y-auto bg-gradient-to-b from-[#F4ECF8]/60 via-surface/40 to-white">
       <div className="relative min-h-full p-8">
         {children}
         {isNavigating && (
-          <div key={pathname} className="novr-content-loader-host">
+          <div key={navCount} className="novr-content-loader-host">
             <ContentLoader />
           </div>
         )}

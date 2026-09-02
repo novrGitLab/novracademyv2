@@ -1,45 +1,50 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 /**
- * Tracks App Router navigation and reports whether it is in flight.
- * Plays well with loading.tsx: while a route segment is suspended,
- * `isNavigating` is true — render <ContentLoader /> in its place.
+ * Tracks App Router navigation and reports whether one is in flight.
  *
- * The full-screen NovrLoader (initial boot) and this hook are
- * independent: navigation never re-triggers the boot overlay.
+ * Returns `[isNavigating, navCount]` where `navCount` increments on every
+ * detected in-app link click. When it changes, the loader shows for at least
+ * `minMs` (or until the pathname actually changes — see below). Callers can
+ * use `navCount` as a React key to remount per navigation without depending
+ * on `usePathname`.
+ *
+ * The full-screen NovrLoader (initial boot) and this hook are independent:
+ * navigation never re-triggers the boot overlay.
  */
-export function useNavigationLoader(minMs = 600): boolean {
-  const pathname = usePathname();
+export function useNavigationLoader(minMs = 600): [boolean, number] {
   const [isNavigating, setIsNavigating] = useState(false);
-  const shownAtRef = useRef(0);
+  const [navCount, setNavCount] = useState(0);
+  const startRef = useRef(0);
 
-  useEffect(() => {
-    // pathname changed (or first mount) — navigation finished.
-    const elapsed = Date.now() - shownAtRef.current;
-    const remaining = shownAtRef.current > 0 ? Math.max(0, minMs - elapsed) : 0;
-    const id = window.setTimeout(() => {
-      setIsNavigating(false);
-      shownAtRef.current = 0;
-    }, remaining);
-    return () => window.clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
-
+  // A click on an in-app link starts the "navigating" window.
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
-      const anchor = (event.target as HTMLElement | null)?.closest("a");
+      const target = event.target as HTMLElement | null;
+      const anchor = target?.closest?.("a");
       if (!anchor) return;
       const href = anchor.getAttribute("href");
       if (!href || href.startsWith("#") || anchor.target === "_blank") return;
-      shownAtRef.current = Date.now();
+      // Skip modifier-key / non-left clicks — the browser handles those.
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      startRef.current = Date.now();
+      setNavCount((c) => c + 1);
       setIsNavigating(true);
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
-  }, [minMs]);
+  }, []);
 
-  return isNavigating;
+  // Once started, hide the loader after `minMs`. A longer navigation (slow
+  // route) will keep it visible only until this minimum elapses — the loader
+  // is decorative, not a completion signal.
+  useEffect(() => {
+    if (!isNavigating) return;
+    const id = window.setTimeout(() => setIsNavigating(false), minMs);
+    return () => window.clearTimeout(id);
+  }, [isNavigating, navCount, minMs]);
+
+  return [isNavigating, navCount];
 }
