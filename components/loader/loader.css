@@ -286,30 +286,39 @@ body:has(.novr-loader:not(.novr-loader--exiting)) {
 .novr-content-loader .novr-loader__sheen           { animation-duration: 1600ms; }
 
 @media (prefers-reduced-motion: reduce) {
-  .novr-content-loader .novr-loader__arc-svg {
-    animation: none !important;
+  .novr-content-loader .novr-loader__arc-svg--blue {
+    animation: novr-arc-draw-once-blue 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
-  .novr-content-loader .novr-loader__arc-svg--blue   { stroke-dasharray: 23 77; stroke-dashoffset: -76; }
-  .novr-content-loader .novr-loader__arc-svg--red    { stroke-dasharray: 23 77; stroke-dashoffset: -1; }
-  .novr-content-loader .novr-loader__arc-svg--violet { stroke-dasharray: 48 52; stroke-dashoffset: -26; }
+  .novr-content-loader .novr-loader__arc-svg--red {
+    animation: novr-arc-draw-once-red 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
+  }
+  .novr-content-loader .novr-loader__arc-svg--violet {
+    animation: novr-arc-draw-once-violet 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+  }
   .novr-content-loader .novr-loader__sheen { animation: none !important; opacity: 0; }
 }
 
 /* ═══════════════ REDUCED MOTION ═══════════════
-   Static completed tri-color O, then a simple opacity fade. */
+   No looping motion. Each arc draws ONCE, gently, and holds — a single
+   non-repeating sequence (the brand mark assembling itself) rather than
+   a dead-static frame or a perpetual loop. Overlay exit is an opacity
+   fade.                                                                */
 @media (prefers-reduced-motion: reduce) {
-  .novr-loader__arc-svg,
+  .novr-loader__arc-svg--blue {
+    animation: novr-arc-draw-once-blue 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .novr-loader__arc-svg--red {
+    animation: novr-arc-draw-once-red 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+  }
+  .novr-loader__arc-svg--violet {
+    animation: novr-arc-draw-once-violet 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.4s forwards;
+  }
   .novr-loader__sheen,
   .novr-loader__wordmark,
-  .novr-loader__ring,
   .novr-loader__halo,
   .novr-page-enter {
     animation: none !important;
   }
-
-  .novr-loader__arc-svg--blue   { stroke-dasharray: 23 77; stroke-dashoffset: -76; }
-  .novr-loader__arc-svg--red    { stroke-dasharray: 23 77; stroke-dashoffset: -1; }
-  .novr-loader__arc-svg--violet { stroke-dasharray: 48 52; stroke-dashoffset: -26; }
   .novr-loader__sheen { opacity: 0; }
   .novr-loader__wordmark { opacity: 1; transform: translateX(-50%); }
 
@@ -322,6 +331,19 @@ body:has(.novr-loader:not(.novr-loader--exiting)) {
   .novr-loader--exiting {
     animation: novr-rm-fade var(--loader-exit-duration) ease-out forwards;
   }
+}
+
+@keyframes novr-arc-draw-once-blue {
+  from { stroke-dasharray: 0 100; }
+  to { stroke-dasharray: 23 77; }
+}
+@keyframes novr-arc-draw-once-red {
+  from { stroke-dasharray: 0 100; }
+  to { stroke-dasharray: 23 77; }
+}
+@keyframes novr-arc-draw-once-violet {
+  from { stroke-dasharray: 0 100; }
+  to { stroke-dasharray: 48 52; }
 }
 
 @keyframes novr-rm-fade {
