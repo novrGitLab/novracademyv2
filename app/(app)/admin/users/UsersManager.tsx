@@ -1,10 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Search, ChevronLeft, ChevronRight, MoreVertical, UserPlus, ShieldCheck, Mail, Trash2, RotateCcw, Ban, CheckCircle2, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  UserPlus,
+  ShieldCheck,
+  Mail,
+  Trash2,
+  RotateCcw,
+  Ban,
+  CheckCircle2,
+  X,
+  Upload,
+} from "lucide-react";
 import { useApi, apiMutate } from "@/lib/useApi";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Modal } from "@/components/ui/Modal";
+import { FileUploadModal } from "@/components/ui/FileUploadModal";
 import { Toast } from "@/components/ui/Toast";
 import {
   ROLE_LABELS,
@@ -45,39 +59,15 @@ interface UserListResponse {
   pageSize: number;
 }
 
-interface UserDetail {
-  id: string;
-  email: string;
-  name: string | null;
-  role: string;
-  memberType: string;
-  status: string;
-  xp: number;
-  reputationLevel: string;
-  lastLoginAt: string | null;
-  createdAt: string;
-  organization: OrgRef | null;
-  _count?: { enrollments?: number; certificates?: number };
-}
-
 interface GrowthData {
   baselineScore?: number | null;
   closingScore?: number | null;
   growth?: number;
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Helpers                                                                    */
-/* -------------------------------------------------------------------------- */
+export type UsersMode = "org" | "platform";
 
-function initials(name: string | null | undefined) {
-  const source = name?.trim() || "?";
-  const parts = source.split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return source.slice(0, 2).toUpperCase();
-}
-
-const ROLE_OPTIONS = [
+const PLATFORM_ROLES = [
   "SUPER_ADMIN",
   "ORG_ADMIN",
   "INSTITUTION_ADMIN",
@@ -86,7 +76,18 @@ const ROLE_OPTIONS = [
   "LEGACY_ALUMNI",
   "COMMUNITY_ONLY",
 ];
+const ORG_ROLES = ["ORG_ADMIN", "INSTITUTION_ADMIN", "MANAGER", "LEARNER"];
 const STATUS_OPTIONS = ["ACTIVE", "SUSPENDED", "PENDING"];
+
+const PLATFORM_ADD_ROLES = ["LEARNER", "MANAGER", "ORG_ADMIN", "INSTITUTION_ADMIN"];
+const ORG_ADD_ROLES = ["LEARNER", "MANAGER"];
+
+function initials(name: string | null | undefined) {
+  const source = name?.trim() || "?";
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return source.slice(0, 2).toUpperCase();
+}
 
 function roleBadge(role: string) {
   return (
@@ -106,10 +107,12 @@ function statusBadge(status: string) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Main component                                                             */
+/*  Component                                                                  */
 /* -------------------------------------------------------------------------- */
 
-export function SuperAdminUsersView() {
+export function UsersManager({ mode }: { mode: UsersMode }) {
+  const isPlatform = mode === "platform";
+
   // Server-side list state
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -122,32 +125,37 @@ export function SuperAdminUsersView() {
 
   // Detail / action state
   const [selected, setSelected] = useState<UserRow | null>(null);
-  const [detail, setDetail] = useState<UserDetail | null>(null);
   const [growth, setGrowth] = useState<GrowthData | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
 
-  const [action, setAction] = useState<null | "resetPassword" | "suspend" | "reactivate" | "delete">(null);
+  const [action, setAction] = useState<null | "resetPassword" | "suspend" | "reactivate" | "delete" | "changeEmail">(null);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [newRole, setNewRole] = useState("");
+  const [newEmail, setNewEmail] = useState("");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Add-user modal
+  // Add-user / invite modal (platform: picks tenant; org: fixed to own org)
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newEmail, setNewEmail] = useState("");
+  const [newEmail2, setNewEmail2] = useState("");
   const [newUserOrg, setNewUserOrg] = useState("");
   const [newUserRole, setNewUserRole] = useState("LEARNER");
   const [addLoading, setAddLoading] = useState(false);
+
+  // Bulk import (org mode)
+  const [showImport, setShowImport] = useState(false);
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<null | "suspend" | "reactivate">(null);
 
-  // Org list for the tenant filter
+  const roleOptions = isPlatform ? PLATFORM_ROLES : ORG_ROLES;
+  const addRoleOptions = isPlatform ? PLATFORM_ADD_ROLES : ORG_ADD_ROLES;
+
+  // Org list for the platform tenant filter / add-user tenant picker.
   const { data: orgs } = useApi<{ organizations: { id: string; name: string }[] } | { id: string; name: string }[]>(
-    "/organizations",
+    isPlatform ? "/organizations" : "__disabled__",
     []
   );
   const orgOptions = useMemo(() => {
@@ -174,10 +182,10 @@ export function SuperAdminUsersView() {
     if (role) p.set("role", role);
     if (status) p.set("status", status);
     if (memberType) p.set("memberType", memberType);
-    if (orgId) p.set("organizationId", orgId);
+    if (isPlatform && orgId) p.set("organizationId", orgId);
     const s = p.toString();
     return s ? `/users?${s}` : "/users";
-  }, [page, debouncedSearch, role, status, memberType, orgId]);
+  }, [page, debouncedSearch, role, status, memberType, orgId, isPlatform]);
 
   const { data, loading, error, refetch } = useApi<UserListResponse>(qs, {
     users: [],
@@ -188,6 +196,8 @@ export function SuperAdminUsersView() {
 
   const users = data.users;
   const totalPages = Math.max(1, Math.ceil(data.total / pageSize));
+  const activeCount = users.filter((u) => u.status === "ACTIVE").length;
+  const suspendedCount = users.filter((u) => u.status === "SUSPENDED").length;
 
   // Clear selections no longer present on this page
   useEffect(() => {
@@ -222,10 +232,8 @@ export function SuperAdminUsersView() {
 
   async function openDetail(user: UserRow) {
     setSelected(user);
-    setDetail(user as UserDetail);
     setGrowth(null);
     setDrawerOpen(true);
-    setDetailLoading(true);
     try {
       const res = await fetch(`/api/proxy/users/${user.id}/growth`, { cache: "no-store" });
       if (res.ok) {
@@ -234,8 +242,6 @@ export function SuperAdminUsersView() {
       }
     } catch {
       // Growth is optional — the drawer still works without it.
-    } finally {
-      setDetailLoading(false);
     }
   }
 
@@ -246,6 +252,11 @@ export function SuperAdminUsersView() {
       if (action === "resetPassword") {
         await apiMutate("/auth/forgot-password", "POST", { email: selected.email });
         setToast({ message: `Password reset email sent to ${selected.email}`, type: "success" });
+      } else if (action === "changeEmail") {
+        if (!newEmail) return;
+        await apiMutate(`/users/${selected.id}`, "PATCH", { email: newEmail });
+        setToast({ message: `Email updated to ${newEmail}`, type: "success" });
+        setNewEmail("");
       } else if (action === "suspend") {
         await apiMutate(`/users/${selected.id}`, "PATCH", { status: "SUSPENDED" });
         setToast({ message: `${selected.name ?? selected.email} suspended`, type: "success" });
@@ -276,12 +287,67 @@ export function SuperAdminUsersView() {
       setToast({ message: `Role updated to ${ROLE_LABELS[newRole] ?? newRole}`, type: "success" });
       setRoleModalOpen(false);
       refetch();
-      if (detail) setDetail({ ...detail, role: newRole });
     } catch (err) {
       setToast({ message: `Failed: ${(err as Error).message}`, type: "error" });
     } finally {
       setActionLoading(false);
     }
+  }
+
+  async function handleAddUser() {
+    const email = newEmail2.trim();
+    if (!email) return;
+    if (isPlatform && !newUserOrg) return;
+    setAddLoading(true);
+    try {
+      const result = await apiMutate<{ tempPassword?: string }>("/users", "POST", {
+        email,
+        name: newName || email.split("@")[0],
+        role: newUserRole,
+        ...(isPlatform ? { organizationId: newUserOrg } : {}),
+      });
+      const tenantName = isPlatform ? orgOptions.find((o) => o.id === newUserOrg)?.name : undefined;
+      setToast({
+        message: result?.tempPassword
+          ? `User created. Temp password: ${result.tempPassword}`
+          : `User created${tenantName ? ` for ${tenantName}` : ""}`,
+        type: "success",
+      });
+      setNewName("");
+      setNewEmail2("");
+      setNewUserOrg("");
+      setNewUserRole("LEARNER");
+      setAddUserOpen(false);
+      refetch();
+    } catch (err) {
+      setToast({ message: `Failed: ${(err as Error).message}`, type: "error" });
+    } finally {
+      setAddLoading(false);
+    }
+  }
+
+  async function handleBulkImport(rows: Record<string, string>[]) {
+    let imported = 0;
+    let failed = 0;
+    for (const row of rows) {
+      try {
+        await apiMutate<{ tempPassword?: string }>("/users", "POST", {
+          email: row.email,
+          name: row.name,
+          role: row.role?.toUpperCase() === "ADMIN" ? "ORG_ADMIN" : row.role?.toUpperCase() === "MANAGER" ? "MANAGER" : "LEARNER",
+        });
+        imported++;
+      } catch (err) {
+        console.error("Failed to import user:", err);
+        failed++;
+      }
+    }
+    setToast({
+      message: `Import complete: ${imported} imported, ${failed} failed`,
+      type: imported > 0 ? "success" : "error",
+    });
+    setShowImport(false);
+    refetch();
   }
 
   async function runBulkAction() {
@@ -304,79 +370,81 @@ export function SuperAdminUsersView() {
     }
   }
 
-  async function handleAddUser() {
-    if (!newEmail || !newUserOrg) return;
-    setAddLoading(true);
-    try {
-      const result = await apiMutate<{ tempPassword?: string }>("/users", "POST", {
-        email: newEmail,
-        name: newName || newEmail.split("@")[0],
-        role: newUserRole,
-        organizationId: newUserOrg,
-      });
-      setToast({
-        message: result?.tempPassword
-          ? `User created. Temp password: ${result.tempPassword}`
-          : `User created for ${orgOptions.find((o) => o.id === newUserOrg)?.name ?? "tenant"}`,
-        type: "success",
-      });
-      setNewName("");
-      setNewEmail("");
-      setNewUserOrg("");
-      setNewUserRole("LEARNER");
-      setAddUserOpen(false);
-      refetch();
-    } catch (err) {
-      setToast({ message: `Failed: ${(err as Error).message}`, type: "error" });
-    } finally {
-      setAddLoading(false);
-    }
-  }
+  const title = isPlatform ? "Users" : "Employees";
+  const subtitle = isPlatform
+    ? `${data.total} user${data.total === 1 ? "" : "s"} across all tenants.`
+    : `Manage your team's training enrollment and progress. ${data.total} member${data.total === 1 ? "" : "s"}.`;
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-[24px] font-semibold text-text-primary">Users</h1>
-          <p className="mt-0.5 text-[14px] text-text-secondary">
-            {data.total} user{data.total === 1 ? "" : "s"} across all tenants.
-          </p>
+          <h1 className="font-serif text-[24px] font-semibold text-[#1A1A2E]">{title}</h1>
+          <p className="mt-1 text-[14px] text-[#6B7280]">{subtitle}</p>
         </div>
-        <button
-          onClick={() => {
-            setNewName("");
-            setNewEmail("");
-            setNewUserRole("LEARNER");
-            setNewUserOrg(orgId);
-            setAddUserOpen(true);
-          }}
-          className="flex items-center gap-2 rounded-[8px] bg-[#683290] px-4 py-2 text-[13px] font-medium text-white transition hover:bg-[#542573]"
-        >
-          <UserPlus className="h-3.5 w-3.5" /> Add User
-        </button>
+        <div className="flex items-center gap-2">
+          {!isPlatform && (
+            <button
+              onClick={() => setShowImport(true)}
+              className="flex items-center gap-2 rounded-[8px] border border-[#E5E7EB] px-4 py-2 text-[13px] font-medium text-[#6B7280] transition hover:bg-[#F8F9FB]"
+            >
+              <Upload className="h-3.5 w-3.5" /> Bulk Import
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setNewName("");
+              setNewEmail2("");
+              setNewUserRole("LEARNER");
+              setNewUserOrg(orgId);
+              setAddUserOpen(true);
+            }}
+            className="flex items-center gap-2 rounded-[8px] bg-[#683290] px-4 py-2 text-[13px] font-medium text-white transition hover:bg-[#542573]"
+          >
+            <UserPlus className="h-3.5 w-3.5" /> {isPlatform ? "Add User" : "Invite Employee"}
+          </button>
+        </div>
       </div>
+
+      {/* Stat cards (org mode) */}
+      {!isPlatform && (
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { label: "Total", value: data.total },
+            { label: "Active", value: activeCount, color: "text-[#16A34A]" },
+            { label: "Suspended", value: suspendedCount, color: "text-[#DC2626]" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-[8px] border border-[#E5E7EB] bg-white p-4 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
+              <p className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">{s.label}</p>
+              <p className={`mt-1 text-[24px] font-bold tabular-nums ${s.color ?? "text-[#1A1A2E]"}`}>{s.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[220px] flex-1">
+        <div className="relative min-w-[200px] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name or email..."
+            placeholder={isPlatform ? "Search name or email..." : "Search employees..."}
             className="w-full rounded-[8px] border border-[#E5E7EB] bg-white py-2 pl-9 pr-3 text-[14px] text-[#1A1A2E] outline-none transition focus:border-[#683290] focus:ring-2 focus:ring-[#683290]/10"
           />
         </div>
-        <select value={orgId} onChange={(e) => setOrgId(e.target.value)} className="rounded-[8px] border border-[#E5E7EB] bg-white px-3 py-2 text-[13px] text-[#1A1A2E] outline-none focus:border-[#683290]">
-          <option value="">All tenants</option>
-          {orgOptions.map((o) => (
-            <option key={o.id} value={o.id}>{o.name}</option>
-          ))}
-        </select>
+        {isPlatform && (
+          <select value={orgId} onChange={(e) => setOrgId(e.target.value)} className="rounded-[8px] border border-[#E5E7EB] bg-white px-3 py-2 text-[13px] text-[#1A1A2E] outline-none focus:border-[#683290]">
+            <option value="">All tenants</option>
+            {orgOptions.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </select>
+        )}
         <select value={role} onChange={(e) => setRole(e.target.value)} className="rounded-[8px] border border-[#E5E7EB] bg-white px-3 py-2 text-[13px] text-[#1A1A2E] outline-none focus:border-[#683290]">
           <option value="">All roles</option>
-          {ROLE_OPTIONS.map((r) => (
+          {roleOptions.map((r) => (
             <option key={r} value={r}>{ROLE_LABELS[r] ?? r}</option>
           ))}
         </select>
@@ -398,7 +466,7 @@ export function SuperAdminUsersView() {
       {loading ? (
         <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-12 text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#F1F3F5] border-t-[#683290]" />
-          <p className="mt-4 text-[14px] text-[#6B7280]">Loading users…</p>
+          <p className="mt-4 text-[14px] text-[#6B7280]">Loading…</p>
         </div>
       ) : error ? (
         <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-10 text-center">
@@ -414,11 +482,11 @@ export function SuperAdminUsersView() {
                   <th className="w-10 px-4 py-3">
                     <input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAll} className="h-4 w-4 accent-[#683290]" aria-label="Select all on page" />
                   </th>
-                  <th className="px-4 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">User</th>
-                  <th className="px-4 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Tenant</th>
+                  <th className="px-4 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">{isPlatform ? "User" : "Employee"}</th>
+                  {isPlatform && <th className="px-4 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Tenant</th>}
                   <th className="px-4 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Role</th>
                   <th className="px-4 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Status</th>
-                  <th className="px-4 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Member</th>
+                  {isPlatform && <th className="px-4 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Member</th>}
                   <th className="px-4 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Last active</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -444,10 +512,10 @@ export function SuperAdminUsersView() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-[13px] text-[#6B7280]">{u.organization?.name ?? "—"}</td>
+                    {isPlatform && <td className="px-4 py-3 text-[13px] text-[#6B7280]">{u.organization?.name ?? "—"}</td>}
                     <td className="px-4 py-3">{roleBadge(u.role)}</td>
                     <td className="px-4 py-3">{statusBadge(u.status)}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#6B7280]">{MEMBER_TYPE_LABELS[u.memberType] ?? u.memberType}</td>
+                    {isPlatform && <td className="px-4 py-3 text-[13px] text-[#6B7280]">{MEMBER_TYPE_LABELS[u.memberType] ?? u.memberType}</td>}
                     <td className="px-4 py-3 text-[13px] text-[#6B7280]">{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : "Never"}</td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
@@ -464,7 +532,9 @@ export function SuperAdminUsersView() {
                 ))}
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-[14px] text-[#9CA3AF]">No users match your filters.</td>
+                    <td colSpan={isPlatform ? 8 : 6} className="px-4 py-12 text-center text-[14px] text-[#9CA3AF]">
+                      No {isPlatform ? "users" : "employees"} match your filters.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -527,90 +597,89 @@ export function SuperAdminUsersView() {
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-4">
-              {detailLoading ? (
-                <div className="py-12 text-center">
-                  <div className="mx-auto h-6 w-6 animate-spin rounded-full border-4 border-[#F1F3F5] border-t-[#683290]" />
+              <div className="space-y-5">
+                {/* Summary chips */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {roleBadge(selected.role)}
+                  {statusBadge(selected.status)}
+                  <span className="rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[11px] font-semibold text-[#475569]">
+                    {MEMBER_TYPE_LABELS[selected.memberType] ?? selected.memberType}
+                  </span>
                 </div>
-              ) : (
-                <div className="space-y-5">
-                  {/* Summary chips */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    {roleBadge(detail?.role ?? selected.role)}
-                    {statusBadge(detail?.status ?? selected.status)}
-                    <span className="rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[11px] font-semibold text-[#475569]">
-                      {MEMBER_TYPE_LABELS[detail?.memberType ?? selected.memberType] ?? detail?.memberType ?? selected.memberType}
-                    </span>
-                  </div>
 
-                  {/* Key facts */}
-                  <dl className="grid grid-cols-2 gap-3 rounded-[8px] border border-[#E5E7EB] bg-[#F8F9FB] p-4 text-[13px]">
+                {/* Key facts */}
+                <dl className="grid grid-cols-2 gap-3 rounded-[8px] border border-[#E5E7EB] bg-[#F8F9FB] p-4 text-[13px]">
+                  {isPlatform && (
                     <div>
                       <dt className="text-[#6B7280]">Tenant</dt>
-                      <dd className="mt-0.5 font-medium text-[#1A1A2E]">{detail?.organization?.name ?? selected.organization?.name ?? "—"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-[#6B7280]">Joined</dt>
-                      <dd className="mt-0.5 font-medium text-[#1A1A2E]">{detail?.createdAt ? new Date(detail.createdAt).toLocaleDateString() : "—"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-[#6B7280]">Last active</dt>
-                      <dd className="mt-0.5 font-medium text-[#1A1A2E]">{detail?.lastLoginAt ? new Date(detail.lastLoginAt).toLocaleDateString() : "Never"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-[#6B7280]">Reputation</dt>
-                      <dd className="mt-0.5 font-medium text-[#1A1A2E]">{detail?.reputationLevel ?? "—"}{detail?.xp ? ` · ${detail.xp} XP` : ""}</dd>
-                    </div>
-                  </dl>
-
-                  {/* Growth */}
-                  {growth && (growth.baselineScore != null || growth.closingScore != null) && (
-                    <div>
-                      <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Assessment growth</h3>
-                      <div className="mt-2 flex items-center gap-4 rounded-[8px] border border-[#E5E7EB] p-3 text-[13px]">
-                        <div>
-                          <p className="text-[#6B7280]">Baseline</p>
-                          <p className="font-semibold text-[#1A1A2E]">{growth.baselineScore != null ? `${Math.round(growth.baselineScore)}%` : "—"}</p>
-                        </div>
-                        <div>
-                          <p className="text-[#6B7280]">Closing</p>
-                          <p className="font-semibold text-[#1A1A2E]">{growth.closingScore != null ? `${Math.round(growth.closingScore)}%` : "—"}</p>
-                        </div>
-                        {growth.growth != null && (
-                          <div>
-                            <p className="text-[#6B7280]">Growth</p>
-                            <p className={`font-semibold ${growth.growth >= 0 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>
-                              {growth.growth >= 0 ? "+" : ""}{Math.round(growth.growth)} pts
-                            </p>
-                          </div>
-                        )}
-                      </div>
+                      <dd className="mt-0.5 font-medium text-[#1A1A2E]">{selected.organization?.name ?? "—"}</dd>
                     </div>
                   )}
-
-                  {/* Actions */}
-                  <div className="space-y-2 border-t border-[#E5E7EB] pt-4">
-                    <p className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Actions</p>
-                    <button onClick={() => { setNewRole(detail?.role ?? selected.role); setRoleModalOpen(true); }} className="flex w-full items-center gap-2 rounded-[8px] border border-[#E5E7EB] px-3 py-2 text-[13px] font-medium text-[#1A1A2E] transition hover:bg-[#F8F9FB]">
-                      <ShieldCheck className="h-3.5 w-3.5 text-[#683290]" /> Change role
-                    </button>
-                    <button onClick={() => { setAction("resetPassword"); }} className="flex w-full items-center gap-2 rounded-[8px] border border-[#E5E7EB] px-3 py-2 text-[13px] font-medium text-[#1A1A2E] transition hover:bg-[#F8F9FB]">
-                      <Mail className="h-3.5 w-3.5 text-[#683290]" /> Send password reset
-                    </button>
-                    {(detail?.status ?? selected.status) === "SUSPENDED" ? (
-                      <button onClick={() => { setAction("reactivate"); }} className="flex w-full items-center gap-2 rounded-[8px] border border-[#E5E7EB] px-3 py-2 text-[13px] font-medium text-[#16A34A] transition hover:bg-[#F0FDF4]">
-                        <RotateCcw className="h-3.5 w-3.5" /> Reactivate account
-                      </button>
-                    ) : (
-                      <button onClick={() => { setAction("suspend"); }} className="flex w-full items-center gap-2 rounded-[8px] border border-[#E5E7EB] px-3 py-2 text-[13px] font-medium text-[#DC2626] transition hover:bg-[#FEF2F2]">
-                        <Ban className="h-3.5 w-3.5" /> Suspend account
-                      </button>
-                    )}
-                    <button onClick={() => { setAction("delete"); }} className="flex w-full items-center gap-2 rounded-[8px] border border-[#FECACA] px-3 py-2 text-[13px] font-medium text-[#DC2626] transition hover:bg-[#FEF2F2]">
-                      <Trash2 className="h-3.5 w-3.5" /> Delete account
-                    </button>
+                  <div>
+                    <dt className="text-[#6B7280]">Joined</dt>
+                    <dd className="mt-0.5 font-medium text-[#1A1A2E]">{selected.createdAt ? new Date(selected.createdAt).toLocaleDateString() : "—"}</dd>
                   </div>
+                  <div>
+                    <dt className="text-[#6B7280]">Last active</dt>
+                    <dd className="mt-0.5 font-medium text-[#1A1A2E]">{selected.lastLoginAt ? new Date(selected.lastLoginAt).toLocaleDateString() : "Never"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[#6B7280]">Reputation</dt>
+                    <dd className="mt-0.5 font-medium text-[#1A1A2E]">{selected.reputationLevel ?? "—"}{selected.xp ? ` · ${selected.xp} XP` : ""}</dd>
+                  </div>
+                </dl>
+
+                {/* Growth */}
+                {growth && (growth.baselineScore != null || growth.closingScore != null) && (
+                  <div>
+                    <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Assessment growth</h3>
+                    <div className="mt-2 flex items-center gap-4 rounded-[8px] border border-[#E5E7EB] p-3 text-[13px]">
+                      <div>
+                        <p className="text-[#6B7280]">Baseline</p>
+                        <p className="font-semibold text-[#1A1A2E]">{growth.baselineScore != null ? `${Math.round(growth.baselineScore)}%` : "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[#6B7280]">Closing</p>
+                        <p className="font-semibold text-[#1A1A2E]">{growth.closingScore != null ? `${Math.round(growth.closingScore)}%` : "—"}</p>
+                      </div>
+                      {growth.growth != null && (
+                        <div>
+                          <p className="text-[#6B7280]">Growth</p>
+                          <p className={`font-semibold ${growth.growth >= 0 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>
+                            {growth.growth >= 0 ? "+" : ""}{Math.round(growth.growth)} pts
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="space-y-2 border-t border-[#E5E7EB] pt-4">
+                  <p className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Actions</p>
+                  <button onClick={() => { setNewRole(selected.role); setRoleModalOpen(true); }} className="flex w-full items-center gap-2 rounded-[8px] border border-[#E5E7EB] px-3 py-2 text-[13px] font-medium text-[#1A1A2E] transition hover:bg-[#F8F9FB]">
+                    <ShieldCheck className="h-3.5 w-3.5 text-[#683290]" /> Change role
+                  </button>
+                  <button onClick={() => { setAction("changeEmail"); setNewEmail(selected.email); }} className="flex w-full items-center gap-2 rounded-[8px] border border-[#E5E7EB] px-3 py-2 text-[13px] font-medium text-[#1A1A2E] transition hover:bg-[#F8F9FB]">
+                    <Mail className="h-3.5 w-3.5 text-[#683290]" /> Change email
+                  </button>
+                  <button onClick={() => { setAction("resetPassword"); }} className="flex w-full items-center gap-2 rounded-[8px] border border-[#E5E7EB] px-3 py-2 text-[13px] font-medium text-[#1A1A2E] transition hover:bg-[#F8F9FB]">
+                    <Mail className="h-3.5 w-3.5 text-[#683290]" /> Send password reset
+                  </button>
+                  {selected.status === "SUSPENDED" ? (
+                    <button onClick={() => { setAction("reactivate"); }} className="flex w-full items-center gap-2 rounded-[8px] border border-[#E5E7EB] px-3 py-2 text-[13px] font-medium text-[#16A34A] transition hover:bg-[#F0FDF4]">
+                      <RotateCcw className="h-3.5 w-3.5" /> Reactivate account
+                    </button>
+                  ) : (
+                    <button onClick={() => { setAction("suspend"); }} className="flex w-full items-center gap-2 rounded-[8px] border border-[#E5E7EB] px-3 py-2 text-[13px] font-medium text-[#DC2626] transition hover:bg-[#FEF2F2]">
+                      <Ban className="h-3.5 w-3.5" /> Suspend account
+                    </button>
+                  )}
+                  <button onClick={() => { setAction("delete"); }} className="flex w-full items-center gap-2 rounded-[8px] border border-[#FECACA] px-3 py-2 text-[13px] font-medium text-[#DC2626] transition hover:bg-[#FEF2F2]">
+                    <Trash2 className="h-3.5 w-3.5" /> Delete account
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -619,7 +688,7 @@ export function SuperAdminUsersView() {
       {/* Role change modal */}
       <Modal open={roleModalOpen} onClose={() => setRoleModalOpen(false)} title="Change role" description={`Update the role for ${selected?.name ?? selected?.email}.`}>
         <div className="space-y-2">
-          {ROLE_OPTIONS.filter((r) => r !== "LEGACY_ALUMNI" && r !== "COMMUNITY_ONLY").map((r) => (
+          {roleOptions.filter((r) => r !== "LEGACY_ALUMNI" && r !== "COMMUNITY_ONLY").map((r) => (
             <label key={r} className={`flex cursor-pointer items-center gap-2 rounded-[8px] border px-3 py-2 text-[13px] transition ${newRole === r ? "border-[#683290] bg-[#F4ECF8] text-[#1A1A2E]" : "border-[#E5E7EB] text-[#6B7280] hover:bg-[#F8F9FB]"}`}>
               <input type="radio" name="role" value={r} checked={newRole === r} onChange={() => setNewRole(r)} className="accent-[#683290]" />
               {ROLE_LABELS[r] ?? r}
@@ -628,14 +697,23 @@ export function SuperAdminUsersView() {
         </div>
         <Modal.Footer>
           <button onClick={() => setRoleModalOpen(false)} className="rounded-[8px] border border-[#E5E7EB] px-4 py-2 text-[13px] font-medium text-[#6B7280] transition hover:bg-[#F8F9FB]">Cancel</button>
-          <button onClick={saveRoleChange} disabled={!newRole || newRole === (detail?.role ?? selected?.role) || actionLoading} className="rounded-[8px] bg-[#683290] px-4 py-2 text-[13px] font-medium text-white transition hover:bg-[#542573] disabled:opacity-50">
+          <button onClick={saveRoleChange} disabled={!newRole || newRole === selected?.role || actionLoading} className="rounded-[8px] bg-[#683290] px-4 py-2 text-[13px] font-medium text-white transition hover:bg-[#542573] disabled:opacity-50">
             {actionLoading ? "Saving…" : "Save"}
           </button>
         </Modal.Footer>
       </Modal>
 
-      {/* Add user modal */}
-      <Modal open={addUserOpen} onClose={() => setAddUserOpen(false)} title="Add user" description="Create a user under a tenant. A temp password is emailed to them.">
+      {/* Add-user / invite modal */}
+      <Modal
+        open={addUserOpen}
+        onClose={() => setAddUserOpen(false)}
+        title={isPlatform ? "Add user" : "Invite employee"}
+        description={
+          isPlatform
+            ? "Create a user under a tenant. A temp password is emailed to them."
+            : "Send an email invitation to onboard a new employee."
+        }
+      >
         <div className="space-y-4">
           <div>
             <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">FULL NAME</label>
@@ -643,33 +721,69 @@ export function SuperAdminUsersView() {
           </div>
           <div>
             <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">EMAIL</label>
-            <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="user@company.com" className="mt-1.5 h-10 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A1A2E] outline-none transition focus:border-[#683290]" />
+            <input type="email" value={newEmail2} onChange={(e) => setNewEmail2(e.target.value)} placeholder="user@company.com" className="mt-1.5 h-10 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A1A2E] outline-none transition focus:border-[#683290]" />
           </div>
-          <div>
-            <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">TENANT</label>
-            <select value={newUserOrg} onChange={(e) => setNewUserOrg(e.target.value)} className="mt-1.5 h-10 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A1A2E] outline-none transition focus:border-[#683290]">
-              <option value="">Select a tenant…</option>
-              {orgOptions.map((o) => (
-                <option key={o.id} value={o.id}>{o.name}</option>
-              ))}
-            </select>
-          </div>
+          {isPlatform && (
+            <div>
+              <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">TENANT</label>
+              <select value={newUserOrg} onChange={(e) => setNewUserOrg(e.target.value)} className="mt-1.5 h-10 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A1A2E] outline-none transition focus:border-[#683290]">
+                <option value="">Select a tenant…</option>
+                {orgOptions.map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">ROLE</label>
             <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value)} className="mt-1.5 h-10 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A1A2E] outline-none transition focus:border-[#683290]">
-              <option value="LEARNER">{ROLE_LABELS.LEARNER}</option>
-              <option value="MANAGER">{ROLE_LABELS.MANAGER}</option>
-              <option value="ORG_ADMIN">{ROLE_LABELS.ORG_ADMIN}</option>
+              {addRoleOptions.map((r) => (
+                <option key={r} value={r}>{ROLE_LABELS[r] ?? r}</option>
+              ))}
             </select>
           </div>
         </div>
         <Modal.Footer>
           <button onClick={() => setAddUserOpen(false)} className="rounded-[8px] border border-[#E5E7EB] px-4 py-2 text-[13px] font-medium text-[#6B7280] transition hover:bg-[#F8F9FB]">Cancel</button>
-          <button onClick={handleAddUser} disabled={!newEmail || !newUserOrg || addLoading} className="rounded-[8px] bg-[#683290] px-4 py-2 text-[13px] font-medium text-white transition hover:bg-[#542573] disabled:opacity-50">
-            {addLoading ? "Creating…" : "Create User"}
+          <button
+            onClick={handleAddUser}
+            disabled={!newEmail2.trim() || (isPlatform && !newUserOrg) || addLoading}
+            className="rounded-[8px] bg-[#683290] px-4 py-2 text-[13px] font-medium text-white transition hover:bg-[#542573] disabled:opacity-50"
+          >
+            {addLoading ? "Creating…" : isPlatform ? "Create User" : "Send Invite"}
           </button>
         </Modal.Footer>
       </Modal>
+
+      {/* Change-email modal */}
+      <Modal open={action === "changeEmail"} onClose={() => setAction(null)} title="Change email" description={`Update the email address for ${selected?.name}.`}>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-[12px] font-bold tracking-[0.6px] text-[#6B7280]">CURRENT EMAIL</label>
+            <p className="mt-1 text-[14px] text-[#1A1A2E]">{selected?.email}</p>
+          </div>
+          <div>
+            <label className="block text-[12px] font-bold tracking-[0.6px] text-[#1A1A2E]">NEW EMAIL</label>
+            <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="mt-1.5 h-10 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A1A2E] outline-none transition focus:border-[#683290]" />
+          </div>
+        </div>
+        <Modal.Footer>
+          <button onClick={() => setAction(null)} className="rounded-[8px] border border-[#E5E7EB] px-4 py-2 text-[13px] font-medium text-[#6B7280] transition hover:bg-[#F8F9FB]">Cancel</button>
+          <button onClick={runAction} disabled={!newEmail || newEmail === selected?.email || actionLoading} className="rounded-[8px] bg-[#683290] px-4 py-2 text-[13px] font-medium text-white transition hover:bg-[#542573] disabled:opacity-50">
+            {actionLoading ? "Saving…" : "Save Changes"}
+          </button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Bulk import (org mode) */}
+      <FileUploadModal
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        onImport={handleBulkImport}
+        title="Import Employees"
+        description="Upload a CSV file with employee data."
+        templateHeaders={["name", "email", "department", "role"]}
+      />
 
       {/* Confirm dialogs */}
       <ConfirmDialog
