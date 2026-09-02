@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { FileText, ExternalLink, RefreshCw } from "lucide-react";
+import { ExternalLink, RefreshCw } from "lucide-react";
 import { PdfUploader } from "./PdfUploader";
 import { PptxUploader } from "./PptxUploader";
 import { SlidesGeneratorModal } from "./SlidesGeneratorModal";
@@ -19,10 +20,14 @@ interface SlidesLessonEditorProps {
 }
 
 export function SlidesLessonEditor({ courseId, lessonId, hasFile, allowDownload, hasGeneratedSlides }: SlidesLessonEditorProps) {
+  const router = useRouter();
   const [showSlidesModal, setShowSlidesModal] = useState(false);
   const [manifest, setManifest] = useState<SlidesManifest | null>(null);
   const [loadingManifest, setLoadingManifest] = useState(false);
   const [generated, setGenerated] = useState(hasGeneratedSlides);
+  // Tracks PDF presence client-side: flips on as soon as an upload completes
+  // so the Generate section appears without waiting for a manual reload.
+  const [pdfReady, setPdfReady] = useState(hasFile);
 
   // Refresh the manifest from the API so the preview always matches the server.
   const refreshManifest = useCallback(async () => {
@@ -49,6 +54,15 @@ export function SlidesLessonEditor({ courseId, lessonId, hasFile, allowDownload,
     refreshManifest();
   }, [refreshManifest]);
 
+  // After a PDF upload: reveal the Generate section immediately, then sync
+  // the server-rendered state in the background.
+  const handlePdfUploaded = useCallback(() => {
+    setPdfReady(true);
+    router.refresh();
+  }, [router]);
+
+  const showGenerate = pdfReady || hasFile;
+
   return (
     <div className="space-y-4">
       <div>
@@ -59,10 +73,16 @@ export function SlidesLessonEditor({ courseId, lessonId, hasFile, allowDownload,
         </p>
       </div>
 
-      <PdfUploader courseId={courseId} lessonId={lessonId} hasFile={hasFile} allowDownload={allowDownload} />
+      <PdfUploader
+        courseId={courseId}
+        lessonId={lessonId}
+        hasFile={hasFile}
+        allowDownload={allowDownload}
+        onUploaded={handlePdfUploaded}
+      />
       <PptxUploader courseId={courseId} lessonId={lessonId} onImported={refreshManifest} />
 
-      {hasFile && (
+      {showGenerate && (
         <div className="rounded-card border border-border bg-background p-5">
           <div className="flex flex-wrap items-center gap-3">
             <button
