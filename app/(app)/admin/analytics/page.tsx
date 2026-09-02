@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { Building2, GraduationCap, TrendingUp, Users } from "lucide-react";
 import { useApi } from "@/lib/useApi";
 import { TableSkeleton } from "@/components/Skeleton";
 import { StatsRow } from "../AdminWidgets";
-import { Building2, GraduationCap, TrendingUp, Users } from "lucide-react";
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                      */
@@ -37,6 +37,27 @@ interface AssessmentAnalytics {
   growthLeaderboard: { userId: string; name: string; baselineScore: number; closingScore: number; growthRate: number }[];
 }
 
+interface PlatformAnalytics {
+  totals: {
+    organizations: number;
+    users: number;
+    activeEnrollments: number;
+    certificatesIssued: number;
+    revenueAllTimeCents: number;
+  };
+  revenue: {
+    thisMonthCents: number;
+    lastMonthCents: number;
+    momGrowthPct: number;
+    byProvider: Record<string, number>;
+    byMonth: Record<string, number>;
+  };
+  tenantGrowthByMonth: Record<string, number>;
+  usersByMemberType: Record<string, number>;
+  topTenants: { id: string; name: string; users: number }[];
+  months: string[];
+}
+
 const healthDot: Record<CourseHealth["health"], string> = {
   green: "bg-success",
   amber: "bg-yellow-500",
@@ -47,93 +68,186 @@ const healthDot: Record<CourseHealth["health"], string> = {
 /*  Platform Analytics (Super Admin)                                           */
 /* -------------------------------------------------------------------------- */
 
-const tenantGrowth = [
-  { month: "Jan", orgs: 32, insts: 14 },
-  { month: "Feb", orgs: 35, insts: 16 },
-  { month: "Mar", orgs: 38, insts: 17 },
-  { month: "Apr", orgs: 40, insts: 19 },
-  { month: "May", orgs: 43, insts: 21 },
-  { month: "Jun", orgs: 47, insts: 23 },
-];
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const revenueData = [
-  { month: "Jan", revenue: 620 },
-  { month: "Feb", revenue: 680 },
-  { month: "Mar", revenue: 710 },
-  { month: "Apr", revenue: 750 },
-  { month: "May", revenue: 800 },
-  { month: "Jun", revenue: 845 },
-];
+function formatMoney(cents: number): string {
+  if (cents >= 1_000_000) return `$${(cents / 100_000).toFixed(1)}k`;
+  if (cents >= 100_000) return `$${(cents / 100_000).toFixed(1)}k`;
+  return `$${(cents / 100).toLocaleString()}`;
+}
+
+function formatCompact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
+}
+
+function monthLabel(ym: string): string {
+  const [, m] = ym.split("-");
+  const idx = Number(m) - 1;
+  return MONTH_LABELS[idx] ?? ym;
+}
 
 function PlatformAnalytics() {
-  const maxRevenue = Math.max(...revenueData.map((r) => r.revenue));
+  const { data, loading } = useApi<PlatformAnalytics>("/analytics/platform", {
+    totals: {
+      organizations: 0,
+      users: 0,
+      activeEnrollments: 0,
+      certificatesIssued: 0,
+      revenueAllTimeCents: 0,
+    },
+    revenue: { thisMonthCents: 0, lastMonthCents: 0, momGrowthPct: 0, byProvider: {}, byMonth: {} },
+    tenantGrowthByMonth: {},
+    usersByMemberType: {},
+    topTenants: [],
+    months: [],
+  });
+
+  const months = data.months.length > 0 ? data.months : Object.keys(data.tenantGrowthByMonth);
+  const maxTenantGrowth = Math.max(1, ...months.map((m) => data.tenantGrowthByMonth[m] ?? 0));
+  const maxRevenue = Math.max(1, ...months.map((m) => data.revenue.byMonth[m] ?? 0));
+
+  const memberTypeLabels: Record<string, string> = {
+    NEW_LEARNER: "Learners",
+    COMMUNITY_ONLY: "Community",
+    LEGACY_ALUMNI: "Alumni",
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <h1 className="font-serif text-[24px] font-semibold text-[#1A1A2E]">Platform Analytics</h1>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 animate-pulse rounded-[8px] border border-[#E5E7EB] bg-white" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="h-72 animate-pulse rounded-[8px] border border-[#E5E7EB] bg-white" />
+          <div className="h-72 animate-pulse rounded-[8px] border border-[#E5E7EB] bg-white" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <h1 className="font-serif text-[24px] font-semibold text-[#1A1A2E]">Platform Analytics</h1>
 
       <StatsRow stats={[
-        { label: "Total Tenants", value: 70 },
-        { label: "Total Users", value: "14,285" },
-        { label: "Monthly Revenue", value: "$845k", color: "purple" },
-        { label: "Growth (MoM)", value: "+12%", color: "purple" },
+        { label: "Total Tenants", value: formatCompact(data.totals.organizations) },
+        { label: "Total Users", value: formatCompact(data.totals.users) },
+        { label: "Active Enrollments", value: formatCompact(data.totals.activeEnrollments) },
+        {
+          label: "All-time Revenue",
+          value: formatMoney(data.totals.revenueAllTimeCents),
+          color: "purple",
+        },
       ]} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Tenant Growth */}
         <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
           <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Tenant Growth</h3>
-          <div className="mt-4 flex items-end gap-2">
-            {tenantGrowth.map((d) => (
-              <div key={d.month} className="flex flex-1 flex-col items-center gap-1">
-                <div className="flex w-full flex-col items-center gap-0.5">
-                  <div className="w-full rounded-t bg-[#683290]" style={{ height: `${(d.insts / 25) * 80}px` }} />
-                  <div className="w-full rounded-t bg-[#F4ECF8]" style={{ height: `${(d.orgs / 50) * 80}px` }} />
+          {months.length === 0 ? (
+            <p className="mt-4 text-[13px] text-[#9CA3AF]">No tenant data yet.</p>
+          ) : (
+            <div className="mt-4 flex items-end gap-2">
+              {months.map((m) => (
+                <div key={m} className="flex flex-1 flex-col items-center gap-1">
+                  <div className="w-full rounded-t bg-[#F4ECF8]" style={{ height: `${((data.tenantGrowthByMonth[m] ?? 0) / maxTenantGrowth) * 80}px` }} />
+                  <span className="text-[11px] text-[#9CA3AF]">{monthLabel(m)}</span>
                 </div>
-                <span className="text-[11px] text-[#9CA3AF]">{d.month}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
           <div className="mt-3 flex items-center gap-4">
-            <span className="flex items-center gap-1.5 text-[12px] text-[#6B7280]"><span className="h-2 w-2 rounded-sm bg-[#F4ECF8]" />Orgs</span>
-            <span className="flex items-center gap-1.5 text-[12px] text-[#6B7280]"><span className="h-2 w-2 rounded-sm bg-[#683290]" />Insts</span>
+            <span className="flex items-center gap-1.5 text-[12px] text-[#6B7280]">
+              <span className="h-2 w-2 rounded-sm bg-[#F4ECF8]" />
+              New tenants / month
+            </span>
           </div>
         </div>
 
         {/* Revenue Trend */}
         <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
-          <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Revenue Trend ($k)</h3>
-          <div className="mt-4 flex items-end gap-2">
-            {revenueData.map((d) => (
-              <div key={d.month} className="flex flex-1 flex-col items-center gap-1">
-                <div className="w-full rounded-t bg-[#4451A2]" style={{ height: `${(d.revenue / maxRevenue) * 100}px` }} />
-                <span className="text-[11px] text-[#9CA3AF]">{d.month}</span>
-              </div>
-            ))}
-          </div>
+          <h3 className="flex items-center justify-between text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">
+            Revenue Trend
+            <span className="flex items-center gap-1 text-[13px] font-medium normal-case text-emerald-600">
+              <TrendingUp className="h-3.5 w-3.5" />
+              {data.revenue.momGrowthPct >= 0 ? "+" : ""}
+              {Math.round(data.revenue.momGrowthPct)}% MoM
+            </span>
+          </h3>
+          {months.length === 0 ? (
+            <p className="mt-4 text-[13px] text-[#9CA3AF]">No revenue data yet.</p>
+          ) : (
+            <div className="mt-4 flex items-end gap-2">
+              {months.map((m) => (
+                <div key={m} className="flex flex-1 flex-col items-center gap-1">
+                  <div className="w-full rounded-t bg-[#4451A2]" style={{ height: `${((data.revenue.byMonth[m] ?? 0) / maxRevenue) * 100}px` }} />
+                  <span className="text-[11px] text-[#9CA3AF]">{monthLabel(m)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="mt-3 text-[12px] text-[#9CA3AF]">
+            {formatMoney(data.revenue.thisMonthCents)} this month
+            {Object.entries(data.revenue.byProvider).length > 0 && (
+              <> · {Object.entries(data.revenue.byProvider).map(([p, c]) => `${p}: ${formatMoney(c)}`).join(" · ")}</>
+            )}
+          </p>
         </div>
       </div>
 
-      {/* User Engagement */}
-      <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
-        <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">User Engagement by Tenant Type</h3>
-        <div className="mt-4 grid grid-cols-2 gap-6">
-          <div>
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-[#683290]" />
-              <span className="text-[14px] font-medium text-[#1A1A2E]">Organizations</span>
-            </div>
-            <p className="mt-2 text-[32px] font-bold tabular-nums text-[#1A1A2E]">8,260</p>
-            <p className="text-[13px] text-[#6B7280]">active users across 47 tenants</p>
+      {/* Membership + top tenants */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
+          <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Members by type</h3>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {(["NEW_LEARNER", "COMMUNITY_ONLY", "LEGACY_ALUMNI"] as const).map((t) => (
+              <div key={t}>
+                <div className="flex items-center gap-2">
+                  {t === "NEW_LEARNER" ? (
+                    <GraduationCap className="h-4 w-4 text-[#2563EB]" />
+                  ) : t === "COMMUNITY_ONLY" ? (
+                    <Building2 className="h-4 w-4 text-[#683290]" />
+                  ) : (
+                    <Users className="h-4 w-4 text-[#2563EB]" />
+                  )}
+                  <span className="text-[14px] font-medium text-[#1A1A2E]">{memberTypeLabels[t] ?? t}</span>
+                </div>
+                <p className="mt-2 text-[28px] font-bold tabular-nums text-[#1A1A2E]">
+                  {formatCompact(data.usersByMemberType[t] ?? 0)}
+                </p>
+              </div>
+            ))}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4 text-[#2563EB]" />
-              <span className="text-[14px] font-medium text-[#1A1A2E]">Institutions</span>
-            </div>
-            <p className="mt-2 text-[32px] font-bold tabular-nums text-[#1A1A2E]">6,025</p>
-            <p className="text-[13px] text-[#6B7280]">active users across 23 tenants</p>
-          </div>
+          <p className="mt-4 border-t border-[#F3F4F6] pt-3 text-[12px] text-[#9CA3AF]">
+            {formatCompact(data.totals.certificatesIssued)} certificates issued · {formatCompact(data.totals.organizations)} total tenants
+          </p>
+        </div>
+
+        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(26,26,46,0.08)]">
+          <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Top tenants by members</h3>
+          {data.topTenants.length === 0 ? (
+            <p className="mt-4 text-[13px] text-[#9CA3AF]">No tenant data yet.</p>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {data.topTenants.map((t) => (
+                <li key={t.id} className="flex items-center justify-between">
+                  <span className="flex min-w-0 items-center gap-2 text-[14px] text-[#1A1A2E]">
+                    <Building2 className="h-3.5 w-3.5 shrink-0 text-[#683290]" />
+                    <span className="truncate">{t.name}</span>
+                  </span>
+                  <span className="ml-3 shrink-0 text-[13px] tabular-nums text-[#6B7280]">
+                    {formatCompact(t.users)} members
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 
