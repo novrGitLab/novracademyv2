@@ -228,6 +228,99 @@ export function SlidesLessonViewer({ manifest, className = "" }: { manifest: Sli
   const total = manifest.slideCount || (mode === "composited" ? manifest.slidesData?.length ?? 0 : manifest.slideImages.length);
   const hasAudio = Boolean(manifest.audioUrl);
 
+  // Fluid typography: the stage keeps a fixed 16:9 aspect ratio but its
+  // rendered width varies with the viewport/container. We measure the real
+  // stage width with a ResizeObserver and derive `stageScale`
+  // (= renderedWidth / designWidth). Every text box is then sized with
+  // clamp() around that scale so type grows/shrinks with the actual rendered
+  // box — not the viewport — and never collapses below a readable floor.
+  const [stageScale, setStageScale] = useState(1);
+
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    // Reference width: the width at which a designed point (pt) maps to a
+    // device pixel at 96dpi — i.e. where 1 slide "unit" == 1px at 16:9.
+    // slideW is in EMU (914400/inch); at 96dpi that's slideW/914400*96 px.
+    const designPx = (slideW / 914400) * 96; // e.g. 12192000 EMU ≈ 1280px
+    const update = () => {
+      const w = el.clientWidth;
+      if (w > 0) setStageScale(designPx > 0 ? w / designPx : 1);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [slideW]);
+
+  /**
+   * Fluid px for a designed font size (pt) at the current stage scale.
+   * `minOverridePx`, when provided, lets the content-fit pass shrink text
+   * below the normal readability floor so no text is ever clipped.
+   */
+  function fluidFont(basePt: number | undefined, minOverridePx?: number): string {
+    const pt = basePt ?? 18;
+    // Designed size in px at 96dpi: pt → px = pt/72*96 = pt*4/3.
+    const designPx = (pt * 4) / 3;
+    // Scale by actual stage width. clamp() keeps a readable minimum
+    // (accessibility: never collapse to unreadable) and a sane maximum so
+    // oversized viewports don't blow text past its layout box proportion.
+    const scaled = designPx * stageScale;
+    const min = minOverridePx ?? Math.max(designPx * 0.6, 11); // floor: 60% of design or 11px, whichever is larger
+    const max = designPx * 1.1; // cap: never exceed design size by more than 10%
+    return `clamp(${min.toFixed(2)}px, ${scaled.toFixed(2)}px, ${max.toFixed(2)}px)`;
+  }
+
+  // Content-aware auto-shrink: after each slide becomes current (and whenever
+  // the stage resizes), measure every text box on that slide. If a box's text
+  // overflows its fixed bounds, step the font down until it fits — this keeps
+  // long content fully visible without truncation, while boxes that fit stay
+  // at their designed size. Stored in a ref so it doesn't re-render loops.
+  const textEls = useRef<Map<number, HTMLDivElement | null>>(new Map());
+  const fitSizes = useRef<Map<number, number>>(new Map());
+
+  useEffect(() => {
+    // Measure after the current slide's text has painted. Only the visible
+    // slide is measured (keys encode slide*1000+item); off-screen slides are
+    // skipped so font-fitting only runs on what the user can see.
+    const raf = requestAnimationFrame(() => {
+      if (mode !== "composited") return;
+      textEls.current.forEach((el, key) => {
+        const slideIdx = Math.floor(key / 1000);
+        if (slideIdx !== current) return;
+        if (!el || !el.parentElement) return;
+        const box = el.parentElement;
+        const boxW = box.clientWidth;
+        const boxH = box.clientHeight;
+        if (boxW <= 0 || boxH <= 0) return;
+        const basePt = fitSizes.current.get(key);
+        if (!basePt) return;
+        // Step-down: from the designed size, reduce until the text no longer
+        // exceeds its box. Down to ~9px (still legible) so content is never
+        // clipped; boxes that already fit stay at their designed size.
+        const floorPx = 9;
+        let ratio = 1;
+        let guard = 0;
+        el.style.fontSize = fluidFont(basePt * ratio, floorPx);
+        while (guard < 40) {
+          const overW = el.scrollWidth > boxW + 1;
+          const overH = el.scrollHeight > boxH + 1;
+          if (!overW && !overH) break;
+          // If the clamp already hit its 9px floor, further ratio changes
+          // won't shrink the applied size — stop to avoid a pointless loop.
+          const currentPx = parseFloat(el.style.fontSize);
+          if (currentPx <= floorPx + 0.5) break;
+          ratio = Math.max(0.3, ratio - 0.04);
+          el.style.fontSize = fluidFont(basePt * ratio, floorPx);
+          guard++;
+        }
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, stageScale, mode, manifest]);
+
+
   function goPrev() { setCurrent((c) => Math.max(0, c - 1)); }
   function goNext() { setCurrent((c) => Math.min(total - 1, c + 1)); }
   function togglePlay() {
@@ -353,25 +446,42 @@ export function SlidesLessonViewer({ manifest, className = "" }: { manifest: Sli
                 );
               }
               if (item.type === "text" && item.text && item.x != null && item.y != null) {
-                const vw = ((item.fontSize ?? 18) / 72) * 13.333333;
+                const basePt = item.fontSize ?? 18;
+                const itemKey = si * 1000 + ii;
                 return (
                   <div
                     key={ii}
-                    className="absolute"
+                    className="absolute flex"
                     style={{
                       left: `${(item.x / slideW) * 100}%`,
                       top: `${(item.y / slideH) * 100}%`,
                       width: `${((item.w ?? 0) / slideW) * 100}%`,
                       height: `${((item.h ?? 0) / slideH) * 100}%`,
-                      fontSize: `min(${vw}vw, ${(item.fontSize ?? 18) * 1.4}px)`,
-                      lineHeight: "1.15",
-                      fontWeight: item.bold ? 700 : 400,
-                      textAlign: (item.align as "left" | "center" | "right") || "left",
-                      color: item.color || undefined,
-                      whiteSpace: "pre-wrap",
+                      alignItems: item.align === "center" ? "center" : "flex-start",
+                      overflow: "visible",
                     }}
                   >
-                    {item.text}
+                    <div
+                      ref={(node) => { textEls.current.set(itemKey, node); fitSizes.current.set(itemKey, basePt); }}
+                      className="min-w-0"
+                      style={{
+                        fontSize: fluidFont(basePt),
+                        lineHeight: 1.15,
+                        fontWeight: item.bold ? 700 : 400,
+                        textAlign: (item.align as "left" | "center" | "right") || "left",
+                        color: item.color || undefined,
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                        // Allow the box to size to its text, capped at the
+                        // container's width/height so long content wraps
+                        // instead of overflowing.
+                        maxWidth: "100%",
+                        maxHeight: "100%",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {item.text}
+                    </div>
                   </div>
                 );
               }
