@@ -35,11 +35,12 @@ interface EnrollmentCode {
 }
 
 export default async function EnrollmentsPage({ params }: { params: { id: string } }) {
-  const [{ enrollments }, { cohorts }, codes] = await Promise.all([
-    apiFetchSafe<{ enrollments: EnrollmentRow[] }>(`/courses/${params.id}/enroll`, { enrollments: [] }),
+  const [enrollRes, { cohorts }, codes] = await Promise.all([
+    apiFetchSafe<{ enrollments: EnrollmentRow[]; total?: number }>(`/courses/${params.id}/enroll`, { enrollments: [] }),
     apiFetchSafe<{ cohorts: Cohort[] }>("/cohorts", { cohorts: [] }),
     apiFetchSafe<EnrollmentCode[]>(`/enrollment-codes?courseId=${params.id}`, []),
   ]);
+  const { enrollments, total } = enrollRes;
 
   const boundAssign = assignEnrollmentAction.bind(null, params.id);
   const boundCohort = cohortEnrollAction.bind(null, params.id);
@@ -62,6 +63,11 @@ export default async function EnrollmentsPage({ params }: { params: { id: string
       </div>
 
       <div className="mt-8">
+        {typeof total === "number" && total > enrollments.length ? (
+          <p className="mb-2 text-[12px] text-text-secondary">
+            Showing the {enrollments.length} most recent of {total} enrollments.
+          </p>
+        ) : null}
         <EnrollmentBulkTable enrollments={enrollments} />
       </div>
     </div>
