@@ -9,6 +9,13 @@ import { prisma } from "@novr/db";
 import { GroupType, UserStatus } from "@novr/types";
 import { TEST_CREDENTIALS } from "./test-credentials";
 
+// How long JWT session claims are considered fresh before the jwt() callback
+// re-reads the user + organization from the DB. The callback runs on every
+// getServerSession (i.e. every server render of an authed page); a short TTL
+// keeps role/status/xp changes snappy while avoiding two DB queries per
+// render for the same user within a few minutes.
+const CLAIMS_TTL_MS = 5 * 60 * 1000;
+
 /**
  * PrismaAdapter passes the OAuth profile's `image` field straight into
  * `prisma.user.create`, but our User model stores it as `avatarUrl`. Wrap the
@@ -229,7 +236,7 @@ export const authOptions: AuthOptions = {
 
       return true;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
@@ -241,64 +248,76 @@ export const authOptions: AuthOptions = {
         token.certificateCount = (user as any).certificateCount ?? 0;
         token.postCount = (user as any).postCount ?? 0;
         token.mustChangePassword = (user as any).mustChangePassword ?? false;
+        token.claimsUpdatedAt = Date.now();
       }
       const isTestUser = typeof token.id === "string" && token.id.startsWith("test-");
       if (token.id && !isTestUser) {
         // Refresh claims from the DB so role/status/xp changes take effect
         // without forcing a re-login. Counts power the dashboard stat cards
         // directly from the session, so that page never has to call the API.
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: {
-            role: true,
-            memberType: true,
-            status: true,
-            xp: true,
-            reputationLevel: true,
-            organizationId: true,
-            mustChangePassword: true,
-            _count: { select: { enrollmentsAsAssignee: true, certificates: true, posts: true } },
-          },
-        });
-        if (dbUser) {
-          token.role = dbUser.role;
-          token.memberType = dbUser.memberType;
-          token.status = dbUser.status;
-          token.xp = dbUser.xp;
-          token.reputationLevel = dbUser.reputationLevel;
-          token.mustChangePassword = dbUser.mustChangePassword;
-          token.enrollmentCount = dbUser._count.enrollmentsAsAssignee;
-          token.certificateCount = dbUser._count.certificates;
-          token.postCount = dbUser._count.posts;
-          if (dbUser.organizationId) {
-            const organization = await prisma.organization.findUnique({
-              where: { id: dbUser.organizationId },
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                primaryColor: true,
-                secondaryColor: true,
-                accentColor: true,
-                backgroundColor: true,
-                textColor: true,
-              },
-            });
-            if (organization) {
-              // NOTE: logoUrl is deliberately excluded — it's a base64 data
-              // URL that can be hundreds of KB, and embedding it in the JWT
-              // blows past header limits (HTTP 431). Fetch it via /me/org.
-              token.organization = {
-                id: organization.id,
-                name: organization.name,
-                slug: organization.slug,
-                primaryColor: organization.primaryColor,
-                secondaryColor: organization.secondaryColor,
-                accentColor: organization.accentColor,
-                backgroundColor: organization.backgroundColor,
-                textColor: organization.textColor,
-              };
+        //
+        // To keep page loads cheap, only hit the DB when the claims are stale
+        // (fresh login/update, or older than CLAIMS_TTL_MS). `getServerSession`
+        // runs this callback on every server render; the TTL means repeated
+        // renders within a few minutes reuse the token's existing claims
+        // instead of running two extra DB queries each time.
+        const lastRefresh = typeof token.claimsUpdatedAt === "number" ? (token.claimsUpdatedAt as number) : 0;
+        const fresh = Date.now() - lastRefresh < CLAIMS_TTL_MS;
+        if (trigger === "update" || !fresh) {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: {
+              role: true,
+              memberType: true,
+              status: true,
+              xp: true,
+              reputationLevel: true,
+              organizationId: true,
+              mustChangePassword: true,
+              _count: { select: { enrollmentsAsAssignee: true, certificates: true, posts: true } },
+            },
+          });
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.memberType = dbUser.memberType;
+            token.status = dbUser.status;
+            token.xp = dbUser.xp;
+            token.reputationLevel = dbUser.reputationLevel;
+            token.mustChangePassword = dbUser.mustChangePassword;
+            token.enrollmentCount = dbUser._count.enrollmentsAsAssignee;
+            token.certificateCount = dbUser._count.certificates;
+            token.postCount = dbUser._count.posts;
+            if (dbUser.organizationId) {
+              const organization = await prisma.organization.findUnique({
+                where: { id: dbUser.organizationId },
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  primaryColor: true,
+                  secondaryColor: true,
+                  accentColor: true,
+                  backgroundColor: true,
+                  textColor: true,
+                },
+              });
+              if (organization) {
+                // NOTE: logoUrl is deliberately excluded — it's a base64 data
+                // URL that can be hundreds of KB, and embedding it in the JWT
+                // blows past header limits (HTTP 431). Fetch it via /me/org.
+                token.organization = {
+                  id: organization.id,
+                  name: organization.name,
+                  slug: organization.slug,
+                  primaryColor: organization.primaryColor,
+                  secondaryColor: organization.secondaryColor,
+                  accentColor: organization.accentColor,
+                  backgroundColor: organization.backgroundColor,
+                  textColor: organization.textColor,
+                };
+              }
             }
+            token.claimsUpdatedAt = Date.now();
           }
         }
       }
