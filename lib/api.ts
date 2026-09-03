@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 
 // Calls the backend API rather than accessing database services directly.
@@ -62,6 +63,13 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, timeoutM
  * non-2xx response it logs a warning and resolves with `fallback` instead.
  * Use this for read-only data that renders a page; a page should degrade to
  * an empty state rather than hang or 500 when the API is slow or down.
+ *
+ * Wrapped in `React.cache()` (memoized per HTTP request) so that two server
+ * components rendering the same path within one request share a single
+ * upstream HTTP call. The cache key is just `path` + `timeoutMs`; `fallback`
+ * and `init` are intentionally excluded so callers passing fresh literals
+ * still dedupe against each other. (Within-request memoization only — it is
+ * released when the request finishes, so it never serves stale data.)
  */
 export async function apiFetchSafe<T>(
   path: string,
@@ -70,9 +78,13 @@ export async function apiFetchSafe<T>(
   timeoutMs = DEFAULT_TIMEOUT_MS
 ): Promise<T> {
   try {
-    return await apiFetch<T>(path, init, timeoutMs);
+    return await cachedApiFetch<T>(path, timeoutMs, init);
   } catch (err) {
     console.warn(`apiFetchSafe: falling back to default for ${path}:`, (err as Error).message);
     return fallback;
   }
 }
+
+const cachedApiFetch = cache(async function cachedApiFetchImpl<T>(path: string, timeoutMs: number, init: RequestInit): Promise<T> {
+  return apiFetch<T>(path, init, timeoutMs);
+});

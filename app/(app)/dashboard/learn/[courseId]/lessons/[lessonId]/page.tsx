@@ -40,19 +40,23 @@ export default async function LessonPlayerPage({
 }: {
   params: { courseId: string; lessonId: string };
 }) {
-  const lesson = await apiFetchSafe<LessonDetail | null>(
-    `/courses/${params.courseId}/lessons/${params.lessonId}`,
-    null
-  );
+  // Lesson detail + course nav meta are independent reads — fetch them in
+  // parallel, and use the lean /meta endpoint (title + ordered lesson index)
+  // for the breadcrumb and prev/next instead of the full course payload.
+  const [lesson, courseMeta] = await Promise.all([
+    apiFetchSafe<LessonDetail | null>(
+      `/courses/${params.courseId}/lessons/${params.lessonId}`,
+      null
+    ),
+    apiFetchSafe<{
+      id: string;
+      title: string;
+      lessons: { id: string; title: string; order: number }[];
+    } | null>(`/courses/${params.courseId}/meta`, null),
+  ]);
   if (!lesson) notFound();
 
-  const course = await apiFetchSafe<{
-    id: string;
-    title: string;
-    lessons: { id: string; title: string; order: number }[];
-  } | null>(`/courses/${params.courseId}`, null);
-
-  const sortedLessons = [...(course?.lessons ?? [])].sort((a, b) => a.order - b.order);
+  const sortedLessons = [...(courseMeta?.lessons ?? [])].sort((a, b) => a.order - b.order);
   const currentIndex = sortedLessons.findIndex((l) => l.id === lesson.id);
   const prev = currentIndex > 0 ? sortedLessons[currentIndex - 1] : null;
   const next = currentIndex < sortedLessons.length - 1 ? sortedLessons[currentIndex + 1] : null;
@@ -64,7 +68,7 @@ export default async function LessonPlayerPage({
         <BackLink href="/dashboard/learn" label="Courses" />
         <span aria-hidden="true" className="text-[#767782]">›</span>
         <Link href={`/dashboard/learn/${params.courseId}`} className="max-w-[min(18rem,70vw)] truncate transition-colors hover:text-[#4451A2]">
-          {course?.title ?? "Course"}
+          {courseMeta?.title ?? "Course"}
         </Link>
         <span aria-hidden="true" className="text-[#767782]">›</span>
         <span className="max-w-[min(18rem,70vw)] truncate text-[#1A1A2E]" aria-current="page">{lesson.title}</span>
