@@ -53,6 +53,7 @@ export async function createCourseAction(formData: FormData): Promise<CreateCour
   }
 
   revalidatePath("/admin/courses");
+  revalidatePath("/dashboard/learn");
   redirect(`/admin/courses/${courseId}`);
 }
 
@@ -79,6 +80,7 @@ export async function setCourseStatusAction(courseId: string, status: "DRAFT" | 
   await apiFetch(`/courses/${courseId}`, { method: "PATCH", body: JSON.stringify({ status }) });
   revalidatePath(`/admin/courses/${courseId}`);
   revalidatePath("/admin/courses");
+  revalidatePath("/dashboard/learn");
 }
 
 export async function setVideoUrlAction(courseId: string, lessonId: string, url: string) {
@@ -92,6 +94,7 @@ export async function setVideoUrlAction(courseId: string, lessonId: string, url:
 export async function deleteCourseAction(courseId: string) {
   await apiFetch(`/courses/${courseId}`, { method: "DELETE" });
   revalidatePath("/admin/courses");
+  revalidatePath("/dashboard/learn");
   redirect("/admin/courses");
 }
 
