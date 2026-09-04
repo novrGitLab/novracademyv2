@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { BackLink } from "@/components/DesignSystem";
 import { Loader2, Mail } from "lucide-react";
+import { useApi } from "@/lib/useApi";
+import { useState } from "react";
 
 interface Digest {
   id: string;
@@ -13,21 +14,9 @@ interface Digest {
 }
 
 export default function EmailPage() {
-  const [digests, setDigests] = useState<Digest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const { data, loading, error } = useApi<{ digests: Digest[] }>("/newsletter/digests", { digests: [] });
+  const digests = data.digests;
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/proxy/newsletter/digests", { cache: "no-store" })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-        return (await res.json()) as { digests: Digest[] };
-      })
-      .then((data) => setDigests(data.digests ?? []))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, []);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:py-8">
