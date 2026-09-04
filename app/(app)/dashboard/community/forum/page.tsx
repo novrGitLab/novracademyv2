@@ -1,156 +1,138 @@
 "use client";
 
-import { useState } from "react";
-import { BackLink } from "@/components/DesignSystem";
-import { MessageSquare, Pin, Search, ThumbsUp, Clock, Eye, Tag, ChevronRight, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BackLink, Badge, Button, Card, EmptyState } from "@/components/DesignSystem";
+import { Bookmark, BookmarkCheck, Eye, MessageSquare, Pin, Search, ThumbsUp, Plus } from "lucide-react";
 
-/* -------------------------------------------------------------------------- */
-/*  Mock Data                                                                  */
-/* -------------------------------------------------------------------------- */
+const CATEGORIES = ["All", "Career Advice", "Technical Help", "Study Groups", "Certifications", "Compliance", "Resources", "General Discussion"];
 
 interface ForumPost {
   id: string;
-  title: string;
-  author: string;
-  authorRole: string;
-  category: string;
+  title: string | null;
   content: string;
-  replies: number;
-  views: number;
-  likes: number;
-  lastActivity: string;
-  pinned?: boolean;
+  category: string | null;
   tags: string[];
+  isPinned: boolean;
+  viewCount: number;
+  createdAt: string;
+  author: { id: string; name: string | null; avatarUrl: string | null };
+  _count: { comments: number; reactions: number; bookmarks: number };
+  viewerReaction: string | null;
+  viewerBookmarked: boolean;
 }
 
-const forumPosts: ForumPost[] = [
-  {
-    id: "1",
-    title: "How to prepare for CISSP exam — sharing my study plan",
-    author: "Emeka Obi",
-    authorRole: "Security Engineer",
-    category: "Certifications",
-    content: "After 6 months of preparation, I finally passed the CISSP. Here's my study plan, resources, and tips for anyone preparing...",
-    replies: 47,
-    views: 1280,
-    likes: 89,
-    lastActivity: "2 hours ago",
-    pinned: true,
-    tags: ["CISSP", "Study Plan", "Career"],
-  },
-  {
-    id: "2",
-    title: "Best SIEM tools for small teams in 2026?",
-    author: "Sarah Jenkins",
-    authorRole: "SOC Lead",
-    category: "Tools & Tech",
-    content: "We're a team of 5 looking for a cost-effective SIEM solution. Currently evaluating Wazuh vs Elastic SIEM vs Splunk Free...",
-    replies: 32,
-    views: 890,
-    likes: 56,
-    lastActivity: "5 hours ago",
-    pinned: true,
-    tags: ["SIEM", "Tools", "SOC"],
-  },
-  {
-    id: "3",
-    title: "Phishing simulation results — what click rate is normal?",
-    author: "Tunde Bakare",
-    authorRole: "CISO",
-    category: "Phishing",
-    content: "Just ran our first phishing simulation across 200 employees. Got a 23% click rate. Is this normal? How do you reduce it?",
-    replies: 28,
-    views: 654,
-    likes: 41,
-    lastActivity: "1 day ago",
-    tags: ["Phishing", "Simulation", "Metrics"],
-  },
-  {
-    id: "4",
-    title: "NDPR compliance checklist for startups",
-    author: "Funke Adeyemi",
-    authorRole: "Data Protection Officer",
-    category: "Compliance",
-    content: "Compiled a practical NDPR compliance checklist based on my experience helping 15+ startups. Sharing it here for everyone...",
-    replies: 19,
-    views: 445,
-    likes: 67,
-    lastActivity: "2 days ago",
-    tags: ["NDPR", "Compliance", "Startups"],
-  },
-  {
-    id: "5",
-    title: "Career transition from networking to cybersecurity — need advice",
-    author: "Ngozi Okafor",
-    authorRole: "Network Engineer",
-    category: "Career",
-    content: "I've been a network engineer for 4 years and want to transition into cybersecurity. Should I start with CompTIA Security+ or go straight to CEH?",
-    replies: 35,
-    views: 780,
-    likes: 44,
-    lastActivity: "3 days ago",
-    tags: ["Career", "Transition", "Advice"],
-  },
-  {
-    id: "6",
-    title: "Free resources for learning incident response",
-    author: "Chidi Eze",
-    authorRole: "Incident Responder",
-    category: "Resources",
-    content: "Compiled a list of free IR training resources — SANS readings, LetsDefend free tier, CyberDefenders challenges, and more...",
-    replies: 22,
-    views: 1100,
-    likes: 93,
-    lastActivity: "4 days ago",
-    tags: ["IR", "Free Resources", "Training"],
-  },
-  {
-    id: "7",
-    title: "Has anyone used AI for vulnerability scanning?",
-    author: "Marcus Chen",
-    authorRole: "Penetration Tester",
-    category: "Tools & Tech",
-    content: "Exploring AI-powered vuln scanners like ImmuniWeb and HackGPT. Anyone have experience with these? Worth the investment?",
-    replies: 14,
-    views: 320,
-    likes: 28,
-    lastActivity: "5 days ago",
-    tags: ["AI", "Vulnerability", "Tools"],
-  },
-  {
-    id: "8",
-    title: "Building a home lab for SOC practice",
-    author: "Adaeze Nwosu",
-    authorRole: "Security Analyst",
-    category: "Resources",
-    content: "Step-by-step guide to setting up a home SOC lab with Splunk Free, Security Onion, and vulnerable VMs. Total cost: $0...",
-    replies: 41,
-    views: 2100,
-    likes: 112,
-    lastActivity: "1 week ago",
-    tags: ["Home Lab", "SOC", "Practice"],
-  },
-];
+interface ForumPageData {
+  posts: ForumPost[];
+  total: number;
+}
 
-const categories = ["All", "Certifications", "Tools & Tech", "Phishing", "Compliance", "Career", "Resources"];
+function useDebounce<T>(value: T, ms: number): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(id);
+  }, [value, ms]);
+  return v;
+}
 
-/* -------------------------------------------------------------------------- */
-/*  Page                                                                       */
-/* -------------------------------------------------------------------------- */
+async function fetchPosts(params: URLSearchParams): Promise<ForumPageData> {
+  const res = await fetch(`/api/proxy/posts?${params.toString()}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to load posts");
+  return res.json();
+}
+
+async function bumpView(id: string) {
+  await fetch(`/api/proxy/posts/${id}/view`, { method: "POST" }).catch(() => {});
+}
 
 export default function ForumPage() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [posts, setPosts] = useState<ForumPost[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const debouncedSearch = useDebounce(search, 300);
 
-  const filtered = forumPosts.filter((p) => {
-    const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase()) || p.content.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || p.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  // Composer
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeTitle, setComposeTitle] = useState("");
+  const [composeCategory, setComposeCategory] = useState("");
+  const [composeTags, setComposeTags] = useState("");
+  const [composeContent, setComposeContent] = useState("");
 
-  const pinned = filtered.filter((p) => p.pinned);
-  const regular = filtered.filter((p) => !p.pinned);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (selectedCategory !== "All") params.set("category", selectedCategory);
+    if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+    fetchPosts(params)
+      .then((data) => {
+        if (cancelled) return;
+        setPosts(data.posts);
+        setTotal(data.total);
+      })
+      .catch(() => {
+        if (!cancelled) { setPosts([]); setTotal(0); }
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [debouncedSearch, selectedCategory]);
+
+  const pinned = posts.filter((p) => p.isPinned);
+  const regular = posts.filter((p) => !p.isPinned);
+
+  function handleToggle(post: ForumPost) {
+    const nextId = expandedId === post.id ? null : post.id;
+    setExpandedId(nextId);
+    if (nextId) bumpView(post.id);
+  }
+
+  function handleReaction(postId: string) {
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              viewerReaction: p.viewerReaction ? null : "LIKE",
+              _count: { ...p._count, reactions: p.viewerReaction ? p._count.reactions - 1 : p._count.reactions + 1 },
+            }
+          : p
+      )
+    );
+    fetch(`/api/proxy/posts/${postId}/react`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "LIKE" }) }).catch(() => {});
+  }
+
+  function handleBookmark(postId: string) {
+    setPosts((prev) =>
+      prev.map((p) => (p.id === postId ? { ...p, viewerBookmarked: !p.viewerBookmarked } : p))
+    );
+    fetch(`/api/proxy/posts/${postId}/bookmark`, { method: "POST" }).catch(() => {});
+  }
+
+  async function handleSubmit() {
+    const res = await fetch("/api/proxy/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: composeContent,
+        title: composeTitle || undefined,
+        category: composeCategory || undefined,
+        tags: composeTags.split(",").map((t) => t.trim()).filter(Boolean),
+      }),
+    });
+    if (res.ok) {
+      const created = (await res.json()) as ForumPost;
+      setPosts((prev) => [created, ...prev]);
+      setTotal((t) => t + 1);
+      setComposeTitle("");
+      setComposeCategory("");
+      setComposeTags("");
+      setComposeContent("");
+      setComposeOpen(false);
+    }
+  }
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:py-8">
@@ -161,29 +143,46 @@ export default function ForumPage() {
           <h1 className="font-serif text-[24px] font-semibold text-[#1A1A2E]">Forum</h1>
           <p className="mt-1 text-[14px] text-[#6B7280]">Discuss, ask questions, and share knowledge with the community.</p>
         </div>
-        <button className="flex items-center gap-2 rounded-[8px] bg-[#683290] px-4 py-2.5 text-[13px] font-medium text-white transition hover:bg-[#542573]">
+        <button onClick={() => setComposeOpen((o) => !o)} className="flex items-center gap-2 rounded-[8px] bg-[#683290] px-4 py-2.5 text-[13px] font-medium text-white transition hover:bg-[#542573]">
           <Plus className="h-3.5 w-3.5" /> New Post
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="mt-5 mb-6 grid grid-cols-3 gap-3">
-        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-4 text-center">
-          <p className="text-[20px] font-bold text-[#683290]">{forumPosts.length}</p>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Threads</p>
-        </div>
-        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-4 text-center">
-          <p className="text-[20px] font-bold text-[#16A34A]">{forumPosts.reduce((s, p) => s + p.replies, 0)}</p>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Replies</p>
-        </div>
-        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-4 text-center">
-          <p className="text-[20px] font-bold text-[#EA580C]">{forumPosts.reduce((s, p) => s + p.views, 0).toLocaleString()}</p>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Views</p>
-        </div>
-      </div>
+      {composeOpen && (
+        <Card className="mt-5 p-4">
+          <input
+            value={composeTitle}
+            onChange={(e) => setComposeTitle(e.target.value)}
+            placeholder="Post title (optional)"
+            className="w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 py-2 text-[14px] text-[#1A1A2E] outline-none focus:border-[#683290]"
+          />
+          <input
+            value={composeCategory}
+            onChange={(e) => setComposeCategory(e.target.value)}
+            placeholder="Category (e.g. Career Advice)"
+            className="mt-2 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 py-2 text-[14px] text-[#1A1A2E] outline-none focus:border-[#683290]"
+          />
+          <input
+            value={composeTags}
+            onChange={(e) => setComposeTags(e.target.value)}
+            placeholder="Tags (comma-separated, e.g. CISSP, Career)"
+            className="mt-2 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 py-2 text-[14px] text-[#1A1A2E] outline-none focus:border-[#683290]"
+          />
+          <textarea
+            value={composeContent}
+            onChange={(e) => setComposeContent(e.target.value)}
+            placeholder="What's on your mind?"
+            rows={4}
+            className="mt-2 w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 py-2 text-[14px] text-[#1A1A2E] outline-none focus:border-[#683290]"
+          />
+          <div className="mt-3 flex justify-end gap-2">
+            <button onClick={() => setComposeOpen(false)} className="rounded-[8px] border border-[#E5E7EB] px-3 py-1.5 text-[13px] font-medium text-[#6B7280] hover:bg-[#F8F9FB]">Cancel</button>
+            <button onClick={handleSubmit} disabled={!composeContent.trim()} className="rounded-[8px] bg-[#683290] px-4 py-1.5 text-[13px] font-medium text-white hover:bg-[#542573] disabled:opacity-50">Post</button>
+          </div>
+        </Card>
+      )}
 
-      {/* Search + Categories */}
-      <div className="mb-6 space-y-4">
+      <div className="mb-6 mt-5 space-y-4">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
           <input
@@ -195,7 +194,7 @@ export default function ForumPage() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          {categories.map((cat) => (
+          {CATEGORIES.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
@@ -211,41 +210,65 @@ export default function ForumPage() {
         </div>
       </div>
 
-      {/* Pinned Posts */}
-      {pinned.length > 0 && (
-        <div className="mb-4">
-          <h3 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#683290]">
-            <Pin className="h-3 w-3" /> Pinned
-          </h3>
-          <div className="mt-2 space-y-2">
-            {pinned.map((post) => (
-              <ForumPostCard key={post.id} post={post} expanded={expandedId === post.id} onToggle={() => setExpandedId(expandedId === post.id ? null : post.id)} />
+      {loading ? (
+        <div className="py-12 text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#F1F3F5] border-t-[#683290]" />
+          <p className="mt-3 text-[13px] text-[#9CA3AF]">Loading discussions…</p>
+        </div>
+      ) : posts.length === 0 ? (
+        <EmptyState icon={<MessageSquare className="h-10 w-10" />} title="No discussions found" description="Be the first to start one!" />
+      ) : (
+        <>
+          {pinned.length > 0 && (
+            <div className="mb-4">
+              <h3 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#683290]">
+                <Pin className="h-3 w-3" /> Pinned
+              </h3>
+              <div className="mt-2 space-y-2">
+                {pinned.map((post) => (
+                  <ForumPostCard
+                    key={post.id}
+                    post={post}
+                    expanded={expandedId === post.id}
+                    onToggle={() => handleToggle(post)}
+                    onReaction={() => handleReaction(post.id)}
+                    onBookmark={() => handleBookmark(post.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="space-y-2">
+            {regular.map((post) => (
+              <ForumPostCard
+                key={post.id}
+                post={post}
+                expanded={expandedId === post.id}
+                onToggle={() => handleToggle(post)}
+                onReaction={() => handleReaction(post.id)}
+                onBookmark={() => handleBookmark(post.id)}
+              />
             ))}
           </div>
-        </div>
+        </>
       )}
-
-      {/* Regular Posts */}
-      <div className="space-y-2">
-        {regular.map((post) => (
-          <ForumPostCard key={post.id} post={post} expanded={expandedId === post.id} onToggle={() => setExpandedId(expandedId === post.id ? null : post.id)} />
-        ))}
-        {filtered.length === 0 && (
-          <div className="py-12 text-center">
-            <MessageSquare className="mx-auto h-10 w-10 text-[#E5E7EB]" />
-            <p className="mt-3 text-[14px] text-[#6B7280]">No discussions found.</p>
-          </div>
-        )}
-      </div>
     </main>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Post Card                                                                  */
-/* -------------------------------------------------------------------------- */
-
-function ForumPostCard({ post, expanded, onToggle }: { post: ForumPost; expanded: boolean; onToggle: () => void }) {
+function ForumPostCard({
+  post,
+  expanded,
+  onToggle,
+  onReaction,
+  onBookmark,
+}: {
+  post: ForumPost;
+  expanded: boolean;
+  onToggle: () => void;
+  onReaction: () => void;
+  onBookmark: () => void;
+}) {
   return (
     <div
       onClick={onToggle}
@@ -256,60 +279,52 @@ function ForumPostCard({ post, expanded, onToggle }: { post: ForumPost; expanded
       }`}
     >
       <div className="flex items-start gap-3">
-        {/* Author Avatar */}
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F4ECF8] text-[12px] font-semibold text-[#683290]">
-          {post.author.split(" ").map((n) => n[0]).join("")}
+          {(post.author.name ?? "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
         </div>
-
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            {post.pinned && <Pin className="h-3 w-3 shrink-0 text-[#683290]" />}
-            <h3 className="text-[14px] font-semibold text-[#1A1A2E] leading-snug">{post.title}</h3>
+            {post.isPinned && <Pin className="h-3 w-3 shrink-0 text-[#683290]" />}
+            <h3 className="text-[14px] font-semibold text-[#1A1A2E]">{post.title ?? post.content.slice(0, 80)}</h3>
           </div>
-
-          <div className="mt-1 flex items-center gap-2 text-[12px] text-[#6B7280]">
-            <span className="font-medium text-[#1A1A2E]">{post.author}</span>
-            <span>·</span>
-            <span>{post.authorRole}</span>
-            <span>·</span>
-            <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {post.lastActivity}</span>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-[#6B7280]">
+            <span className="font-medium text-[#1A1A2E]">{post.author.name ?? "Unknown"}</span>
+            <span className="text-[11px] text-[#9CA3AF]">{new Date(post.createdAt).toLocaleDateString()}</span>
+            {post.viewCount > 0 && (
+              <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" /> {post.viewCount}</span>
+            )}
           </div>
-
-          {/* Tags */}
           <div className="mt-2 flex flex-wrap gap-1.5">
-            <span className="rounded bg-[#F4ECF8] px-2 py-0.5 text-[10px] font-semibold text-[#683290]">{post.category}</span>
+            {post.category && <Badge variant="purple" className="text-[10px]">{post.category}</Badge>}
             {post.tags.map((tag) => (
-              <span key={tag} className="rounded bg-[#F8F9FB] px-2 py-0.5 text-[10px] font-medium text-[#6B7280]">#{tag}</span>
+              <Badge key={tag} variant="default" className="text-[10px]">#{tag}</Badge>
             ))}
           </div>
-
-          {/* Expanded Content */}
           {expanded && (
             <div className="mt-3 border-t border-[#E5E7EB] pt-3">
               <p className="text-[13px] text-[#6B7280] leading-relaxed">{post.content}</p>
-              <div className="mt-3 flex items-center gap-4">
-                <button className="flex items-center gap-1.5 rounded-[6px] border border-[#E5E7EB] px-3 py-1.5 text-[12px] font-medium text-[#6B7280] transition hover:bg-[#F8F9FB]">
-                  <ThumbsUp className="h-3.5 w-3.5" /> {post.likes}
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onReaction(); }}
+                  className={`flex items-center gap-1.5 rounded-[6px] border px-3 py-1.5 text-[12px] font-medium transition ${post.viewerReaction ? "border-[#683290] bg-[#F4ECF8] text-[#683290]" : "border-[#E5E7EB] text-[#6B7280] hover:bg-[#F8F9FB]"}`}
+                >
+                  <ThumbsUp className="h-3.5 w-3.5" /> {post._count.reactions}
                 </button>
-                <button className="flex items-center gap-1.5 rounded-[6px] border border-[#E5E7EB] px-3 py-1.5 text-[12px] font-medium text-[#6B7280] transition hover:bg-[#F8F9FB]">
-                  <MessageSquare className="h-3.5 w-3.5" /> {post.replies} replies
+                <button
+                  onClick={(e) => { e.stopPropagation(); onBookmark(); }}
+                  className={`flex items-center gap-1.5 rounded-[6px] border px-3 py-1.5 text-[12px] font-medium transition ${post.viewerBookmarked ? "border-[#683290] bg-[#F4ECF8] text-[#683290]" : "border-[#E5E7EB] text-[#6B7280] hover:bg-[#F8F9FB]"}`}
+                >
+                  {post.viewerBookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
+                  {post.viewerBookmarked ? "Bookmarked" : "Bookmark"}
                 </button>
               </div>
             </div>
           )}
         </div>
-
-        {/* Stats */}
         <div className="hidden shrink-0 text-right sm:block">
-          <div className="flex items-center gap-1 text-[12px] text-[#6B7280]">
-            <MessageSquare className="h-3 w-3" /> {post.replies}
-          </div>
-          <div className="mt-1 flex items-center gap-1 text-[12px] text-[#9CA3AF]">
-            <Eye className="h-3 w-3" /> {post.views.toLocaleString()}
-          </div>
-          <div className="mt-1 flex items-center gap-1 text-[12px] text-[#9CA3AF]">
-            <ThumbsUp className="h-3 w-3" /> {post.likes}
-          </div>
+          <div className="flex items-center justify-end gap-1 text-[12px] text-[#6B7280]"><MessageSquare className="h-3 w-3" /> {post._count.comments}</div>
+          <div className="mt-1 flex items-center justify-end gap-1 text-[12px] text-[#9CA3AF]"><Eye className="h-3 w-3" /> {post.viewCount}</div>
+          <div className="mt-1 flex items-center justify-end gap-1 text-[12px] text-[#9CA3AF]"><ThumbsUp className="h-3 w-3" /> {post._count.reactions}</div>
         </div>
       </div>
     </div>

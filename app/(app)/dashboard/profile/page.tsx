@@ -1,8 +1,9 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { apiFetchSafe } from "@/lib/api";
-import { Award, BookOpen, Check, MessageSquare, Target, TrendingUp } from "lucide-react";
-import { Badge, Card, PageHeader, StatCard } from "@/components/DesignSystem";
+import { Award, BookOpen, Check, Download, Eye, MessageSquare, Target, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import { Badge, Button, Card, PageHeader, StatCard } from "@/components/DesignSystem";
 import { ProfileActions } from "./ProfileActions";
 
 interface GamificationData {
@@ -79,6 +80,11 @@ export default async function ProfilePage() {
     ? await apiFetchSafe<GrowthResponse>(`/users/${user.id}/growth`, { growthRecord: null, latestMonthlyScore: null })
     : { growthRecord: null, latestMonthlyScore: null };
   const hasAssessmentData = growth.growthRecord || growth.latestMonthlyScore !== null;
+
+  const certificates = await apiFetchSafe<
+    { id: string; certUid: string; courseTitle: string | null; issuedAt: string; isLegacy: boolean; pdfUrl: string | null }[]
+  >("/me/certificates", []);
+  const certList = Array.isArray(certificates) ? certificates : (certificates as unknown as { certificates?: typeof certificates })?.certificates ?? [];
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 px-1 pb-8 sm:px-2">
@@ -188,6 +194,53 @@ export default async function ProfilePage() {
           </div>
         </section>
       )}
+
+      <section aria-labelledby="certificates-heading">
+        <div className="mb-4">
+          <h2 id="certificates-heading" className="font-serif text-2xl text-[#1A1A2E]">Certificates</h2>
+          <p className="mt-1 text-sm text-[#666666]">Your issued course certificates.</p>
+        </div>
+        {certList.length === 0 ? (
+          <Card className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+            <Award aria-hidden="true" className="h-10 w-10 text-[#683290]/30" />
+            <p className="text-sm text-[#666666]">No certificates issued yet. Complete a course to earn one.</p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {certList.map((cert) => (
+              <Card key={cert.id} className="flex flex-col gap-3 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-[15px] font-medium text-[#1A1A2E]">{cert.courseTitle ?? "Course certificate"}</p>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${cert.isLegacy ? "bg-[#FEF3C7] text-[#92400E]" : "bg-[#F0FDF4] text-[#16A34A]"}`}
+                  >
+                    {cert.isLegacy ? "Legacy" : "Completed"}
+                  </span>
+                </div>
+                <p className="text-[12px] text-[#6B7280]">Issued {new Date(cert.issuedAt).toLocaleDateString()}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/certificates/${cert.certUid}`}
+                    className="inline-flex items-center gap-1.5 rounded-[8px] border border-[#E5E7EB] px-3 py-1.5 text-[13px] font-medium text-[#1A1A2E] transition hover:bg-[#F8F9FB]"
+                  >
+                    <Eye className="h-3.5 w-3.5" /> View
+                  </Link>
+                  {cert.pdfUrl && (
+                    <a
+                      href={`/api/proxy/certificates/${cert.certUid}/pdf`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-[8px] bg-[#683290] px-3 py-1.5 text-[13px] font-medium text-white transition hover:bg-[#542573]"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Download PDF
+                    </a>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
 
       <Card padding="lg">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
