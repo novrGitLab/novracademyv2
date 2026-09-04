@@ -16,22 +16,45 @@ function priceCentsFromForm(formData: FormData): number | undefined {
   return Math.round(major * 100);
 }
 
-export async function createCourseAction(formData: FormData) {
-  const course = await apiFetch<{ id: string }>("/courses", {
-    method: "POST",
-    body: JSON.stringify({
-      title: String(formData.get("title")),
-      description: String(formData.get("description") ?? "") || undefined,
-      thumbnailUrl: String(formData.get("thumbnailUrl") ?? "") || undefined,
-      priceCents: priceCentsFromForm(formData),
-      currency: String(formData.get("currency") ?? "NGN"),
-      passMarkPct: numberOrUndefined(formData.get("passMarkPct")),
-      allowForwardScrub: formData.get("allowForwardScrub") === "on",
-      defaultValidityDays: numberOrUndefined(formData.get("defaultValidityDays")),
-    }),
-  });
+export type CreateCourseResult = { ok: true; courseId: string } | { ok: false; error: string };
+
+export async function createCourseAction(formData: FormData): Promise<CreateCourseResult> {
+  const title = String(formData.get("title") ?? "").trim();
+  if (!title) {
+    return { ok: false, error: "A course title is required." };
+  }
+  if (title.length > 120) {
+    return { ok: false, error: "Keep the title under 120 characters." };
+  }
+
+  const thumbnail = String(formData.get("thumbnailUrl") ?? "") || undefined;
+  if (thumbnail && thumbnail.length > 1_500_000) {
+    return { ok: false, error: "Thumbnail is too large — choose a smaller image." };
+  }
+
+  let courseId: string;
+  try {
+    const course = await apiFetch<{ id: string }>("/courses", {
+      method: "POST",
+      body: JSON.stringify({
+        title,
+        description: String(formData.get("description") ?? "") || undefined,
+        thumbnailUrl: thumbnail,
+        priceCents: priceCentsFromForm(formData),
+        currency: String(formData.get("currency") ?? "NGN"),
+        passMarkPct: numberOrUndefined(formData.get("passMarkPct")),
+        allowForwardScrub: formData.get("allowForwardScrub") === "on",
+        defaultValidityDays: numberOrUndefined(formData.get("defaultValidityDays")),
+      }),
+    });
+    courseId = course.id;
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Could not create the course. Please try again." };
+  }
+
   revalidatePath("/admin/courses");
-  redirect(`/admin/courses/${course.id}`);
+  revalidatePath("/dashboard/learn");
+  redirect(`/admin/courses/${courseId}`);
 }
 
 export async function updateCourseAction(courseId: string, formData: FormData) {
@@ -57,6 +80,7 @@ export async function setCourseStatusAction(courseId: string, status: "DRAFT" | 
   await apiFetch(`/courses/${courseId}`, { method: "PATCH", body: JSON.stringify({ status }) });
   revalidatePath(`/admin/courses/${courseId}`);
   revalidatePath("/admin/courses");
+  revalidatePath("/dashboard/learn");
 }
 
 export async function setVideoUrlAction(courseId: string, lessonId: string, url: string) {
@@ -70,6 +94,7 @@ export async function setVideoUrlAction(courseId: string, lessonId: string, url:
 export async function deleteCourseAction(courseId: string) {
   await apiFetch(`/courses/${courseId}`, { method: "DELETE" });
   revalidatePath("/admin/courses");
+  revalidatePath("/dashboard/learn");
   redirect("/admin/courses");
 }
 
@@ -154,7 +179,22 @@ export async function setPdfAllowDownloadAction(courseId: string, lessonId: stri
   revalidatePath(`/admin/courses/${courseId}/lessons/${lessonId}`);
 }
 
-export async function updateQuizSettingsAction(courseId: string, lessonId: string, formData: FormData) {
+/** Returns a presigned R2 PUT URL so the browser can upload a .pptx straight to R2. */
+export async function requestSlidesPptxUploadUrlAction(courseId: string, lessonId: string) {
+  return apiFetch<{ uploadUrl: string; key: string }>(
+    `/courses/${courseId}/lessons/${lessonId}/slides/upload-url`,
+    { method: "POST" }
+  );
+}
+
+/** Tells the backend the .pptx is uploaded; it parses + attaches the manifest. */
+export async function importSlidesPptxAction(courseId: string, lessonId: string, key: string) {
+  await apiFetch(`/courses/${courseId}/lessons/${lessonId}/slides/import`, {
+    method: "POST",
+    body: JSON.stringify({ key }),
+  });
+  revalidatePath(`/admin/courses/${courseId}/lessons/${lessonId}`);
+}export async function updateQuizSettingsAction(courseId: string, lessonId: string, formData: FormData) {
   await apiFetch(`/courses/${courseId}/lessons/${lessonId}/quiz`, {
     method: "PATCH",
     body: JSON.stringify({

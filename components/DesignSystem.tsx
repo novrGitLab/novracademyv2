@@ -208,10 +208,17 @@ export interface SlidesManifest {
   remoteDeckId?: string;
 }
 
-export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
+export function SlidesLessonViewer({ manifest, className = "" }: { manifest: SlidesManifest; className?: string }) {
   const [current, setCurrent] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [presenting, setPresenting] = useState(false);
+  const [autoplay, setAutoplay] = useState(false);
+  const [showThumbs, setShowThumbs] = useState(false);
+  const [zoom, setZoom] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const touchStartX = useRef<number | null>(null);
+  const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasContent = manifest.slidesData && manifest.slidesData.length > 0;
   const mode = manifest.mode ?? (hasContent ? "composited" : "raster");
@@ -219,6 +226,100 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
   const slideH = manifest.slideH ?? 6858000;
   const timings = manifest.slideTimings ?? [];
   const total = manifest.slideCount || (mode === "composited" ? manifest.slidesData?.length ?? 0 : manifest.slideImages.length);
+  const hasAudio = Boolean(manifest.audioUrl);
+
+  // Fluid typography: the stage keeps a fixed 16:9 aspect ratio but its
+  // rendered width varies with the viewport/container. We measure the real
+  // stage width with a ResizeObserver and derive `stageScale`
+  // (= renderedWidth / designWidth). Every text box is then sized with
+  // clamp() around that scale so type grows/shrinks with the actual rendered
+  // box — not the viewport — and never collapses below a readable floor.
+  const [stageScale, setStageScale] = useState(1);
+
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    // Reference width: the width at which a designed point (pt) maps to a
+    // device pixel at 96dpi — i.e. where 1 slide "unit" == 1px at 16:9.
+    // slideW is in EMU (914400/inch); at 96dpi that's slideW/914400*96 px.
+    const designPx = (slideW / 914400) * 96; // e.g. 12192000 EMU ≈ 1280px
+    const update = () => {
+      const w = el.clientWidth;
+      if (w > 0) setStageScale(designPx > 0 ? w / designPx : 1);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [slideW]);
+
+  /**
+   * Fluid px for a designed font size (pt) at the current stage scale.
+   * `minOverridePx`, when provided, lets the content-fit pass shrink text
+   * below the normal readability floor so no text is ever clipped.
+   */
+  function fluidFont(basePt: number | undefined, minOverridePx?: number): string {
+    const pt = basePt ?? 18;
+    // Designed size in px at 96dpi: pt → px = pt/72*96 = pt*4/3.
+    const designPx = (pt * 4) / 3;
+    // Scale by actual stage width. clamp() keeps a readable minimum
+    // (accessibility: never collapse to unreadable) and a sane maximum so
+    // oversized viewports don't blow text past its layout box proportion.
+    const scaled = designPx * stageScale;
+    const min = minOverridePx ?? Math.max(designPx * 0.6, 11); // floor: 60% of design or 11px, whichever is larger
+    const max = designPx * 1.1; // cap: never exceed design size by more than 10%
+    return `clamp(${min.toFixed(2)}px, ${scaled.toFixed(2)}px, ${max.toFixed(2)}px)`;
+  }
+
+  // Content-aware auto-shrink: after each slide becomes current (and whenever
+  // the stage resizes), measure every text box on that slide. If a box's text
+  // overflows its fixed bounds, step the font down until it fits — this keeps
+  // long content fully visible without truncation, while boxes that fit stay
+  // at their designed size. Stored in a ref so it doesn't re-render loops.
+  const textEls = useRef<Map<number, HTMLDivElement | null>>(new Map());
+  const fitSizes = useRef<Map<number, number>>(new Map());
+
+  useEffect(() => {
+    // Measure after the current slide's text has painted. Only the visible
+    // slide is measured (keys encode slide*1000+item); off-screen slides are
+    // skipped so font-fitting only runs on what the user can see.
+    const raf = requestAnimationFrame(() => {
+      if (mode !== "composited") return;
+      textEls.current.forEach((el, key) => {
+        const slideIdx = Math.floor(key / 1000);
+        if (slideIdx !== current) return;
+        if (!el || !el.parentElement) return;
+        const box = el.parentElement;
+        const boxW = box.clientWidth;
+        const boxH = box.clientHeight;
+        if (boxW <= 0 || boxH <= 0) return;
+        const basePt = fitSizes.current.get(key);
+        if (!basePt) return;
+        // Step-down: from the designed size, reduce until the text no longer
+        // exceeds its box. Down to ~9px (still legible) so content is never
+        // clipped; boxes that already fit stay at their designed size.
+        const floorPx = 9;
+        let ratio = 1;
+        let guard = 0;
+        el.style.fontSize = fluidFont(basePt * ratio, floorPx);
+        while (guard < 40) {
+          const overW = el.scrollWidth > boxW + 1;
+          const overH = el.scrollHeight > boxH + 1;
+          if (!overW && !overH) break;
+          // If the clamp already hit its 9px floor, further ratio changes
+          // won't shrink the applied size — stop to avoid a pointless loop.
+          const currentPx = parseFloat(el.style.fontSize);
+          if (currentPx <= floorPx + 0.5) break;
+          ratio = Math.max(0.3, ratio - 0.04);
+          el.style.fontSize = fluidFont(basePt * ratio, floorPx);
+          guard++;
+        }
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, stageScale, mode, manifest]);
+
 
   function goPrev() { setCurrent((c) => Math.max(0, c - 1)); }
   function goNext() { setCurrent((c) => Math.min(total - 1, c + 1)); }
@@ -229,6 +330,51 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
     else audio.pause();
   }
 
+  // Slideshow / fullscreen: request browser fullscreen on the stage. When
+  // active, the stage fills the screen on a black backdrop and the standard
+  // prev/next + keyboard controls keep working. Esc exits via the browser.
+  async function togglePresent() {
+    const stage = stageRef.current;
+    if (!stage) return;
+    try {
+      if (presenting) {
+        await (document.exitFullscreen?.() ?? Promise.resolve());
+      } else {
+        await stage.requestFullscreen?.();
+      }
+    } catch {
+      // Fullscreen API unsupported/denied — keep the inline player usable.
+    }
+  }
+
+  useEffect(() => {
+    const onFsChange = () => {
+      const fs = Boolean(document.fullscreenElement);
+      setPresenting(fs);
+      if (!fs) setZoom(false);
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
+  // Auto-advance: when enabled and there's no narration (or narration is
+  // paused), advance every 6s so the deck runs hands-free in fullscreen.
+  // Pauses when the user manually navigates to stay in sync with intent.
+  useEffect(() => {
+    if (autoTimer.current) { clearTimeout(autoTimer.current); autoTimer.current = null; }
+    if (!autoplay || hasAudio && playing) return;
+    autoTimer.current = setTimeout(() => {
+      setCurrent((c) => {
+        if (c >= total - 1) {
+          setAutoplay(false);
+          return c;
+        }
+        return c + 1;
+      });
+    }, 6000);
+    return () => { if (autoTimer.current) clearTimeout(autoTimer.current); };
+  }, [autoplay, playing, hasAudio, current, total]);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const t = e.target as HTMLElement;
@@ -236,15 +382,38 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
       if (e.code === "Space") { e.preventDefault(); togglePlay(); }
       else if (e.key === "ArrowLeft") { e.preventDefault(); goPrev(); }
       else if (e.key === "ArrowRight") { e.preventDefault(); goNext(); }
+      else if (e.key === "Escape") { setZoom(false); }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [total, timings]);
 
+  // Touch swipe (mobile): horizontal swipe navigates slides.
+  const touchHandlers = {
+    onTouchStart: (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; },
+    onTouchEnd: (e: React.TouchEvent) => {
+      if (touchStartX.current === null) return;
+      const dx = e.changedTouches[0].clientX - touchStartX.current;
+      touchStartX.current = null;
+      if (Math.abs(dx) < 48) return;
+      if (dx < 0) goNext(); else goPrev();
+    },
+  };
+
+  const progressPct = total > 0 ? ((current + 1) / total) * 100 : 0;
+
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className={`flex flex-col items-center gap-4 ${className}`}>
       {/* Full-bleed stage */}
-      <div className="relative w-full overflow-hidden rounded-card border border-border bg-black shadow-[0_4px_20px_rgba(26,26,46,0.15)]" style={{ aspectRatio: "16/9" }}>
+      <div
+        ref={stageRef}
+        {...touchHandlers}
+        className={`relative w-full overflow-hidden rounded-card border border-border bg-black shadow-[0_4px_20px_rgba(26,26,46,0.15)] ${
+          presenting ? "flex items-center justify-center !rounded-none !border-0" : ""
+        }`}
+        style={{ aspectRatio: "16/9" }}
+      >
         {/* Raster mode: pre-rendered slide PNGs */}
         {mode === "raster" && manifest.slideImages.map((url, i) => (
           <img
@@ -252,8 +421,14 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
             src={url}
             alt={`Slide ${i + 1}`}
             loading={i === 0 ? "eager" : "lazy"}
+            onClick={i === current ? () => setZoom((z) => !z) : undefined}
             className="absolute inset-0 h-full w-full object-contain transition-opacity duration-300"
-            style={{ opacity: i === current ? 1 : 0, pointerEvents: i === current ? "auto" : "none" }}
+            style={{
+              opacity: i === current ? 1 : 0,
+              pointerEvents: i === current ? "auto" : "none",
+              transform: i === current && zoom ? "scale(1.6)" : "scale(1)",
+              cursor: i === current ? "zoom-in" : "default",
+            }}
           />
         ))}
 
@@ -271,25 +446,42 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
                 );
               }
               if (item.type === "text" && item.text && item.x != null && item.y != null) {
-                const vw = ((item.fontSize ?? 18) / 72) * 13.333333;
+                const basePt = item.fontSize ?? 18;
+                const itemKey = si * 1000 + ii;
                 return (
                   <div
                     key={ii}
-                    className="absolute"
+                    className="absolute flex"
                     style={{
                       left: `${(item.x / slideW) * 100}%`,
                       top: `${(item.y / slideH) * 100}%`,
                       width: `${((item.w ?? 0) / slideW) * 100}%`,
                       height: `${((item.h ?? 0) / slideH) * 100}%`,
-                      fontSize: `min(${vw}vw, ${(item.fontSize ?? 18) * 1.4}px)`,
-                      lineHeight: "1.15",
-                      fontWeight: item.bold ? 700 : 400,
-                      textAlign: (item.align as "left" | "center" | "right") || "left",
-                      color: item.color || undefined,
-                      whiteSpace: "pre-wrap",
+                      alignItems: item.align === "center" ? "center" : "flex-start",
+                      overflow: "visible",
                     }}
                   >
-                    {item.text}
+                    <div
+                      ref={(node) => { textEls.current.set(itemKey, node); fitSizes.current.set(itemKey, basePt); }}
+                      className="min-w-0"
+                      style={{
+                        fontSize: fluidFont(basePt),
+                        lineHeight: 1.15,
+                        fontWeight: item.bold ? 700 : 400,
+                        textAlign: (item.align as "left" | "center" | "right") || "left",
+                        color: item.color || undefined,
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                        // Allow the box to size to its text, capped at the
+                        // container's width/height so long content wraps
+                        // instead of overflowing.
+                        maxWidth: "100%",
+                        maxHeight: "100%",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {item.text}
+                    </div>
                   </div>
                 );
               }
@@ -331,6 +523,17 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
           {current + 1} / {total}
         </div>
 
+        {/* Progress bar */}
+        <div className="absolute inset-x-0 bottom-0 z-10 h-1 bg-white/10">
+          <div className="h-full bg-[#683290] transition-all duration-300" style={{ width: `${progressPct}%` }} />
+        </div>
+
+        {zoom && (
+          <div className="absolute right-3 top-3 z-20 rounded-full bg-black/70 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+            Zoomed — click slide to reset
+          </div>
+        )}
+
         {/* Dots */}
         {total <= 10 && total > 1 && (
           <div className="absolute bottom-3 right-3 z-10 flex gap-1.5">
@@ -342,6 +545,30 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
           </div>
         )}
       </div>
+
+      {/* Thumbnail strip */}
+      {showThumbs && total > 1 && (
+        <div className="flex w-full max-w-3xl gap-2 overflow-x-auto pb-1">
+          {Array.from({ length: total }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              aria-label={`Go to slide ${i + 1}`}
+              className={`relative h-14 w-24 shrink-0 overflow-hidden rounded border transition ${
+                i === current ? "border-[#683290] ring-2 ring-[#683290]/40" : "border-border opacity-70 hover:opacity-100"
+              }`}
+            >
+              {mode === "raster" ? (
+                <img src={manifest.slideImages[i]} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-surface text-[10px] font-medium text-text-secondary">
+                  {i + 1}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Controls + audio */}
       <div className="flex w-full max-w-3xl flex-col items-center gap-3">
@@ -385,10 +612,46 @@ export function SlidesLessonViewer({ manifest }: { manifest: SlidesManifest }) {
           </div>
         )}
 
-        {manifest.pptxUrl && (
-          <a href={manifest.pptxUrl} target="_blank" rel="noopener noreferrer"
-            className="text-[13px] font-medium text-[#4451A2] hover:underline">Download PowerPoint</a>
-        )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={togglePresent}
+            className="inline-flex items-center gap-1.5 rounded-card border border-border px-3 py-1.5 text-[13px] font-medium text-text-primary transition hover:bg-surface"
+            aria-label={presenting ? "Exit fullscreen" : "Present slideshow (fullscreen)"}
+          >
+            {presenting ? "Exit fullscreen" : "Present"}
+          </button>
+          {total > 1 && (
+            <>
+              <button
+                onClick={() => setAutoplay((a) => !a)}
+                disabled={hasAudio && playing}
+                className={`inline-flex items-center gap-1.5 rounded-card border px-3 py-1.5 text-[13px] font-medium transition ${
+                  autoplay
+                    ? "border-[#683290] bg-[#683290] text-white"
+                    : "border-border text-text-primary hover:bg-surface"
+                }`}
+                aria-label="Toggle auto-advance"
+              >
+                {autoplay ? "Autoplay on" : "Autoplay"}
+              </button>
+              <button
+                onClick={() => setShowThumbs((s) => !s)}
+                className={`inline-flex items-center gap-1.5 rounded-card border px-3 py-1.5 text-[13px] font-medium transition ${
+                  showThumbs
+                    ? "border-[#683290] bg-[#683290] text-white"
+                    : "border-border text-text-primary hover:bg-surface"
+                }`}
+                aria-label="Toggle slide thumbnails"
+              >
+                Thumbnails
+              </button>
+            </>
+          )}
+          {manifest.pptxUrl && (
+            <a href={manifest.pptxUrl} target="_blank" rel="noopener noreferrer"
+              className="text-[13px] font-medium text-[#4451A2] hover:underline">Download PowerPoint</a>
+          )}
+        </div>
       </div>
     </div>
   );

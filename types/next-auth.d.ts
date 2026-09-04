@@ -70,5 +70,7 @@ declare module "next-auth/jwt" {
       backgroundColor?: string | null;
       textColor?: string | null;
     } | null;
+    /** Epoch-ms of the last DB-backed claims refresh in the jwt() callback. */
+    claimsUpdatedAt?: number;
   }
 }

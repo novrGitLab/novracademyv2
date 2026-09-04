@@ -121,15 +121,15 @@ export default async function DashboardPage() {
   const overallCompletion = user?.enrollmentCount ? Math.min(100, Math.max(8, Math.round(((user.certificateCount ?? 0) / user.enrollmentCount) * 100))) : 0;
   const roleLabel = user?.role ? roleLabels[user.role] ?? user.role : undefined;
 
-  // Real enrollments with live progress, driving the "My Courses" section
-  const enrollments = await apiFetchSafe<MyEnrollment[]>("/me/enrollments", []);
-
-  // Real badges from gamification API
-  const badgesResponse = await apiFetchSafe<{ badges: BadgeData[] }>("/gamification/badges", { badges: [] });
+  // Real enrollments with live progress, driving the "My Courses" section.
+  // Fetched in parallel with badges + certificates (independent reads) so the
+  // page waits one round-trip instead of three serial ones.
+  const [enrollments, badgesResponse, certificates] = await Promise.all([
+    apiFetchSafe<MyEnrollment[]>("/me/enrollments", []),
+    apiFetchSafe<{ badges: BadgeData[] }>("/gamification/badges", { badges: [] }),
+    apiFetchSafe<MyCertificate[]>("/me/certificates", []),
+  ]);
   const badges = badgesResponse.badges;
-
-  // Real certificates from the API
-  const certificates = await apiFetchSafe<MyCertificate[]>("/me/certificates", []);
 
   // Real feature content — labs and live classes link through to their pages.
   const features = [
@@ -179,6 +179,7 @@ export default async function DashboardPage() {
                 title={enrollment.course.title}
                 progress={Math.round(enrollment.progressPct)}
                 tone={index % 2 === 0 ? "blue" : "purple"}
+                thumbnailUrl={enrollment.course.thumbnailUrl}
                 href={`/dashboard/learn/${enrollment.course.id}`}
               />
             ))

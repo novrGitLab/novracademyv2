@@ -74,9 +74,12 @@ body:has(.novr-loader--exiting)::-webkit-scrollbar {
   stroke-linecap: butt;
 }
 
-.novr-loader__arc-svg--blue   { stroke: var(--novr-blue);   stroke-dashoffset: -76; animation: novr-arc-blue-cycle var(--loader-loop) linear infinite; }
-.novr-loader__arc-svg--red    { stroke: var(--novr-red);    stroke-dashoffset: -1;  animation: novr-arc-red-cycle var(--loader-loop) linear infinite; }
-.novr-loader__arc-svg--violet { stroke: var(--novr-violet); stroke-dashoffset: -26; animation: novr-arc-violet-cycle var(--loader-loop) linear infinite; }
+/* Base state: arcs hidden (dash 0) so the very first paint matches the
+   animation's 0% keyframe — otherwise the full circles flash for one
+   frame before the draw animation kicks in (the "red flash"). */
+.novr-loader__arc-svg--blue   { stroke: var(--novr-blue);   stroke-dashoffset: -76; stroke-dasharray: 0 100; animation: novr-arc-blue-cycle var(--loader-loop) linear infinite; }
+.novr-loader__arc-svg--red    { stroke: var(--novr-red);    stroke-dashoffset: -1;  stroke-dasharray: 0 100; animation: novr-arc-red-cycle var(--loader-loop) linear infinite; }
+.novr-loader__arc-svg--violet { stroke: var(--novr-violet); stroke-dashoffset: -26; stroke-dasharray: 0 100; animation: novr-arc-violet-cycle var(--loader-loop) linear infinite; }
 
 /* Seam covers: paint the ring's background (white, or the overlay
    color of the surface the ring sits on) over each gap so the gap
@@ -246,17 +249,20 @@ body:has(.novr-loader:not(.novr-loader--exiting)) {
 }
 
 /* ═══════════════ CONTENT-AREA LOADER (LMS navigation) ═══════════════
-   Compact Blueprint ring inside a white panel. Position it inside a
-   relatively-positioned container (e.g. the <main> content area); it
-   covers only that area, not the viewport.                            */
+   Covers the full height of the scrollable content area (not just the
+   visible scrollport). The host is absolute over a `relative min-h-full`
+   wrapper that grows with the page content, and carries the white
+   background so the cover spans the entire page. The loader panel is
+   sticky + exactly viewport-tall and transparent, so the ring stays
+   centered in what the user currently sees at any scroll position.     */
 .novr-content-loader {
-  position: absolute;
-  inset: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
   z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
 }
 
 .novr-content-loader__ring {
@@ -265,13 +271,14 @@ body:has(.novr-loader:not(.novr-loader--exiting)) {
   position: relative;
 }
 
-/* Host wrapper: stretches over the scrolled content area. Placed
-   inside <main> which scrolls — absolute inset targets the full
-   scrollable content, not just the visible pane. */
+/* Host wrapper: absolute over the `relative min-h-full` content wrapper
+   in ContentArea, so it spans the full scrollable height. White panel
+   lives here so the whole page (not just the viewport) is covered. */
 .novr-content-loader-host {
   position: absolute;
   inset: 0;
   z-index: 50;
+  background: #ffffff;
 }
 
 /* The ring inside the content loader loops faster — navigation is
@@ -282,30 +289,28 @@ body:has(.novr-loader:not(.novr-loader--exiting)) {
 .novr-content-loader .novr-loader__sheen           { animation-duration: 1600ms; }
 
 @media (prefers-reduced-motion: reduce) {
-  .novr-content-loader .novr-loader__arc-svg {
-    animation: none !important;
-  }
-  .novr-content-loader .novr-loader__arc-svg--blue   { stroke-dasharray: 23 77; stroke-dashoffset: -76; }
-  .novr-content-loader .novr-loader__arc-svg--red    { stroke-dasharray: 23 77; stroke-dashoffset: -1; }
-  .novr-content-loader .novr-loader__arc-svg--violet { stroke-dasharray: 48 52; stroke-dashoffset: -26; }
+  .novr-content-loader .novr-loader__arc-svg--blue   { animation-duration: 1600ms; }
+  .novr-content-loader .novr-loader__arc-svg--red    { animation-duration: 1600ms; }
+  .novr-content-loader .novr-loader__arc-svg--violet { animation-duration: 1600ms; }
   .novr-content-loader .novr-loader__sheen { animation: none !important; opacity: 0; }
 }
 
 /* ═══════════════ REDUCED MOTION ═══════════════
-   Static completed tri-color O, then a simple opacity fade. */
+   A loading indicator is essential progress feedback, so the ring's
+   draw loop still runs — but the decorative extras (sheen orbit,
+   floating wordmark, page-scale settle) are stripped, and the exit is
+   a plain opacity fade.                                               */
 @media (prefers-reduced-motion: reduce) {
-  .novr-loader__arc-svg,
+  .novr-loader__arc-svg--blue   { animation: novr-arc-blue-cycle var(--loader-loop) linear infinite; }
+  .novr-loader__arc-svg--red    { animation: novr-arc-red-cycle var(--loader-loop) linear infinite; }
+  .novr-loader__arc-svg--violet { animation: novr-arc-violet-cycle var(--loader-loop) linear infinite; }
+
   .novr-loader__sheen,
   .novr-loader__wordmark,
-  .novr-loader__ring,
   .novr-loader__halo,
   .novr-page-enter {
     animation: none !important;
   }
-
-  .novr-loader__arc-svg--blue   { stroke-dasharray: 23 77; stroke-dashoffset: -76; }
-  .novr-loader__arc-svg--red    { stroke-dasharray: 23 77; stroke-dashoffset: -1; }
-  .novr-loader__arc-svg--violet { stroke-dasharray: 48 52; stroke-dashoffset: -26; }
   .novr-loader__sheen { opacity: 0; }
   .novr-loader__wordmark { opacity: 1; transform: translateX(-50%); }
 

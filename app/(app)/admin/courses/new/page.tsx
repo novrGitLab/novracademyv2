@@ -1,18 +1,25 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import { createCourseAction } from "../actions";
 import { ThumbnailUpload } from "@/components/ui/ThumbnailUpload";
 import { CURRENCIES } from "@/lib/currency";
 
 export default function NewCoursePage() {
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
 
   function handleSubmit(formData: FormData) {
+    setError(null);
     startTransition(async () => {
-      await createCourseAction(formData);
+      const result = await createCourseAction(formData);
+      // On success the action redirects before returning.
+      if (result && !result.ok) {
+        setError(result.error);
+      }
     });
   }
 
@@ -30,17 +37,38 @@ export default function NewCoursePage() {
         <header className="border-b border-border pb-4">
           <h1 className="text-[22px] font-semibold text-text-primary">New Course</h1>
           <p className="mt-1 text-[14px] text-text-secondary">
-            Set up the core course details to create the initial shell.
+            Set up the core details — you can add lessons right after creating.
           </p>
         </header>
 
+        {error && (
+          <div className="mt-4 flex items-start gap-2 rounded-card border border-[#FECACA] bg-[#FEF2F2] px-3 py-2.5 text-[13px] text-red" role="alert">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
+
         <form action={handleSubmit} className="mt-6 space-y-4">
-          <Field label="Title" name="title" required placeholder="e.g. Advanced TypeScript Fundamentals" />
+          <div>
+            <Field
+              label="Title"
+              name="title"
+              required
+              placeholder="e.g. Advanced TypeScript Fundamentals"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={120}
+            />
+            <p className="mt-1 text-[12px] text-text-secondary/70">
+              {title.trim() ? `${title.trim().length}/120` : "This becomes the course name learners see."}
+            </p>
+          </div>
           <Field label="Description" name="description" textarea placeholder="Overview of what students will learn..." />
 
           <div>
             <label className="block text-[13px] font-medium text-text-secondary">Thumbnail image</label>
             <ThumbnailUpload name="thumbnailUrl" />
+            <p className="mt-1 text-[12px] text-text-secondary/70">Optional — shown on course cards. Images are resized automatically.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -87,7 +115,8 @@ export default function NewCoursePage() {
             </Link>
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || !title.trim()}
+              title={!title.trim() ? "Enter a course title first" : undefined}
               className="inline-flex items-center gap-2 rounded-card bg-blue px-4 py-2 text-[14px] font-medium text-white shadow-card hover:bg-blue/90 disabled:opacity-50 transition-all"
             >
               {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -95,6 +124,15 @@ export default function NewCoursePage() {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* What happens next — sets expectations for the flow */}
+      <div className="mt-4 flex items-start gap-2 rounded-card border border-border bg-surface/50 px-4 py-3 text-[13px] text-text-secondary">
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+        <p>
+          After creating, you&apos;ll land on the course page where you can add video, PDF, and slide lessons — then
+          publish when you&apos;re ready.
+        </p>
       </div>
     </div>
   );
@@ -110,6 +148,9 @@ function Field({
   textarea,
   step,
   min,
+  value,
+  onChange,
+  maxLength,
 }: {
   label: string;
   name: string;
@@ -120,7 +161,12 @@ function Field({
   textarea?: boolean;
   step?: string;
   min?: string;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  maxLength?: number;
 }) {
+  const classes =
+    "mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary placeholder:text-text-secondary/40 outline-none focus:border-blue transition-colors";
   return (
     <div>
       <label htmlFor={name} className="block text-[13px] font-medium text-text-secondary">
@@ -133,7 +179,7 @@ function Field({
           defaultValue={defaultValue}
           placeholder={placeholder}
           rows={3}
-          className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary placeholder:text-text-secondary/40 outline-none focus:border-blue transition-colors"
+          className={classes}
         />
       ) : (
         <input
@@ -145,7 +191,10 @@ function Field({
           required={required}
           step={step}
           min={min}
-          className="mt-1 w-full rounded-card border border-border bg-surface px-3 py-2 text-[15px] text-text-primary placeholder:text-text-secondary/40 outline-none focus:border-blue transition-colors"
+          value={value}
+          onChange={onChange}
+          maxLength={maxLength}
+          className={classes}
         />
       )}
     </div>

@@ -3,6 +3,31 @@
 import { useCallback, useEffect, useState } from "react";
 
 /**
+ * Dedupes concurrent `useApi` fetches for the same path within one module
+ * lifetime. Two components mounting in the same tick (e.g. a page and its
+ * shared layout widget both fetching "/me/org") share one network request
+ * instead of firing duplicates.
+ */
+const inFlight = new Map<string, Promise<unknown>>();
+
+function fetchDeduped<T>(path: string): Promise<T> {
+  const key = path;
+  const existing = inFlight.get(key);
+  if (existing) return existing as Promise<T>;
+
+  const promise = fetch(`/api/proxy${path}`, { cache: "no-store" })
+    .then(async (res) => {
+      if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+      return (await res.json()) as T;
+    })
+    .finally(() => {
+      inFlight.delete(key);
+    });
+  inFlight.set(key, promise);
+  return promise;
+}
+
+/**
  * Client-side data fetch through the same-origin `/api/proxy` route (see
  * app/api/proxy/[...path]/route.ts). Always resolves — on failure it falls
  * back to `fallback` and sets `error`, it never throws — so a page using
@@ -20,22 +45,23 @@ export function useApi<T>(path: string, fallback: T) {
     setLoading(true);
     setError(false);
 
-    fetch(`/api/proxy${path}`, { cache: "no-store" })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-        return (await res.json()) as T;
-      })
-      .then((json) => {
-        if (cancelled) return;
-        setData(json);
-        setLoading(false);
-      })
-      .catch(() => {
+    // If a fetch for this path is already in flight, reuse it rather than
+    // firing a duplicate request. Falls back to a fresh fetch when deduped.
+    const run = async () => {
+      try {
+        const json = await fetchDeduped<T>(path);
+        if (!cancelled) {
+          setData(json);
+          setLoading(false);
+        }
+      } catch (err) {
         if (cancelled) return;
         setData(fallback);
         setError(true);
         setLoading(false);
-      });
+      }
+    };
+    void run();
 
     return () => {
       cancelled = true;

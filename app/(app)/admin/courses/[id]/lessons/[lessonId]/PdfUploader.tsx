@@ -22,17 +22,21 @@ export function PdfUploader({
   lessonId,
   hasFile,
   allowDownload,
+  onUploaded,
 }: {
   courseId: string;
   lessonId: string;
   hasFile: boolean;
   allowDownload: boolean;
+  /** Called after a successful upload so the parent can refresh server state. */
+  onUploaded?: () => void;
 }) {
   const [uploaded, setUploaded] = useState(hasFile);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [downloadEnabled, setDownloadEnabled] = useState(allowDownload);
+  const [togglingDownload, setTogglingDownload] = useState(false);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -46,6 +50,7 @@ export function PdfUploader({
       const { uploadUrl } = await requestPdfUploadUrlAction(courseId, lessonId);
       await putWithProgress(uploadUrl, file, setProgress);
       setUploaded(true);
+      onUploaded?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -56,7 +61,15 @@ export function PdfUploader({
   async function handleToggleDownload() {
     const next = !downloadEnabled;
     setDownloadEnabled(next);
-    await setPdfAllowDownloadAction(courseId, lessonId, next);
+    setTogglingDownload(true);
+    try {
+      await setPdfAllowDownloadAction(courseId, lessonId, next);
+    } catch (err) {
+      setDownloadEnabled(!next);
+      setError(err instanceof Error ? err.message : "Could not update the download setting");
+    } finally {
+      setTogglingDownload(false);
+    }
   }
 
   return (
@@ -84,8 +97,8 @@ export function PdfUploader({
       </div>
 
       <label className="mt-4 flex items-center gap-2 text-[15px] text-text-primary">
-        <input type="checkbox" checked={downloadEnabled} onChange={handleToggleDownload} className="h-4 w-4 rounded border-border" />
-        Allow learners to download this PDF
+        <input type="checkbox" checked={downloadEnabled} onChange={handleToggleDownload} disabled={togglingDownload} className="h-4 w-4 rounded border-border disabled:opacity-50" />
+        Allow learners to download this PDF {togglingDownload && <span className="text-[12px] text-text-secondary">(saving…)</span>}
       </label>
     </div>
   );

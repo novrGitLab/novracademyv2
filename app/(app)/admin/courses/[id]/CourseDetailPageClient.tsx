@@ -403,8 +403,16 @@ function AddLessonModal({ courseId, onClose }: { courseId: string; onClose: () =
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-card border border-border bg-background p-6 shadow-card">
+      <div className="relative w-full max-w-md rounded-card border border-border bg-background p-6 shadow-card">
         <h3 className="text-[18px] font-semibold text-text-primary">Add New Lesson</h3>
+
+        {isPending && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-card bg-background/85 backdrop-blur-[2px]">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#F1F3F5] border-t-[#683290]" />
+            <p className="text-[13px] font-medium text-text-primary">Creating lesson…</p>
+            <p className="text-[12px] text-text-secondary">Opening the editor as soon as it&apos;s ready.</p>
+          </div>
+        )}
 
         <form
           action={(formData) => {
@@ -444,14 +452,15 @@ function AddLessonModal({ courseId, onClose }: { courseId: string; onClose: () =
             <button
               type="button"
               onClick={onClose}
-              className="rounded-card border border-border px-3 py-1.5 text-[13px] font-medium"
+              disabled={isPending}
+              className="rounded-card border border-border px-3 py-1.5 text-[13px] font-medium disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="flex items-center gap-2 rounded-card bg-blue px-4 py-1.5 text-[13px] font-medium text-white hover:bg-blue/90"
+              className="flex items-center gap-2 rounded-card bg-blue px-4 py-1.5 text-[13px] font-medium text-white hover:bg-blue/90 disabled:opacity-60"
             >
               {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Create Lesson
             </button>

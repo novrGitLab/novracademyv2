@@ -16,6 +16,7 @@ import { Archive, Copy, Edit, MoreVertical, Plus, Send, Trash2 } from "lucide-re
 interface CourseListItem {
   id: string;
   title: string;
+  thumbnailUrl: string | null;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   priceCents: number;
   currency: string;
@@ -126,7 +127,7 @@ export default function AdminCoursesPage() {
           <table className="w-full text-left text-[14px]">
             <thead>
               <tr className="border-b border-border bg-surface/50">
-                <th className="px-4 py-3 font-medium text-text-secondary">Title</th>
+                <th className="px-4 py-3 font-medium text-text-secondary">Course</th>
                 <th className="px-4 py-3 font-medium text-text-secondary">Status</th>
                 <th className="px-4 py-3 font-medium text-text-secondary">Lessons</th>
                 <th className="px-4 py-3 font-medium text-text-secondary">Enrollments</th>
@@ -138,7 +139,22 @@ export default function AdminCoursesPage() {
               {courses.map((course) => (
                 <tr key={course.id} className="border-b border-border last:border-0 hover:bg-surface/30">
                   <td className="px-4 py-3">
-                    <Link href={`/admin/courses/${course.id}`} className="font-medium text-text-primary hover:text-[#683290]">{course.title}</Link>
+                    <Link href={`/admin/courses/${course.id}`} className="flex items-center gap-3">
+                      {course.thumbnailUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={course.thumbnailUrl}
+                          alt=""
+                          loading="lazy"
+                          className="h-10 w-16 shrink-0 rounded-[6px] border border-border object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-10 w-16 shrink-0 items-center justify-center rounded-[6px] border border-dashed border-border bg-surface text-text-secondary">
+                          <BookOpen className="h-4 w-4" />
+                        </span>
+                      )}
+                      <span className="font-medium text-text-primary group-hover:text-[#683290]">{course.title}</span>
+                    </Link>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`rounded-pill px-2 py-0.5 text-[12px] font-medium ${statusColors[course.status] ?? ""}`}>{course.status}</span>

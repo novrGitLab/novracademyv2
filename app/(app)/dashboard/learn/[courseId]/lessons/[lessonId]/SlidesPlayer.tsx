@@ -92,7 +92,7 @@ export function SlidesPlayer({ courseId, lessonId, manifest, nextLessonHref }: S
       </div>
 
       <p className="mt-4 text-center text-[12px] text-text-secondary">
-        Keyboard: Space = play/pause · ←/→ = prev/next slide
+        Keyboard: Space = play/pause · ←/→ = prev/next slide · Present = fullscreen slideshow · Swipe on mobile
       </p>
     </div>
   );

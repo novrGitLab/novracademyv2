@@ -25,6 +25,11 @@ function extractSessionToken(req: NextRequest): string | null {
  * Extracts the raw NextAuth JWT from the session cookie and forwards it as
  * an Authorization: Bearer header. The backend validates it using the
  * shared NEXTAUTH_SECRET. Also forwards the raw cookie header as a fallback.
+ *
+ * The backend response body is streamed straight through (no full buffering),
+ * so large payloads (course trees, media, PDFs) start reaching the browser as
+ * soon as the backend starts writing them instead of after the whole body
+ * has been buffered twice.
  */
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {
   const path = "/" + params.path.join("/");
@@ -34,9 +39,12 @@ async function proxy(req: NextRequest, { params }: { params: { path: string[] } 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  const headers: Record<string, string> = {};
+
+  // Only set Content-Type when there is a body to send.
+  if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "DELETE") {
+    headers["Content-Type"] = "application/json";
+  }
 
   // Extract the raw JWT token and send as Authorization: Bearer.
   const token = extractSessionToken(req);
@@ -75,16 +83,24 @@ async function proxy(req: NextRequest, { params }: { params: { path: string[] } 
     }
 
     const contentType = res.headers.get("content-type") ?? "";
-    if (contentType.includes("application/pdf") || contentType.includes("audio/") || contentType.includes("image/") || contentType.includes("application/vnd")) {
-      const arrayBuf = await res.arrayBuffer();
-      return new NextResponse(arrayBuf, {
-        status: res.status,
-        headers: { "Content-Type": contentType },
-      });
+
+    // Stream the body straight through for both binary and JSON responses —
+    // this avoids buffering the full body in memory and gets bytes to the
+    // browser earlier. Copy a small allowlist of headers (content-type,
+    // content-length, cache-control, etag) so downstream caching still works.
+    const outHeaders: Record<string, string> = {
+      "Content-Type": contentType,
+    };
+    const passThrough = ["content-length", "cache-control", "etag"];
+    for (const h of passThrough) {
+      const v = res.headers.get(h);
+      if (v) outHeaders[h] = v;
     }
 
-    const responseBody = res.status === 204 ? null : await res.json().catch(() => null);
-    return NextResponse.json(responseBody, { status: res.status });
+    return new NextResponse(res.body, {
+      status: res.status,
+      headers: outHeaders,
+    });
   } catch (err) {
     const timedOut = err instanceof Error && err.name === "AbortError";
     return NextResponse.json(

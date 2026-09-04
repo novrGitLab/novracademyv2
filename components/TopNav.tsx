@@ -9,12 +9,13 @@ import { UserMenu } from "./UserMenu";
 
 export async function TopNav() {
   const session = await getServerSession(authOptions);
-  const { count } = await apiFetchSafe<{ count: number }>("/notifications/unread-count", { count: 0 });
 
   const isAdmin = Boolean(session?.user?.role && ADMIN_ROLES.includes(session.user.role));
-  const { demoMode } = isAdmin
-    ? await apiFetchSafe<{ demoMode: boolean }>("/health", { demoMode: false })
-    : { demoMode: false };
+  // Parallel: unread-count and demo-mode health check are independent reads.
+  const [{ count }, { demoMode }] = await Promise.all([
+    apiFetchSafe<{ count: number }>("/notifications/unread-count", { count: 0 }),
+    isAdmin ? apiFetchSafe<{ demoMode: boolean }>("/health", { demoMode: false }) : Promise.resolve({ demoMode: false }),
+  ]);
 
   return (
     <header className="relative flex h-16 shrink-0 items-center gap-4 border-b-2 border-[#683290]/20 bg-gradient-to-b from-white to-[#F4ECF8]/40 px-4 backdrop-blur sm:px-6">
