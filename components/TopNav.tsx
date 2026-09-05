@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { apiFetchSafe } from "@/lib/api";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { UserMenu } from "./UserMenu";
+import { MobileMenuButton } from "./MobileMenuButton";
 
 export async function TopNav() {
   const session = await getServerSession(authOptions);
@@ -18,12 +19,13 @@ export async function TopNav() {
   ]);
 
   return (
-    <header className="relative flex h-16 shrink-0 items-center gap-2 border-b-2 border-[#683290]/20 bg-gradient-to-b from-white to-[#F4ECF8]/40 px-4 pl-14 backdrop-blur sm:gap-4 sm:px-6 lg:pl-6">
+    <header className="relative flex h-16 shrink-0 items-center gap-2 border-b-2 border-[#683290]/20 bg-gradient-to-b from-white to-[#F4ECF8]/40 px-4 backdrop-blur sm:gap-4 sm:px-6">
       {demoMode && (
         <span className="absolute left-1/2 top-0 -translate-x-1/2 rounded-b-pill bg-yellow-400 px-3 py-0.5 text-[11px] font-semibold text-yellow-950 shadow-sm">
           <AlertTriangle className="mr-1 inline h-3 w-3" aria-hidden="true" /> Demo mode — payments disabled
         </span>
       )}
+      <MobileMenuButton />
       <div className="hidden sm:block">
         <Breadcrumbs />
       </div>

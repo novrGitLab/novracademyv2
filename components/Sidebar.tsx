@@ -16,7 +16,6 @@ import {
   LockKeyhole,
   LogOut,
   Mail,
-  Menu,
   Settings,
   ShieldCheck,
   ShieldAlert,
@@ -211,6 +210,12 @@ export function Sidebar() {
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+  // Allow TopNav hamburger (server component) to open the drawer via custom event
+  useEffect(() => {
+    const onOpen = () => setMobileOpen(true);
+    window.addEventListener("novr:open-sidebar", onOpen);
+    return () => window.removeEventListener("novr:open-sidebar", onOpen);
+  }, []);
   // Prevent background scroll when drawer is open
   useEffect(() => {
     if (mobileOpen) document.body.style.overflow = "hidden";
@@ -357,22 +362,14 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile hamburger â€” fixed, safe-area aware */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        aria-label="Open navigation menu"
-        aria-expanded={mobileOpen}
-        className="fixed left-4 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-pill bg-background shadow-card ring-1 ring-border lg:hidden [touch-action:manipulation] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#683290]"
-        style={{ top: "max(1rem, env(safe-area-inset-top))" }}
+      {/* Desktop sidebar — hidden on mobile */}
+      <aside className="hidden h-[100dvh] w-64 shrink-0 flex-col border-r border-border bg-background lg:flex">{NavContent}</aside>
+
+      {/* Mobile drawer — pointer-events disabled when closed so it never blocks content */}
+      <div
+        className={`fixed inset-0 z-50 lg:hidden ${mobileOpen ? "visible pointer-events-auto" : "invisible pointer-events-none"}`}
+        aria-hidden={!mobileOpen}
       >
-        <Menu className="h-5 w-5 text-text-primary" aria-hidden="true" />
-      </button>
-
-      {/* Desktop sidebar â€” hidden on mobile */}
-      <aside className="hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-background lg:flex">{NavContent}</aside>
-
-      {/* Mobile drawer */}
-      <div className={`fixed inset-0 z-50 lg:hidden ${mobileOpen ? "visible" : "invisible"}`} aria-hidden={!mobileOpen}>
         {/* Backdrop */}
         <div
           className={`absolute inset-0 bg-black/50 transition-opacity ${mobileOpen ? "opacity-100" : "opacity-0"}`}
