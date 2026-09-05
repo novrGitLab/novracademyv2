@@ -87,19 +87,9 @@ export function EnrollButton({
   ): Promise<void> {
     return new Promise((resolve) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const PaystackPop = (window as any).PaystackPop as
-        | undefined
-        | {
-            setup: (opts: {
-              key: string;
-              access_code: string;
-              callback: (response: { reference: string }) => void;
-              onClose: () => void;
-            }) => { openIframe: () => void };
-          };
+      const PaystackPop = (window as any).PaystackPop as any;
 
       if (!PaystackPop) {
-        // Inline script not loaded yet — fall back to a centered popup window
         const popup = window.open(
           fallbackUrl,
           "paystack_payment",
@@ -112,19 +102,32 @@ export function EnrollButton({
         return;
       }
 
-      const handler = PaystackPop.setup({
-        key: publicKey,
-        access_code: accessCode,
-        callback: (response) => {
-          // Stay on the same page — refresh server data, show success alert via URL param
-          router.push(`/dashboard/learn/${courseId}?checkout=success&ref=${response.reference}`);
-          resolve();
-        },
-        onClose: () => {
-          resolve();
-        },
-      });
-      handler.openIframe();
+      // Try new constructor API first, fall back to deprecated .setup()
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const handler = new PaystackPop({
+          key: publicKey,
+          access_code: accessCode,
+          callback: (response: { reference: string }) => {
+            router.push(`/dashboard/learn/${courseId}?checkout=success&ref=${response.reference}`);
+            resolve();
+          },
+          onClose: () => resolve(),
+        });
+        handler.openIframe();
+      } catch {
+        // Fallback to deprecated .setup() for older Paystack versions
+        const handler = PaystackPop.setup({
+          key: publicKey,
+          access_code: accessCode,
+          callback: (response: { reference: string }) => {
+            router.push(`/dashboard/learn/${courseId}?checkout=success&ref=${response.reference}`);
+            resolve();
+          },
+          onClose: () => resolve(),
+        });
+        handler.openIframe();
+      }
     });
   }
 
