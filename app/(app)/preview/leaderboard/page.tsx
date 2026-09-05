@@ -20,8 +20,8 @@ export default function PreviewLeaderboardPage() {
       <PreviewSectionWrapper
         overlay={<PreviewOverlay title="Sign in to climb the leaderboard" description="You're viewing example rankings. Sign in to earn XP from courses, labs, and challenges and see your real position." />}
       >
-        <div className="overflow-hidden rounded-card border border-border bg-background shadow-card">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-hidden rounded-card border border-border bg-background shadow-card overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+          <table className="w-full min-w-[520px] text-left text-sm">
             <thead>
               <tr className="border-b border-border bg-surface/50 text-[11px] font-bold uppercase tracking-wider text-text-secondary">
                 <th className="px-4 py-3 text-center w-16">Rank</th>

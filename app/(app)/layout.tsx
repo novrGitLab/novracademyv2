@@ -8,7 +8,7 @@ import { ContentArea } from "./ContentArea";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <ToastProvider>
-      <div className="flex h-screen bg-background">
+      <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
         <BaselineGate />
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
