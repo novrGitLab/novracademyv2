@@ -64,71 +64,11 @@ export function EnrollButton({
         return;
       }
 
-      // Paystack Inline: opens an overlay on the page instead of redirecting.
-      if (
-        provider === "PAYSTACK" &&
-        outcome.accessCode &&
-        outcome.publicKey
-      ) {
-        await openPaystackInline(outcome.publicKey, outcome.accessCode, outcome.checkoutUrl);
-      } else {
-        // Stripe (or fallback): open hosted checkout in a new tab
-        window.open(outcome.checkoutUrl, "_blank", "noopener,noreferrer");
-      }
+      // Paystack: use redirect URL (checkout page) since inline v2 API is unreliable
+      window.open(outcome.checkoutUrl, "_blank", "noopener,noreferrer");
     } finally {
       setLoading(null);
     }
-  }
-
-  function openPaystackInline(
-    publicKey: string,
-    accessCode: string,
-    fallbackUrl: string
-  ): Promise<void> {
-    return new Promise((resolve) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const PaystackPop = (window as any).PaystackPop as any;
-
-      if (!PaystackPop) {
-        const popup = window.open(
-          fallbackUrl,
-          "paystack_payment",
-          "width=600,height=700,left=200,top=100,noopener,noreferrer"
-        );
-        if (!popup) {
-          window.location.href = fallbackUrl;
-        }
-        resolve();
-        return;
-      }
-
-      // Try new constructor API first, fall back to deprecated .setup()
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const handler = new PaystackPop({
-          key: publicKey,
-          access_code: accessCode,
-          callback: (response: { reference: string }) => {
-            router.push(`/dashboard/learn/${courseId}?checkout=success&ref=${response.reference}`);
-            resolve();
-          },
-          onClose: () => resolve(),
-        });
-        handler.openIframe();
-      } catch {
-        // Fallback to deprecated .setup() for older Paystack versions
-        const handler = PaystackPop.setup({
-          key: publicKey,
-          access_code: accessCode,
-          callback: (response: { reference: string }) => {
-            router.push(`/dashboard/learn/${courseId}?checkout=success&ref=${response.reference}`);
-            resolve();
-          },
-          onClose: () => resolve(),
-        });
-        handler.openIframe();
-      }
-    });
   }
 
   async function handleRedeemCode(e: React.FormEvent) {
