@@ -1,15 +1,57 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/currency";
 import { isPaystackConfigured } from "@/lib/payment-config";
 import { enrollFreeAction, redeemCodeAction, startCheckoutAction } from "./actions";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
+import { X } from "lucide-react";
 
 interface AppliedDiscount {
   codeId: string;
   finalPriceCents: number;
+}
+
+function LoginPrompt({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#683290]/10">
+              <Lock className="h-5 w-5 text-[#683290]" />
+            </div>
+            <h3 className="font-serif text-lg font-semibold text-[#1A1A2E]">Sign in to continue</h3>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <p className="mt-3 text-sm text-[#666666]">
+          You need to be signed in to enroll in this course. Create a free account or sign in to get started.
+        </p>
+        <div className="mt-5 flex flex-col gap-3">
+          <Link
+            href={`/login?redirect=${typeof window !== "undefined" ? window.location.pathname : ""}`}
+            className="flex items-center justify-center gap-2 rounded-lg bg-[#683290] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#542573]"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/register"
+            className="flex items-center justify-center gap-2 rounded-lg border border-[#683290] px-4 py-2.5 text-sm font-medium text-[#683290] transition hover:bg-[#683290]/10"
+          >
+            Create free account
+          </Link>
+        </div>
+        <p className="mt-4 text-center text-xs text-[#999999]">
+          Your progress will be saved once you enroll.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export function EnrollButton({
@@ -28,6 +70,7 @@ export function EnrollButton({
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<AppliedDiscount | null>(null);
   const [codeMessage, setCodeMessage] = useState<string | null>(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   const effectivePriceCents = applied ? applied.finalPriceCents : priceCents;
 
@@ -41,6 +84,10 @@ export function EnrollButton({
         return;
       }
       if (!outcome.ok) {
+        if (outcome.error === "Not authenticated" || outcome.error === "Unauthorized") {
+          setShowLoginPrompt(true);
+          return;
+        }
         setError(outcome.error);
         return;
       }
@@ -60,6 +107,10 @@ export function EnrollButton({
         return;
       }
       if (!outcome.ok) {
+        if (outcome.error === "Not authenticated" || outcome.error === "Unauthorized") {
+          setShowLoginPrompt(true);
+          return;
+        }
         setError(outcome.error);
         return;
       }
@@ -167,6 +218,7 @@ export function EnrollButton({
         </button>
       </form>
       {codeMessage && <p className="mt-2 text-[13px] text-success">{codeMessage}</p>}
+      {showLoginPrompt && <LoginPrompt onClose={() => setShowLoginPrompt(false)} />}
     </div>
   );
 }
