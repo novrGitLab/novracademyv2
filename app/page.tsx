@@ -230,10 +230,10 @@ export default function LandingPage() {
                 Get started
               </Link>
               <Link
-                href="/login"
-                className="inline-flex items-center justify-center rounded-[8px] border border-[#E5E7EB] px-6 py-3 text-[15px] font-medium text-[#6B7280] transition hover:bg-[#F8F9FB] hover:text-[#1A1A2E]"
+                href="/preview"
+                className="inline-flex items-center justify-center rounded-[8px] border border-[#683290] px-6 py-3 text-[15px] font-medium text-[#683290] transition hover:bg-[#683290]/5"
               >
-                Sign in
+                Preview platform
               </Link>
             </div>
 

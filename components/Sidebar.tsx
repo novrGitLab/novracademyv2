@@ -13,6 +13,7 @@ import {
   FlaskConical,
   GraduationCap,
   Home,
+  LockKeyhole,
   LogOut,
   Mail,
   Settings,
@@ -175,6 +176,17 @@ function isActive(pathname: string, href: string, isParent: boolean) {
     : pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function toPreviewHref(href: string) {
+  if (href === "/dashboard") return "/preview";
+  if (href.startsWith("/dashboard/")) return href.replace("/dashboard", "/preview");
+  return href;
+}
+
+function isPreviewActive(pathname: string, href: string, isParent: boolean) {
+  const previewHref = toPreviewHref(href);
+  return isParent ? pathname === previewHref : pathname === previewHref || pathname.startsWith(`${previewHref}/`);
+}
+
 function initials(name: string | null | undefined, email: string | null | undefined) {
   const source = name?.trim() || email || "?";
   const parts = source.split(/\s+/).filter(Boolean);
@@ -190,6 +202,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const role = session?.user?.role;
+  const isPreview = pathname.startsWith("/preview");
   // The org logo is fetched separately — it's not in the session (a base64
   // data URL would blow up the JWT/cookie past header limits).
   const { data: org } = useApi<{ logoUrl?: string | null } | null>("/me/org", null);
@@ -238,12 +251,15 @@ export function Sidebar() {
           const isParent = nav.some(
             (other) => other !== item && other.href.startsWith(`${item.href}/`)
           );
-          const active = isActive(pathname, item.href, isParent);
+          const active = isPreview
+            ? isPreviewActive(pathname, item.href, isParent)
+            : isActive(pathname, item.href, isParent);
+          const previewHref = toPreviewHref(item.href);
           const Icon = item.icon;
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={isPreview ? previewHref : item.href}
               className={`group flex items-center gap-3 rounded-pill px-3 py-2 text-[14px] font-medium transition-all ${
                 active
                   ? "bg-[#E82027] text-white shadow-card"
@@ -256,7 +272,7 @@ export function Sidebar() {
                 }`}
                 strokeWidth={2}
               />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
             </Link>
           );
         })}
@@ -273,12 +289,15 @@ export function Sidebar() {
               const isParent = section.items.some(
                 (other) => other !== item && other.href.startsWith(`${item.href}/`)
               );
-              const active = isActive(pathname, item.href, isParent);
+              const active = isPreview
+                ? isPreviewActive(pathname, item.href, isParent)
+                : isActive(pathname, item.href, isParent);
+              const previewHref = toPreviewHref(item.href);
               const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={isPreview ? previewHref : item.href}
                   className={`group flex items-center gap-3 rounded-pill px-3 py-2 text-[14px] font-medium transition-all ${
                     active
                       ? "bg-[#E82027] text-white shadow-card"
@@ -291,13 +310,29 @@ export function Sidebar() {
                     }`}
                     strokeWidth={2}
                   />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
                 </Link>
               );
             })}
           </div>
         ))}
       </nav>
+
+      {/* Preview CTA when not signed in */}
+      {isPreview && !session?.user && (
+        <div className="border-t border-border p-3">
+          <div className="rounded-card bg-auth-primary p-3 text-white">
+            <p className="text-[13px] font-semibold">Preview mode</p>
+            <p className="mt-1 text-[11px] leading-4 text-white/80">Sign in to unlock your dashboard.</p>
+            <Link
+              href="/login"
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-auth bg-white px-3 py-2 text-xs font-bold text-auth-primary transition hover:bg-white/90"
+            >
+              <LockKeyhole className="h-3.5 w-3.5" /> Sign in
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* User card */}
       {session?.user && (

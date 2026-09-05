@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { apiFetchSafe } from "@/lib/api";
 import { notFound } from "next/navigation";
 import { Badge, PageHeader } from "@/components/DesignSystem";
@@ -5,22 +6,12 @@ import { formatPrice } from "@/lib/currency";
 import { EnrollButton } from "./EnrollButton";
 import { LessonList } from "./LessonList";
 import { PaymentStatusAlert } from "./PaymentStatusAlert";
-import { PaymentHistory } from "./PaymentHistory";
 
 interface Lesson {
   id: string;
   title: string;
   type: string;
   order: number;
-}
-
-interface Payment {
-  id: string;
-  status: "PENDING" | "SUCCEEDED" | "FAILED" | "REFUNDED";
-  amountCents: number;
-  currency: string;
-  provider: "STRIPE" | "PAYSTACK";
-  createdAt: string;
 }
 
 interface Course {
@@ -31,7 +22,7 @@ interface Course {
   currency: string;
   lessons: Lesson[];
   enrolled?: boolean;
-  payments?: Payment[];
+  isAnonymous?: boolean;
 }
 
 export default async function CourseDetailPage({
@@ -47,19 +38,19 @@ export default async function CourseDetailPage({
   if (!course) notFound();
 
   const lessons = course.lessons ?? [];
-  const payments = course.payments ?? [];
+  const isAnonymous = course.isAnonymous ?? false;
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
-      {/* Payment status alert */}
-      <PaymentStatusAlert />
+      {/* Payment status alert — only show for logged-in users */}
+      {!isAnonymous && <PaymentStatusAlert />}
 
       {/* Course header */}
       <div className="rounded-card bg-gradient-brand p-5 text-white shadow-premium sm:p-8">
         <PageHeader
           title={course.title}
           description={course.description ?? ""}
-          backLink={{ href: "/dashboard/learn", label: "Back to courses" }}
+          backLink={{ href: isAnonymous ? "/catalog" : "/dashboard/learn", label: "Back to courses" }}
           className="mb-0 [&_a]:!text-white [&_a]:!text-white/80 [&_a]:hover:!text-white [&_h1]:!text-white [&_p]:!text-white/85"
           action={
             <div className="flex flex-wrap items-center gap-2">
@@ -81,13 +72,59 @@ export default async function CourseDetailPage({
         </div>
       </div>
 
-      {/* Enrolled: lesson list with progress tracking. Not enrolled: enroll CTA. */}
+      {/* Content based on enrollment state and auth state */}
       {course.enrolled ? (
+        /* Logged in and enrolled — show full lesson list */
+        <LessonList courseId={course.id} lessons={lessons} />
+      ) : isAnonymous ? (
+        /* Anonymous user — show lesson preview but prompt to login */
         <>
-          <LessonList courseId={course.id} lessons={lessons} />
-          <PaymentHistory payments={payments} />
+          <div className="mt-5 rounded-card border border-border bg-background p-6 shadow-card">
+            <h2 className="font-serif text-xl font-semibold text-text-primary">Preview this course</h2>
+            <p className="mt-1 max-w-xl text-sm leading-6 text-text-secondary">
+              Sign in to enroll and access all lessons, track your progress, and earn your certificate.
+            </p>
+            <div className="mt-4 flex items-center gap-4">
+              <Link
+                href={`/login?redirect=/dashboard/learn/${course.id}`}
+                className="rounded-lg bg-[#683290] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#542573]"
+              >
+                Sign in to Enroll
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-lg border border-[#683290] px-4 py-2 text-sm font-medium text-[#683290] transition hover:bg-[#683290]/10"
+              >
+                Create Account
+              </Link>
+            </div>
+          </div>
+          {/* Show lesson list as preview (locked) */}
+          <div className="mt-5">
+            <h3 className="mb-4 font-serif text-xl font-semibold text-text-primary">Course Content</h3>
+            <div className="rounded-card border border-border bg-background p-4">
+              <div className="space-y-3">
+                {lessons.map((lesson) => (
+                  <div
+                    key={lesson.id}
+                    className="flex items-center gap-3 rounded-lg border border-border p-4 opacity-60"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#683290]/10 text-[#683290]">
+                      {lesson.order}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-text-primary">{lesson.title}</p>
+                      <p className="text-xs capitalize text-text-secondary">{lesson.type.toLowerCase()}</p>
+                    </div>
+                    <span className="text-xs text-text-secondary">🔒 Locked</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </>
       ) : (
+        /* Logged in but not enrolled — show enroll button */
         <div className="mt-5 rounded-card border border-border bg-background p-6 shadow-card">
           <h2 className="font-serif text-xl font-semibold text-text-primary">Get started with this course</h2>
           <p className="mt-1 max-w-xl text-sm leading-6 text-text-secondary">
@@ -96,7 +133,6 @@ export default async function CourseDetailPage({
           <div className="mt-4">
             <EnrollButton courseId={course.id} priceCents={course.priceCents} currency={course.currency} />
           </div>
-          <PaymentHistory payments={payments} />
         </div>
       )}
     </div>
