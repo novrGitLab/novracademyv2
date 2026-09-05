@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -26,8 +26,10 @@ import {
   Users2,
   Bell,
   UserRound,
+  X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                      */
@@ -203,12 +205,31 @@ export function Sidebar() {
   const { data: session } = useSession();
   const role = session?.user?.role;
   const isPreview = pathname.startsWith("/preview");
-  // The org logo is fetched separately — it's not in the session (a base64
+  const [mobileOpen, setMobileOpen] = useState(false);
+  // Close drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+  // Allow TopNav hamburger (server component) to open the drawer via custom event
+  useEffect(() => {
+    const onOpen = () => setMobileOpen(true);
+    window.addEventListener("novr:open-sidebar", onOpen);
+    return () => window.removeEventListener("novr:open-sidebar", onOpen);
+  }, []);
+  // Prevent background scroll when drawer is open
+  useEffect(() => {
+    if (mobileOpen) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+  // The org logo is fetched separately â€” it's not in the session (a base64
   // data URL would blow up the JWT/cookie past header limits).
   const { data: org } = useApi<{ logoUrl?: string | null } | null>("/me/org", null);
   const tenantType = session?.user?.tenantType;
 
-  // Build full nav — base nav only for non-admin users
+  // Build full nav â€” base nav only for non-admin users
   const isAdmin = role && ADMIN_ROLES.includes(role as any);
   const nav = isAdmin ? [] : [...baseNav];
   const adminSections = getAdminSections(role, tenantType);
@@ -228,51 +249,39 @@ export function Sidebar() {
     INSTITUTION_ADMIN: "Institutional Portal",
   };
 
-  return (
-    <aside className="flex h-screen w-64 flex-col border-r border-border bg-background">
+  const NavContent = (
+    <>
       {/* Brand */}
       <div className="px-5 py-6">
-        <img
-          src={org?.logoUrl || "/novracademy-logo.png"}
-          alt="Novr Academy"
-          className="h-16 w-auto object-contain"
-        />
+        <img src={org?.logoUrl || "/novracademy-logo.png"} alt="Novr Academy" className="h-16 w-auto object-contain" />
         {roleLabels[role ?? ""] && (
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-            {roleLabels[role ?? ""]}
-          </p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-text-secondary">{roleLabels[role ?? ""]}</p>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-3 [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]">
         {/* Base nav items */}
         {nav.map((item) => {
-          const isParent = nav.some(
-            (other) => other !== item && other.href.startsWith(`${item.href}/`)
-          );
-          const active = isPreview
-            ? isPreviewActive(pathname, item.href, isParent)
-            : isActive(pathname, item.href, isParent);
+          const isParent = nav.some((other) => other !== item && other.href.startsWith(`${item.href}/`));
+          const active = isPreview ? isPreviewActive(pathname, item.href, isParent) : isActive(pathname, item.href, isParent);
           const previewHref = toPreviewHref(item.href);
           const Icon = item.icon;
           return (
             <Link
               key={item.href}
               href={isPreview ? previewHref : item.href}
-              className={`group flex items-center gap-3 rounded-pill px-3 py-2 text-[14px] font-medium transition-all ${
-                active
-                  ? "bg-[#E82027] text-white shadow-card"
-                  : "text-text-secondary hover:bg-surface hover:text-text-primary"
+              onClick={() => setMobileOpen(false)}
+              className={`group flex min-h-11 items-center gap-3 rounded-pill px-3 py-2.5 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#683290] focus-visible:ring-offset-2 ${
+                active ? "bg-[#E82027] text-white shadow-card" : "text-text-secondary hover:bg-surface hover:text-text-primary"
               }`}
             >
               <Icon
-                className={`h-[18px] w-[18px] shrink-0 transition-colors ${
-                  active ? "text-white" : "text-text-secondary group-hover:text-text-primary"
-                }`}
+                className={`h-[18px] w-[18px] shrink-0 transition-colors ${active ? "text-white" : "text-text-secondary group-hover:text-text-primary"}`}
                 strokeWidth={2}
+                aria-hidden="true"
               />
-              <span className="flex-1">{item.label}</span>
+              <span className="flex-1 truncate">{item.label}</span>
             </Link>
           );
         })}
@@ -281,36 +290,28 @@ export function Sidebar() {
         {adminSections.map((section, si) => (
           <div key={si} className={si > 0 ? "mt-4" : "mt-2"}>
             {section.label && showSections && (
-              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-                {section.label}
-              </p>
+              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-text-secondary">{section.label}</p>
             )}
             {section.items.map((item) => {
-              const isParent = section.items.some(
-                (other) => other !== item && other.href.startsWith(`${item.href}/`)
-              );
-              const active = isPreview
-                ? isPreviewActive(pathname, item.href, isParent)
-                : isActive(pathname, item.href, isParent);
+              const isParent = section.items.some((other) => other !== item && other.href.startsWith(`${item.href}/`));
+              const active = isPreview ? isPreviewActive(pathname, item.href, isParent) : isActive(pathname, item.href, isParent);
               const previewHref = toPreviewHref(item.href);
               const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
                   href={isPreview ? previewHref : item.href}
-                  className={`group flex items-center gap-3 rounded-pill px-3 py-2 text-[14px] font-medium transition-all ${
-                    active
-                      ? "bg-[#E82027] text-white shadow-card"
-                      : "text-text-secondary hover:bg-surface hover:text-text-primary"
+                  onClick={() => setMobileOpen(false)}
+                  className={`group flex min-h-11 items-center gap-3 rounded-pill px-3 py-2.5 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#683290] focus-visible:ring-offset-2 ${
+                    active ? "bg-[#E82027] text-white shadow-card" : "text-text-secondary hover:bg-surface hover:text-text-primary"
                   }`}
                 >
                   <Icon
-                    className={`h-[18px] w-[18px] shrink-0 transition-colors ${
-                      active ? "text-white" : "text-text-secondary group-hover:text-text-primary"
-                    }`}
+                    className={`h-[18px] w-[18px] shrink-0 transition-colors ${active ? "text-white" : "text-text-secondary group-hover:text-text-primary"}`}
                     strokeWidth={2}
+                    aria-hidden="true"
                   />
-                  <span className="flex-1">{item.label}</span>
+                  <span className="flex-1 truncate">{item.label}</span>
                 </Link>
               );
             })}
@@ -320,15 +321,16 @@ export function Sidebar() {
 
       {/* Preview CTA when not signed in */}
       {isPreview && !session?.user && (
-        <div className="border-t border-border p-3">
+        <div className="border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="rounded-card bg-auth-primary p-3 text-white">
             <p className="text-[13px] font-semibold">Preview mode</p>
             <p className="mt-1 text-[11px] leading-4 text-white/80">Sign in to unlock your dashboard.</p>
             <Link
               href="/login"
-              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-auth bg-white px-3 py-2 text-xs font-bold text-auth-primary transition hover:bg-white/90"
+              onClick={() => setMobileOpen(false)}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-auth bg-white px-3 py-2.5 text-xs font-bold text-auth-primary transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              <LockKeyhole className="h-3.5 w-3.5" /> Sign in
+              <LockKeyhole className="h-3.5 w-3.5" aria-hidden="true" /> Sign in
             </Link>
           </div>
         </div>
@@ -336,27 +338,65 @@ export function Sidebar() {
 
       {/* User card */}
       {session?.user && (
-        <div className="border-t border-border p-3">
+        <div className="border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="flex items-center gap-3 rounded-card px-2 py-2">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-purple text-[13px] font-semibold text-white">
               {initials(session.user.name, session.user.email)}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[14px] font-medium text-text-primary">
-                {session.user.name ?? session.user.email}
-              </p>
+              <p className="truncate text-[14px] font-medium text-text-primary">{session.user.name ?? session.user.email}</p>
               <p className="truncate text-[12px] text-text-secondary">{role?.replace(/_/g, " ")}</p>
             </div>
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              title="Sign out"
-              className="shrink-0 rounded-md p-1.5 text-text-secondary transition hover:bg-red-light hover:text-red"
+              aria-label="Sign out"
+              className="shrink-0 rounded-md p-2.5 text-text-secondary transition hover:bg-red-light hover:text-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#683290]"
             >
-              <LogOut className="h-4 w-4" strokeWidth={2} />
+              <LogOut className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
             </button>
           </div>
         </div>
       )}
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar — hidden on mobile */}
+      <aside className="hidden h-[100dvh] w-64 shrink-0 flex-col border-r border-border bg-background lg:flex">{NavContent}</aside>
+
+      {/* Mobile drawer — pointer-events disabled when closed so it never blocks content */}
+      <div
+        className={`fixed inset-0 z-50 lg:hidden ${mobileOpen ? "visible pointer-events-auto" : "invisible pointer-events-none"}`}
+        aria-hidden={!mobileOpen}
+      >
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 bg-black/50 transition-opacity ${mobileOpen ? "opacity-100" : "opacity-0"}`}
+          onClick={() => setMobileOpen(false)}
+        />
+        {/* Panel */}
+        <aside
+          className={`absolute inset-y-0 left-0 flex w-[85vw] max-w-72 flex-col border-r border-border bg-background shadow-xl transition-transform duration-300 ${
+            mobileOpen ? "translate-x-0" : "-translate-x-full"
+          } h-[100dvh] overscroll-contain`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation menu"
+        >
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <img src={org?.logoUrl || "/novracademy-logo.png"} alt="Novr Academy" className="h-10 w-auto object-contain" />
+            <button
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close navigation menu"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-text-secondary transition hover:bg-surface hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#683290]"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="flex flex-1 flex-col overflow-hidden">{NavContent}</div>
+        </aside>
+      </div>
+    </>
   );
 }

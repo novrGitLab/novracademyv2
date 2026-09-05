@@ -82,16 +82,16 @@ function SectionHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-end justify-between gap-4">
-      <div>
+    <div className="flex flex-wrap items-end justify-between gap-3 sm:gap-4">
+      <div className="min-w-0">
         {eyebrow && (
           <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-auth-primary">
             {eyebrow}
           </p>
         )}
-        <h2 className="font-serif text-2xl text-text-primary">{title}</h2>
+        <h2 className="text-balance font-serif text-xl text-text-primary sm:text-2xl">{title}</h2>
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }
@@ -227,18 +227,18 @@ export function DashboardView({
   const hasCourses = isPreview ? previewCourses.length > 0 : enrollments.length > 0;
 
   return (
-    <div className="mx-auto max-w-[1200px] space-y-8 pb-8">
+    <div className="mx-auto max-w-[1200px] space-y-6 sm:space-y-8 overflow-x-hidden pb-[max(2rem,env(safe-area-inset-bottom))]">
       {isPreview && <PreviewBanner />}
 
-      <section className="flex flex-col justify-between gap-8 overflow-hidden rounded-card bg-gradient-brand p-6 text-white shadow-premium sm:flex-row sm:items-center sm:p-8">
+      <section className="flex flex-col justify-between gap-6 overflow-hidden rounded-card bg-gradient-brand p-5 text-white shadow-premium sm:flex-row sm:items-center sm:gap-8 sm:p-8">
         <div className="max-w-2xl">
           <div className="flex items-center gap-2 text-xs font-semibold text-white/75">
             <Sparkles className="h-4 w-4" /> {greeting}
           </div>
-          <h1 className="mt-3 font-serif text-[28px] leading-tight">
-            {greeting}, {firstName}!
+          <h1 className="mt-3 text-balance font-serif text-2xl leading-tight sm:text-[28px]">
+            {greeting}, <span className="truncate">{firstName}!</span>
           </h1>
-          <p className="mt-3 max-w-lg text-sm leading-6 text-white/80">
+          <p className="mt-3 max-w-lg text-pretty text-sm leading-6 text-white/80">
             Keep making progress toward your goals. Pick up where you left off and continue learning with Novr Academy.
           </p>
           {isPreview ? (
@@ -269,7 +269,7 @@ export function DashboardView({
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
           <StatTile key={stat.label} {...stat} locked={isPreview} />
         ))}
@@ -287,11 +287,11 @@ export function DashboardView({
             </Link>
           }
         />
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="mt-4 grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {hasCourses ? (
             isPreview ? (
               previewCourses.map((course, index) => (
-                <div key={course.id} className="relative">
+                <div key={course.id} className="relative min-w-0">
                   <CourseCard
                     eyebrow="Example"
                     title={course.title}
@@ -301,7 +301,7 @@ export function DashboardView({
                     href="/login"
                   />
                   <span className="pointer-events-none absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-text-secondary shadow">
-                    <LockKeyhole className="h-3 w-3" /> Preview
+                    <LockKeyhole className="h-3 w-3" aria-hidden="true" /> Preview
                   </span>
                 </div>
               ))
@@ -330,13 +330,13 @@ export function DashboardView({
 
       <section>
         <SectionHeader title="Learning Features" />
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="mt-4 grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {features.map((feature) => (
-            <Link key={feature.title} href={feature.href} className="group relative">
+            <Link key={feature.title} href={feature.href} className="group relative min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#683290] rounded-card">
               <FeatureCard icon={feature.icon} title={feature.title} description={feature.description} />
               {isPreview && (
                 <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-surface text-text-secondary">
-                  <LockKeyhole className="h-3.5 w-3.5" />
+                  <LockKeyhole className="h-3.5 w-3.5" aria-hidden="true" />
                 </span>
               )}
             </Link>
@@ -346,7 +346,7 @@ export function DashboardView({
 
       <section>
         <SectionHeader title="Achievements" eyebrow="Achievements" />
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-4">
           {isPreview ? (
             <>
               <AchievementBadge name="First steps" unlocked />
@@ -428,18 +428,18 @@ export function DashboardView({
 
       <section>
         <SectionHeader title="More from Novr Academy" />
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {actions.map((action) => (
             <Link
               key={action.href + action.label}
               href={action.href}
-              className="flex items-center gap-3 rounded-card border border-border bg-background p-4 text-sm font-semibold text-text-primary shadow-card transition hover:border-auth-primary/30 hover:shadow-card-hover"
+              className="flex min-h-11 items-center gap-3 rounded-card border border-border bg-background p-4 text-sm font-semibold text-text-primary shadow-card transition hover:border-auth-primary/30 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#683290] min-w-0 [touch-action:manipulation]"
             >
-              <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${action.gradient} text-white`}>
-                <action.icon className="h-4 w-4" />
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${action.gradient} text-white`}>
+                <action.icon className="h-4 w-4" aria-hidden="true" />
               </span>
-              {action.label}
-              {isPreview && <LockKeyhole className="ml-auto h-3.5 w-3.5 shrink-0 text-text-secondary" />}
+              <span className="truncate">{action.label}</span>
+              {isPreview && <LockKeyhole className="ml-auto h-3.5 w-3.5 shrink-0 text-text-secondary" aria-hidden="true" />}
             </Link>
           ))}
         </div>

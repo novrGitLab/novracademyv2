@@ -50,8 +50,8 @@ export default async function LeaderboardPage() {
           <p className="mt-1 text-xs text-text-secondary">Complete courses, quizzes, and labs to earn XP and climb the ranks.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-card border border-border bg-background shadow-card">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-hidden rounded-card border border-border bg-background shadow-card overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+          <table className="w-full min-w-[520px] text-left text-sm">
             <thead>
               <tr className="border-b border-border bg-surface/50 text-[11px] font-bold uppercase tracking-wider text-text-secondary">
                 <th className="px-4 py-3 text-center w-16">Rank</th>

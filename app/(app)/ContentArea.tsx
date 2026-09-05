@@ -23,8 +23,8 @@ export function ContentArea({ children }: { children: ReactNode }) {
   const [isNavigating, navCount] = useNavigationLoader(900);
 
   return (
-    <main className="relative flex-1 overflow-y-auto bg-gradient-to-b from-[#F4ECF8]/60 via-surface/40 to-white">
-      <div className="relative min-h-full p-8">
+    <main className="relative flex-1 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-[#F4ECF8]/60 via-surface/40 to-white overscroll-contain">
+      <div className="relative min-h-full p-4 sm:p-6 lg:p-8 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
         {children}
         {isNavigating && (
           <div key={navCount} className="novr-content-loader-host">
