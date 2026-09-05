@@ -115,8 +115,10 @@ export function EnrollButton({
         return;
       }
 
-      // Paystack: use redirect URL (checkout page) since inline v2 API is unreliable
-      window.open(outcome.checkoutUrl, "_blank", "noopener,noreferrer");
+      // Redirect in same tab so Paystack's callbackUrl ( /dashboard/learn/:id?checkout=success )
+      // returns the user to this same page where PaymentStatusAlert + verification can run.
+      // Using _blank previously left the original tab stale and the success tab orphaned.
+      window.location.href = outcome.checkoutUrl;
     } finally {
       setLoading(null);
     }
