@@ -8,7 +8,32 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { ProgressRing } from "../DashboardComponents";
+
+function ProgressRing({ progress }: { progress: number }) {
+  const radius = 24;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+  return (
+    <svg className="h-14 w-14 -rotate-90" viewBox="0 0 56 56">
+      <circle cx="28" cy="28" r={radius} fill="none" stroke="#E5E5E5" strokeWidth="4" />
+      <circle
+        cx="28"
+        cy="28"
+        r={radius}
+        fill="none"
+        stroke={progress === 100 ? "#16A34A" : "#683290"}
+        strokeWidth="4"
+        strokeDasharray={circumference}
+        strokeDashoffset={strokeDashoffset}
+        strokeLinecap="round"
+      />
+      <text x="28" y="32" textAnchor="middle" className="text-xs font-bold fill-[#1A1A2E]">
+        {progress}%
+      </text>
+    </svg>
+  );
+}
 
 const MOCK_STATS = [
   { label: "Courses enrolled", value: 4, icon: BookOpen, color: "blue" as const },
