@@ -230,7 +230,7 @@ export default function LandingPage() {
                 Get started
               </Link>
               <Link
-                href="/preview/dashboard"
+                href="/preview"
                 className="inline-flex items-center justify-center rounded-[8px] border border-[#683290] px-6 py-3 text-[15px] font-medium text-[#683290] transition hover:bg-[#683290]/5"
               >
                 Preview platform

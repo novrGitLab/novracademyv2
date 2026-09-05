@@ -38,7 +38,7 @@ export async function TopNav() {
 
       <div className="ml-auto flex items-center gap-3">
         <Link
-          href="/dashboard/notifications"
+          href={session?.user ? "/dashboard/notifications" : "/login"}
           aria-label="Notifications"
           className="relative flex h-9 w-9 items-center justify-center rounded-full text-text-secondary transition hover:bg-surface hover:text-text-primary"
         >
@@ -51,14 +51,23 @@ export async function TopNav() {
         </Link>
 
         <Link
-          href="/dashboard/profile"
+          href={session?.user ? "/dashboard/profile" : "/login"}
           aria-label="Settings"
           className="hidden h-9 w-9 items-center justify-center rounded-full text-text-secondary transition hover:bg-surface hover:text-text-primary sm:flex"
         >
           <Settings className="h-[18px] w-[18px]" strokeWidth={2} />
         </Link>
 
-        {session?.user && <UserMenu name={session.user.name} email={session.user.email ?? undefined} />}
+        {session?.user ? (
+          <UserMenu name={session.user.name} email={session.user.email ?? undefined} />
+        ) : (
+          <Link
+            href="/login"
+            className="hidden items-center gap-1.5 rounded-auth bg-auth-primary px-4 py-2 text-xs font-bold text-white transition hover:bg-[#542573] sm:inline-flex"
+          >
+            Sign in
+          </Link>
+        )}
       </div>
     </header>
   );
