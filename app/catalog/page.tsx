@@ -128,10 +128,10 @@ export default async function CatalogPage({
                         {isFree ? "Free" : formatPrice(course.priceCents, course.currency)}
                       </Badge>
                       <a
-                        href={`/login?redirect=/dashboard/learn/${course.id}`}
+                        href={`/dashboard/learn/${course.id}`}
                         className="rounded-lg bg-[#683290] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#542573]"
                       >
-                        Enroll Now
+                        View Course
                       </a>
                     </div>
                   </div>
