@@ -5,22 +5,12 @@ import { formatPrice } from "@/lib/currency";
 import { EnrollButton } from "./EnrollButton";
 import { LessonList } from "./LessonList";
 import { PaymentStatusAlert } from "./PaymentStatusAlert";
-import { PaymentHistory } from "./PaymentHistory";
 
 interface Lesson {
   id: string;
   title: string;
   type: string;
   order: number;
-}
-
-interface Payment {
-  id: string;
-  status: "PENDING" | "SUCCEEDED" | "FAILED" | "REFUNDED";
-  amountCents: number;
-  currency: string;
-  provider: "STRIPE" | "PAYSTACK";
-  createdAt: string;
 }
 
 interface Course {
@@ -31,7 +21,6 @@ interface Course {
   currency: string;
   lessons: Lesson[];
   enrolled?: boolean;
-  payments?: Payment[];
 }
 
 export default async function CourseDetailPage({
@@ -47,7 +36,6 @@ export default async function CourseDetailPage({
   if (!course) notFound();
 
   const lessons = course.lessons ?? [];
-  const payments = course.payments ?? [];
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
@@ -83,10 +71,7 @@ export default async function CourseDetailPage({
 
       {/* Enrolled: lesson list with progress tracking. Not enrolled: enroll CTA. */}
       {course.enrolled ? (
-        <>
-          <LessonList courseId={course.id} lessons={lessons} />
-          <PaymentHistory payments={payments} />
-        </>
+        <LessonList courseId={course.id} lessons={lessons} />
       ) : (
         <div className="mt-5 rounded-card border border-border bg-background p-6 shadow-card">
           <h2 className="font-serif text-xl font-semibold text-text-primary">Get started with this course</h2>
@@ -96,7 +81,6 @@ export default async function CourseDetailPage({
           <div className="mt-4">
             <EnrollButton courseId={course.id} priceCents={course.priceCents} currency={course.currency} />
           </div>
-          <PaymentHistory payments={payments} />
         </div>
       )}
     </div>

@@ -11,6 +11,13 @@ const playfairDisplay = Playfair_Display({ subsets: ["latin"], variable: "--font
 export const metadata: Metadata = {
   title: "Novr Academy",
   description: "Corporate learning platform and career community.",
+  icons: {
+    icon: [
+      { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon/favicon.ico" },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
